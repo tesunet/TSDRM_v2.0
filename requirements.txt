@@ -4,7 +4,7 @@ django-celery==3.2.1
 flower==0.9.2
 kombu==3.0.37
 lxml==4.2.3
-paramiko==2.4.1
+paramiko==2.4.2
 pdfkit==0.6.1
 Pillow==5.2.0
 pymssql==2.1.3
