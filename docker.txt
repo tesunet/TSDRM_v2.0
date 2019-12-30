@@ -1,0 +1,351 @@
+#************************* Centos7 安装docker *******************
+# 参考：https://yeasy.gitbooks.io/docker_practice/install/centos.html
+# 将docker添加至用户组，不需要使用sudo命令
+sudo groupadd docker
+sudo gpasswd -a $USER docker
+newgrp docker
+docker ps  # 测试是否不需要sudo
+
+# 查看官方镜像
+docker search --filter=is-official=true mysql
+
+#************************* MySQL容器 **************************
+# 宿主机相关文件
+mysql >> conf >> my.cnf   # 配置文件
+         data             # 挂载的数据库文件
+         logs             # 挂载的日志文件
+
+# 创建容器(mysql目录下执行):宿主机3306端口可能被宿主机占用
+docker run -p 3307:3306 --name mysql_tsdrm \
+    -v $PWD/mysql/conf:/etc/mysql/conf.d \
+    -v $PWD/mysql/logs:/logs \
+    -v $PWD/mysql/data:/var/lib/mysql \
+    -e MYSQL_ROOT_PASSWORD=password \
+    -d \
+    registry.cn-hangzhou.aliyuncs.com/tp_pro/tp_db:1.1
+
+# 进入容器
+docker exec -it mysql_tsdrm /bin/bash  # 容器开启的状态下
+
+# 复制sql文件至容器
+docker cp /home/username/桌面/tesudrm.sql mysql_tsdrm:/
+
+# 创建数据库/导入数据
+mysql -uroot -p
+create dababase example charset=utf8;
+
+mysql -uroot -p example < tesudrm.sql
+
+# ************************* Redis容器 **************************
+# 宿主机相关文件
+redis >> conf  >> redis.conf
+         data
+
+# docker中redis默认无配置文件启动
+# 配置文件redis.conf(根据需求自己配置,参数说明：https://www.cnblogs.com/qq78292959/archive/2013/09/21/3331032.html)
+requirepass tesunet
+daemonize no
+port 6379
+
+# 启动/拉取redis:4.0，同时命名，同时挂载配置文件/数据文件至宿主机当前文件下(执行命令的位置)
+docker run -p 6378:6379 --name redis_tsdrm \
+    -v $PWD/redis/conf/redis.conf:/etc/redis/redis.conf \
+    -v $PWD/redis/data:/data \
+    -d \
+    registry.cn-hangzhou.aliyuncs.com/tp_pro/tp_cache:1.0 \
+    redis-server /etc/redis/redis.conf
+
+# 添加账户:requirepass tesunet
+# 认证: redis-cli: >> AUTH "tesunet"
+
+# ********************* Python镜像+django项目 ******************
+# 宿主机相关文件
+django_tsdrm >> requirements.txt
+             >> TSDRM(项目)
+
+# settings.py mysql的host改成db,mysql_tsdrm表示mysql容器的名称(容器间通信)。
+docker run -p 8000:8000 \
+    -v $PWD/django_data/TSDRM:/TSDRM \
+    --link mysql_tsdrm:db_server \
+    --link redis_tsdrm:redis_server \
+    --name django_tsdrm \
+    -itd \
+    registry.cn-hangzhou.aliyuncs.com/tp_pro/tp_pro:1.2
+    # (命令位置写错很麻烦)
+# 复制requiremens.txt至容器
+docker cp requirements.txt django_tsdrm:/
+# 进入容器
+docker exec -it django_tsdrm /bin/bash
+# 安装依赖
+pip3 install -r requirements.txt
+# 复制项目至容器
+# 修改settings.py
+>>> redis/mysql的host改为:db_server/redis_server
+docker cp TSDRM django_tsdrm:/
+
+# 运行项目
+python manage.py runserver 0.0.0.0:8000
+
+# 访问项目url
+http://ip:8000
+
+# 运行celery/celery beat/celery flower
+python3 manage.py celery -A TSDRM worker -l info
+python3 manage.py celery -A TSDRM flower -l info
+python3 manage.py celery -A TSDRM beat -l info
+
+# 守护进程的方式启动 celery/celery-beat/celery-flower
+#python3 /TSDRM/manage.py celery multi start worker -A TSDRM -l info --logfile=./celery.log \
+#    & celery -A TSDRM beat -l info --logfile=./celery_beat.log \
+#    & celery -A TSDRM flower -l info --logfile=./celery_flower.log
+
+# 关闭celery
+python3 manage.py celery multi stop/stopwait worker -A TSDRM -l info --logfile=./celery.log
+
+# *********************   uwsgi运行项目 ******************************
+# 1.安装uwsgi
+pip3 install uwsgi
+
+# 2.配置uwsgi.ini
+[uwsgi]
+socket=0.0.0.0:8000 # 配置nginx代理时使用
+#http=0.0.0.0:8000
+chdir=/TSDRM
+#module=TSDRM.wsgi:application
+wsgi-file=/TSDRM/TSDRM/wsgi.py
+master=True
+process=4
+pidfile=/TSDRM/TSDRM-master.pid
+vacuum=True
+max-requests=5000
+daemonize=/TSDRM/log/wsgi.log
+static-map=/static=/TSDRM/static
+
+
+# 3.collectstatic命令收集静态文件至项目目录下
+python manage.py collectstatic
+
+# 4.注释掉STATIC_ROOT，添加
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static")
+]
+
+# 5.urls.py添加
+from django.conf import settings
+from django.conf.urls.static import static
+
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+
+# 附：
+# 1.命令的方式启动
+uwsgi --static-map /static=/TSDRM/static --http 0.0.0.0:80 --chdir /TSDRM --wsgi-file /TSDRM/TSDRM/wsgi.py
+# 2.配置文件的方式启动
+uwsgi --ini uwsgi.ini
+
+# ********************** nginx容器 *************************
+# 1.下载镜像/安装容器(将django项目里的static文件挂载至nginx容器中做静态文件代理)
+docker run -v $PWD/nginx/log:/var/log/nginx/ \
+    -v $PWD/nginx/nginx.conf:/etc/nginx/nginx.conf \
+    -v $PWD/django_data/TSDRM/static:/static \
+    --link django_tsdrm:django_server \
+    --name nginx_tsdrm -d \
+    -p 8888:80 \
+    registry.cn-hangzhou.aliyuncs.com/tp_pro/tp_nginx:1.0
+
+# 2.进入容器
+docker exec -it nginx /bin/bash
+# 缺省的Nginx安装在/var/lib/nginx下，配置在/etc/nginx下面，包括nginx.conf主配置文件，conf.d和site-enabled是附加的配置文件。后面，我们将会该目录映射到宿主机目录，以便于修改和管理。
+
+# 3.配置nginx
+worker_processes  1;
+events {
+    worker_connections  1024;
+}
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    sendfile        on;
+    server {
+        listen       80;
+        server_name  localhost;
+        charset utf-8;
+        location / {
+            include uwsgi_params;
+            uwsgi_pass django_server:8000;
+            uwsgi_param UWSGI_SCRIPT TSDRM.wsgi;
+            uwsgi_param UWSGI_CHDIR /TSDRM;
+        }
+        location /static/ {
+            alias /static/;
+        }
+    }
+}
+
+# ****************** 在django镜像中安装生成pdf文件的软件 wkhtmltopdf ************
+# 1.在wkhtmltopdf官网下载指定系统的wkhtmltopdf安装包
+    容器中时debian，所以下载了：wkhtmltox_0.12.5-1.jessie_amd64.deb
+    dpkg -i wkhtmltox_0.12.5-1.jessie_amd64.deb
+# 2.安装过程中需要以下依赖，通通下载通过dpkg安装，再去安装wkhtmltopdf
+    xfonts-75dpi
+    xfonts-base
+        xfonts-utils
+            libfontenc1
+            xfonts-encodings
+# 3.解决pdf中文显示问题
+    下载宋体:simsun.ttc 复制到容器的/usr/share/fonts/truetype/文件夹下
+
+
+# *********************** 其他操作 *************************
+附录：使用第三方容器仓库：阿里云
+docker login --username=username registry.cn-hangzhou.aliyuncs.com
+docker tag [ImageId] registry.cn-hangzhou.aliyuncs.com/tp_pro/tp_pro:[镜像版本号]
+docker push registry.cn-hangzhou.aliyuncs.com/tp_pro/tp_pro:[镜像版本号]
+
+docker pull registry.cn-hangzhou.aliyuncs.com/tp_pro/tp_pro:[镜像版本号]
+
+
+# 1.基于当前容器重新创建镜像
+docker commit -m "初始化TSDRM项目" -a "username" -p django_tsdrm django_tsdrm:1.0 # -p表示提交时停止容器
+
+# 2.上传mysql镜像
+·上传镜像(默认上传到Docker Hub官方仓库，需要登录)
+    docker login
+    # 为镜像添加新的标签
+    docker tag test:latest 用户名/test:latest
+    # 上传镜像至仓库
+    docker push 用户名/test:latest
+    # 此时，你的dockerhub就会多一个repository。
+
+# 3.下载镜像，运行
+tsdrm
+    django_tsdrm >> requirements.txt
+                 >> TSDRM(项目)
+    redis >> conf  >> redis.conf
+             data
+    mysql >> conf >> my.cnf   # 配置文件
+             data             # 挂载的数据库文件
+             logs             # 挂载的日志文件
+    setup.sh
+    # 1.下拉启动镜像
+    docker pull username/tp_pro:1.0
+    docker pull username/tp_db:1.0
+    docker pull username/tp_cache:1.0
+
+    # 2.创建实例
+    docker run -p 3307:3306 --name mysql_tsdrm -v $PWD/mysql/conf:/etc/mysql/conf.d -v $PWD/mysql/logs:/logs -v $PWD/mysql/data:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=password -d username/tp_db:1.1
+    docker run -p 6378:6379 --name redis_tsdrm -v $PWD/redis/conf/redis.conf:/etc/redis/redis.conf -v $PWD//redis/data:/data -d username/tp_cache:1.0 redis-server /etc/redis/redis.conf
+    docker run -p 8080:80 --link mysql_tsdrm:db_server --link redis_tsdrm:redis_server --name django_tsdrm -itd username/tp_pro:1.0
+
+    # 3.运行项目
+    /
+    # 1.下拉启动镜像，同时运行多个命令
+
+    # 4.查看mysql与redis是否可用
+    import pymysql.cursors
+
+    connection = pymysql.connect(host='db_server',user='root',password='password',db='tesudrm',charset='utf8mb4',cursorclass=pymysql.cursors.DictCursor)
+
+# 退出容器
+exit或者ctrl+d退出的容器
+
+# 启动容器
+docker start mysql_tsdrm
+
+# 关闭容器
+docker stop 容器id
+docker pause 容器id
+docker kill 容器id
+
+# 删除容器
+docker rm
+
+# 查看容器
+docker container inspect 容器id
+docker top 容器id
+docker stats 容器id
+docker ps -qa
+
+# ************** docker容器中安装命令(容器内置apt-get商店)
+# 1.使用国内源(先备份，后重新写入)
+mv /etc/apt/sources.list /etc/apt/sources.list.bak && \
+echo "deb http://mirrors.163.com/debian/ jessie main non-free contrib" >/etc/apt/sources.list && \
+echo "deb http://mirrors.163.com/debian/ jessie-proposed-updates main non-free contrib" >>/etc/apt/sources.list && \
+echo "deb-src http://mirrors.163.com/debian/ jessie main non-free contrib" >>/etc/apt/sources.list && \
+echo "deb-src http://mirrors.163.com/debian/ jessie-proposed-updates main non-free contrib" >>/etc/apt/sources.list
+# 实践中发现需要重启实例或者宿主机，否则无法应用
+
+# 2.更新apt-get商店
+apt-get update
+
+# 3.安装apt
+apt install vim
+# 配置vim
+set hlsearch
+set backspace=2
+set autoindent
+set ruler
+set showmode
+set nu
+"set bg=dark
+syntax on
+set paste
+if has( 'mouse' )
+     set mouse-=a
+endif
+set nocompatible
+set cursorline
+set nobackup
+
+
+apt install rpm
+apt install yum
+apt install net-tools
+
+
+https://cr.console.aliyun.com/
+
+# ***************************** DockerFile ******************************
+
+# 1.配置指令
+ARG         创建镜像时使用的变量，创建后不再存在
+FROM        基础镜像
+    ARG VERSION=9.3
+    FROM debian:${VERSION}
+LABEL       过滤镜像信息的条件:version/author/description
+EXPOSE      镜像内服务监听端口，只是申明，并没有端口映射
+ENV         容器启动后依旧存在的环境变量
+    docker run --env可以覆盖
+ENTRYPOSINT["param1", "param2"] 默认入口命令
+    exec调用执行
+    可以被--entrypoint覆盖
+VOLUME      数据卷挂载点
+    VOLUME["/data"]
+USER
+WORKDIR     为RUN/CMD/ENTRYPOINT配置工作目录
+    WORKDIR /path/to/workdir
+ONBUILD
+STOPSIGNAL
+HEALTHCHECK
+SHELL
+
+# 2.操作指令
+RUN         运行命令
+CMD         启动容器时默认执行的命令
+ADD         内容添加到镜像
+    ADD 宿主机相对路径 容器绝对路径
+COPY        复制内容至镜像(推荐使用)
+
+# 3.创建镜像
+docker build -t builder/first_image:1.0 /yemp/docker_builder/
+    -t      生成镜像的标签信息
+    -f      指定非上下文的Dockerfile路径
+
+
+
+
+
+
+
+
+
+

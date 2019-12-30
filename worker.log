@@ -1,0 +1,15 @@
+[2019-10-25 12:22:15,416: INFO/MainProcess] Connected to redis://:**@223.247.155.54:6379/0
+[2019-10-25 12:22:15,787: INFO/Worker-1] child process 272 calling self.run()
+[2019-10-25 12:22:15,866: INFO/Worker-1] child process 11272 calling self.run()
+[2019-10-25 12:22:15,881: INFO/Worker-1] child process 6488 calling self.run()
+[2019-10-25 12:22:15,881: INFO/Worker-1] child process 4600 calling self.run()
+[2019-10-25 12:22:15,912: INFO/Worker-1] child process 3020 calling self.run()
+[2019-10-25 12:22:15,912: INFO/Worker-1] child process 10748 calling self.run()
+[2019-10-25 12:22:15,928: INFO/Worker-1] child process 1872 calling self.run()
+[2019-10-25 12:22:15,928: INFO/Worker-1] child process 5036 calling self.run()
+[2019-10-25 12:22:18,038: INFO/MainProcess] mingle: searching for neighbors
+[2019-10-25 12:22:22,991: INFO/MainProcess] mingle: all alone
+[2019-10-25 12:22:27,098: WARNING/MainProcess] C:\Miaokela\”¶”√»Ìº˛\Python36\lib\site-packages\celery\fixups\django.py:265: UserWarning: Using settings.DEBUG leads to a memory leak, never use this setting in production environments!
+  warnings.warn('Using settings.DEBUG leads to a memory leak, never '
+
+[2019-10-25 12:22:27,098: WARNING/MainProcess] celery@DESKTOP-ONAEGDH ready.
