@@ -17,173 +17,6 @@ from .api import SQLApi
 import subprocess
 
 
-def is_connection_usable():
-    try:
-        connection.connection.ping()
-    except:
-        return False
-    else:
-        return True
-
-
-def handle_func(jobid, steprunid):
-    if not is_connection_usable():
-        connection.close()
-    try:
-        conn = pymssql.connect(host='cv-server\COMMVAULT', user='sa_cloud', password='1qaz@WSX', database='CommServ')
-        cur = conn.cursor()
-    except:
-        print("链接失败!")
-    else:
-        try:
-            cur.execute(
-                """SELECT *  FROM [commserv].[dbo].[RunningBackups] where jobid={0}""".format(jobid))
-            backup_task_list = cur.fetchall()
-
-            cur.execute(
-                """SELECT *  FROM [commserv].[dbo].[RunningRestores] where jobid={0}""".format(jobid))
-            restore_task_list = cur.fetchall()
-        except:
-            print("任务不存在!")  # 1.修改当前步骤状态为DONE
-        else:
-            # 查询备份/恢复是否报错，将报错信息写入当前Step的operator字段中，并结束当前任务
-            if backup_task_list:
-                for backup_job in backup_task_list:
-                    print("备份进度：", backup_job[42])
-                    if backup_job[42] == 100:
-                        steprun = StepRun.objects.filter(id=steprunid)
-                        steprun = steprun[0]
-                        if backup_job["DelayReason"]:
-                            steprun.operator = backup_job["DelayReason"]
-                            steprun.state = "EDIT"
-                            steprun.save()
-                            cur.close()
-                            conn.close()
-                            return
-                        else:
-                            steprun.state = "DONE"
-                            steprun.save()
-                            cur.close()
-                            conn.close()
-                    else:
-                        cur.close()
-                        conn.close()
-                        time.sleep(30)
-                        handle_func(jobid, steprunid)
-            elif restore_task_list:
-                for restore_job in restore_task_list:
-                    print("恢复进度：", restore_job[35])
-                    if restore_job[35] == 100:
-                        steprun = StepRun.objects.filter(id=steprunid)
-                        steprun = steprun[0]
-                        if restore_job["DelayReason"]:
-                            steprun.operator = restore_job["DelayReason"]
-                            steprun.save()
-                            cur.close()
-                            conn.close()
-                            return
-                        else:
-                            steprun.state = "DONE"
-                            steprun.save()
-                            cur.close()
-                            conn.close()
-                    else:
-                        cur.close()
-                        conn.close()
-                        time.sleep(30)
-                        handle_func(jobid, steprunid)
-            else:
-                print("当前没有在执行的任务!")
-                steprun = StepRun.objects.filter(id=steprunid)
-                steprun = steprun[0]
-                steprun.state = "DONE"
-                steprun.save()
-
-
-@shared_task
-def handle_job(jobid, steprunid):
-    """
-    根据jobid查询任务状态，每半分钟查询一次，如果完成就在steprun中写入DONE
-    """
-    handle_func(jobid, steprunid)
-
-
-# @shared_task(bind=True, default_retry_delay=300, max_retries=5)  # 错误处理机制，因网络延迟等问题的重试；
-@shared_task
-def exec_script(steprunid, username, fullname):
-    """
-    执行当前步骤在指定系统下的所有脚本
-    """
-    end_step_tag = True
-    steprun = StepRun.objects.filter(id=steprunid)
-    steprun = steprun[0]
-    scriptruns = steprun.scriptrun_set.exclude(Q(state__in=("9", "DONE", "IGNORE")) | Q(result=0))
-    for script in scriptruns:
-        script.starttime = datetime.datetime.now()
-        script.result = ""
-        script.state = "RUN"
-        script.save()
-        # 执行脚本内容
-        # cmd = r"{0}".format(script.script.scriptpath + script.script.filename)
-        cmd = r"{0}".format(script.script.script_text)
-
-        # HostsManage
-        cur_host_manage = script.script.hosts_manage
-        ip = cur_host_manage.host_ip
-        username = cur_host_manage.username
-        password = cur_host_manage.password
-        system_tag = cur_host_manage.os
-
-        rm_obj = remote.ServerByPara(cmd, ip, username, password, system_tag)  # 服务器系统从视图中传入
-        result = rm_obj.run(script.script.succeedtext)
-
-        script.endtime = datetime.datetime.now()
-        script.result = result["exec_tag"]
-        script.explain = result['data']
-
-        # 处理脚本执行失败问题
-        if result["exec_tag"] == 1:
-            script.runlog = result['log']
-
-            end_step_tag = False
-            script.state = "ERROR"
-            steprun.state = "ERROR"
-            script.save()
-            steprun.save()
-            break
-        script.state = "DONE"
-        script.save()
-
-    if end_step_tag:
-        steprun.state = "DONE"
-        steprun.save()
-
-        task = steprun.processtask_set.filter(state="0")
-        if len(task) > 0:
-            task[0].endtime = datetime.datetime.now()
-            task[0].state = "1"
-            task[0].operator = username
-            task[0].save()
-
-            nextstep = steprun.step.next.exclude(state="9")
-            if len(nextstep) > 0:
-                nextsteprun = nextstep[0].steprun_set.exclude(state="9").filter(processrun=steprun.processrun)
-                if len(nextsteprun) > 0:
-                    mysteprun = nextsteprun[0]
-                    myprocesstask = ProcessTask()
-                    myprocesstask.processrun = steprun.processrun
-                    myprocesstask.steprun = mysteprun
-                    myprocesstask.starttime = datetime.datetime.now()
-                    myprocesstask.senduser = username
-                    myprocesstask.receiveuser = username
-                    myprocesstask.type = "RUN"
-                    myprocesstask.state = "0"
-                    myprocesstask.content = steprun.processrun.DataSet.clientName + "的" + steprun.processrun.process.name + "流程进行到“" + \
-                                            nextstep[
-                                                0].name + "”，请" + fullname + "处理。"
-                    myprocesstask.save()
-
-
 @shared_task
 def force_exec_script(processrunid):
     try:
@@ -568,14 +401,13 @@ def runstep(steprun, if_repeat=False):
                     commvault_api_path = os.path.join(os.path.join(settings.BASE_DIR, "drm"),
                                                       "commvault_api") + os.sep + script.script.commv_interface
                     ret = ""
-
+                    print("################### %s" % commvault_api_path)
                     origin = script.script.origin.client_name if script.script.origin else ""
                     target = ""
                     if script.steprun.processrun.target:
                         target = script.steprun.processrun.target.client_name if script.steprun.processrun.target else ""
                     else:
                         target = script.script.target.client_name if script.script.target else ""
-                    # recover_time = script.steprun.processrun.recover_time
                     oracle_info = json.loads(script.script.origin.info)
 
                     instance = ""
@@ -583,10 +415,7 @@ def runstep(steprun, if_repeat=False):
                         instance = oracle_info["instance"]
 
                     oracle_param = "%s %s %s %d" % (origin, target, instance, processrun.id)
-                    # # 测试定时任务
-                    # result["exec_tag"] = 0
-                    # result["data"] = "调用commvault接口成功。"
-                    # result["log"] = "调用commvault接口成功。"
+                    print("################### %s" % oracle_param)
                     try:
                         ret = subprocess.getstatusoutput(commvault_api_path + " %s" % oracle_param)
                         exec_status, recover_job_id = ret
@@ -936,40 +765,3 @@ def create_process_run(*args, **kwargs):
                     myprocesstask.save()
 
                     exec_process.delay(myprocessrun.id)
-
-
-# @shared_task
-# def crond_stop_process_run():
-#     """
-#     时隔一个小时检测流程，过滤错误流程至现在时间超过24小时，则终止该流程
-#     :return:
-#     """
-#     all_process = Process.objects.exclude(state="9").filter(type="cv_oracle")
-#     for process in all_process:
-#         process_runs = process.processrun_set.filter(state="ERROR")
-#         if process_runs.exists():
-#             process_run = process_runs.last()
-#             error_time = process_run.starttime
-#             time_now = datetime.datetime.now()
-#
-#             if error_time:
-#                 try:
-#                     delta_time = (time_now - error_time).total_seconds()
-#                 except:
-#                     pass
-#                 else:
-#                     # if delta_time >= 10:
-#                     if delta_time >= 60 * 60 * 24:
-#                         process_run.state = "STOP"
-#                         process_run.save()
-#
-#                         myprocesstask = ProcessTask()
-#                         myprocesstask.processrun = process_run
-#                         myprocesstask.starttime = datetime.datetime.now()
-#                         myprocesstask.senduser = process_run.creatuser
-#                         myprocesstask.type = "INFO"
-#                         myprocesstask.logtype = "END"
-#                         myprocesstask.state = "1"
-#                         myprocesstask.content = "流程" + process_run.process.name + "执行失败超过24小时，自动终止。"
-#                         myprocesstask.save()
-#

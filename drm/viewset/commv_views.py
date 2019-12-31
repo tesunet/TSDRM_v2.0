@@ -484,10 +484,6 @@ def target_save(request):
                 ret = 0
                 info = "目标客户端未选择。"
             else:
-                # if not data_path:
-                #     ret = 0
-                #     info = "数据重定向路径未填写。"
-                # else:
                 if target_id == 0:
                     # 判断是否存在
                     check_target = Target.objects.exclude(
