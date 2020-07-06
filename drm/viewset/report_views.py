@@ -5,10 +5,9 @@ from django.shortcuts import render
 from django.http import HttpResponseRedirect, Http404, HttpResponse, JsonResponse
 from django.http import StreamingHttpResponse
 from django.template.response import TemplateResponse
-from django.db.models import Q
 
 from ..tasks import *
-from ..CVApi import *
+from drm.api.commvault.RestApi import *
 from .public_func import *
 from .basic_views import getpagefuns
 

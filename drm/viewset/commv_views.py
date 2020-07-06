@@ -3,190 +3,322 @@ from collections import OrderedDict
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
-from django.http import HttpResponseRedirect, Http404, HttpResponse, JsonResponse
+from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 
 
 from ..tasks import *
-from ..models import *
 from TSDRM import settings
-from ..api import SQLApi
-from ..CVApi import *
+from drm.api.commvault import SQLApi
+from drm.api.commvault.RestApi import *
 from .public_func import *
 from .basic_views import getpagefuns
+from .config_views import get_credit_info
 
 
 ######################
 # 客户端监控相关
 ######################
+def get_rowspan(whole_list, **kwargs):
+    clientname = kwargs.get('clientname', '')
+    idataagent = kwargs.get('idataagent', '')
+    type = kwargs.get('type', '')
+    subclient = kwargs.get('subclient', '')
+
+    scheduePolicy = kwargs.get('scheduePolicy', '')
+    schedbackuptype = kwargs.get('schedbackuptype', '')
+
+    row_span = 0
+
+    if clientname and not any([idataagent, type, subclient, scheduePolicy, schedbackuptype]):
+        for tl in whole_list:
+            if tl['clientname'] == clientname:
+                row_span += 1
+    if all([clientname, idataagent]) and not any([type, subclient, scheduePolicy, schedbackuptype]):
+        for tl in whole_list:
+            if tl['clientname'] == clientname and tl['idataagent'] == idataagent:
+                row_span += 1
+    if all([clientname, idataagent, type]) and not any([subclient, scheduePolicy, schedbackuptype]):
+        for tl in whole_list:
+            if tl['clientname'] == clientname and tl['idataagent'] == idataagent and tl['type'] == type:
+                row_span += 1
+    if all([clientname, idataagent, type, subclient]) and not any([scheduePolicy, schedbackuptype]):
+        for tl in whole_list:
+            if tl['clientname'] == clientname and tl['idataagent'] == idataagent and tl['type'] == type and tl['subclient'] == subclient:
+                row_span += 1
+    if all([clientname, idataagent, type, subclient, scheduePolicy]) and not schedbackuptype:
+        for tl in whole_list:
+            if tl['clientname'] == clientname and tl['idataagent'] == idataagent and tl['type'] == type and tl['subclient'] == subclient and tl['scheduePolicy'] == scheduePolicy:
+                row_span += 1
+    if all([clientname, idataagent, type, subclient, scheduePolicy, schedbackuptype]):
+        for tl in whole_list:
+            if tl['clientname'] == clientname and tl['idataagent'] == idataagent and tl['type'] == type and tl['subclient'] == subclient and tl['scheduePolicy'] == scheduePolicy and tl['schedbackuptype'] == schedbackuptype:
+                row_span += 1
+    return row_span
+
+
 @login_required
 def get_backup_status(request):
     whole_list = []
-    try:
-        # 仅统计源客户端(客户端管理)
-        all_client_manage = Origin.objects.exclude(state="9").values("client_name")
-        tmp_client_manage = [tmp_client["client_name"] for tmp_client in all_client_manage]
+    utils_manage_id = request.POST.get('utils_manage_id', '')
 
-        dm = SQLApi.CustomFilter(settings.sql_credit)
-        whole_list = dm.custom_concrete_job_list(tmp_client_manage)
-        dm.close()
-    except Exception as e:
+    try:
+        utils_manage_id = int(utils_manage_id)
+        utils_manage = UtilsManage.objects.get(id=utils_manage_id)
+    except:
         return JsonResponse({
             "ret": 0,
-            "data": "获取备份状态信息失败。",
+            "data": "Commvault工具未配置。",
         })
-    return JsonResponse({
-        "ret": 1,
-        "data": whole_list,
-    })
+    else:
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
+        try:
+            dm = SQLApi.CVApi(sqlserver_credit)
+            whole_list = dm.get_backup_status()
 
+            for num, wl in enumerate(whole_list):
+                clientname_rowspan = get_rowspan(whole_list, clientname=wl['clientname'])
+                idataagent_rowspan = get_rowspan(whole_list, clientname=wl['clientname'], idataagent=wl['idataagent'])
+                type_rowspan = get_rowspan(whole_list, clientname=wl['clientname'], idataagent=wl['idataagent'],
+                                           type=wl['type'])
+                # 时间
+                try:
+                    whole_list[num]["startdate"] = "{:%Y-%m-%d %H:%M:%S}".format(whole_list[num]["startdate"])
+                except Exception as e:
+                    whole_list[num]["startdate"] = ""
 
-@login_required
-def backup_status(request, funid):
-    return render(request, "backup_status.html", {
-        'username': request.user.userinfo.fullname,
-        "pagefuns": getpagefuns(funid, request),
-    })
+                whole_list[num]['clientname_rowspan'] = clientname_rowspan
+                whole_list[num]['idataagent_rowspan'] = idataagent_rowspan
+                whole_list[num]['type_rowspan'] = type_rowspan
+
+            dm.close()
+        except Exception as e:
+            return JsonResponse({
+                "ret": 0,
+                "data": "获取备份状态信息失败。",
+            })
+        return JsonResponse({
+            "ret": 1,
+            "data": whole_list,
+        })
 
 
 @login_required
 def get_backup_content(request):
-    whole_list = []
-    try:
-        all_client_manage = Origin.objects.exclude(state="9").values("client_name")
-        tmp_client_manage = [tmp_client["client_name"] for tmp_client in all_client_manage]
+    utils_manage_id = request.POST.get('utils_manage_id', '')
 
-        dm = SQLApi.CustomFilter(settings.sql_credit)
-        ret, row_dict = dm.custom_all_backup_content(tmp_client_manage)
-        dm.close()
-        for content in ret:
-            content_dict = OrderedDict()
-            content_dict["clientName"] = content["clientname"]
-            content_dict["appName"] = content["idataagent"]
-            content_dict["backupsetName"] = content["backupset"]
-            # content_dict["subclientName"] = content["subclient"]
-            content_dict["content"] = content["content"]
-            whole_list.append(content_dict)
-    except Exception as e:
-        print(e)
+    try:
+        utils_manage_id = int(utils_manage_id)
+        utils_manage = UtilsManage.objects.get(id=utils_manage_id)
+    except:
         return JsonResponse({
             "ret": 0,
-            "data": "获取存储策略信息失败。",
+            "data": "Commvault工具未配置。",
         })
     else:
-        return JsonResponse({
-            "ret": 1,
-            "data": {
-                "whole_list": whole_list,
-                "row_dict": row_dict,
-            },
-        })
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
 
+        whole_list = []
+        try:
+            dm = SQLApi.CVApi(sqlserver_credit)
+            whole_list = dm.get_backup_content()
 
-@login_required
-def backup_content(request, funid):
-    return render(request, "backup_content.html", {
-        'username': request.user.userinfo.fullname,
-        "pagefuns": getpagefuns(funid, request),
-    })
+            for num, wl in enumerate(whole_list):
+                clientname_rowspan = get_rowspan(whole_list, clientname=wl['clientname'])
+                idataagent_rowspan = get_rowspan(whole_list, clientname=wl['clientname'], idataagent=wl['idataagent'])
+                type_rowspan = get_rowspan(whole_list, clientname=wl['clientname'], idataagent=wl['idataagent'],
+                                           type=wl['type'])
+
+                whole_list[num]['clientname_rowspan'] = clientname_rowspan
+                whole_list[num]['idataagent_rowspan'] = idataagent_rowspan
+                whole_list[num]['type_rowspan'] = type_rowspan
+
+        except Exception as e:
+            print(e)
+            return JsonResponse({
+                "ret": 0,
+                "data": "获取存储策略信息失败。",
+            })
+        else:
+            return JsonResponse({
+                "ret": 1,
+                "data": whole_list,
+            })
 
 
 @login_required
 def get_storage_policy(request):
     whole_list = []
+    utils_manage_id = request.POST.get('utils_manage_id', '')
+
     try:
-        all_client_manage = Origin.objects.exclude(state="9").values("client_name")
-        tmp_client_manage = [tmp_client["client_name"] for tmp_client in all_client_manage]
-
-        dm = SQLApi.CustomFilter(settings.sql_credit)
-        ret, row_dict = dm.custom_all_storages(tmp_client_manage)
-        dm.close()
-        for storage in ret:
-            storage_dict = OrderedDict()
-            storage_dict["clientName"] = storage["clientname"]
-            storage_dict["appName"] = storage["idataagent"]
-            storage_dict["backupsetName"] = storage["backupset"]
-            # storage_dict["subclientName"] = storage["subclient"]
-            storage_dict["storagePolicy"] = storage["storagepolicy"]
-            whole_list.append(storage_dict)
-
-    except Exception as e:
-        print(e)
+        utils_manage_id = int(utils_manage_id)
+        utils_manage = UtilsManage.objects.get(id=utils_manage_id)
+    except:
         return JsonResponse({
             "ret": 0,
-            "data": "获取存储策略信息失败。",
+            "data": "Commvault工具未配置。",
         })
     else:
-        return JsonResponse({
-            "ret": 1,
-            "data": {
-                "whole_list": whole_list,
-                "row_dict": row_dict,
-            },
-        })
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
+        try:
 
 
-@login_required
-def storage_policy(request, funid):
-    return render(request, "storage_policy.html", {
-        'username': request.user.userinfo.fullname,
-        "pagefuns": getpagefuns(funid, request),
-    })
+            dm = SQLApi.CVApi(sqlserver_credit)
+            whole_list = dm.get_storage_policy()
 
+            for num, wl in enumerate(whole_list):
+                clientname_rowspan = get_rowspan(whole_list, clientname=wl['clientname'])
+                idataagent_rowspan = get_rowspan(whole_list, clientname=wl['clientname'], idataagent=wl['idataagent'])
+                type_rowspan = get_rowspan(whole_list, clientname=wl['clientname'], idataagent=wl['idataagent'],
+                                           type=wl['type'])
 
-@login_required
-def schedule_policy(request, funid):
-    return render(request, "schedule_policy.html", {
-        'username': request.user.userinfo.fullname,
-        "pagefuns": getpagefuns(funid, request),
-    })
+                whole_list[num]['clientname_rowspan'] = clientname_rowspan
+                whole_list[num]['idataagent_rowspan'] = idataagent_rowspan
+                whole_list[num]['type_rowspan'] = type_rowspan
+
+        except Exception as e:
+            print(e)
+            return JsonResponse({
+                "ret": 0,
+                "data": "获取存储策略信息失败。",
+            })
+        else:
+            return JsonResponse({
+                "ret": 1,
+                "data": whole_list
+            })
 
 
 @login_required
 def get_schedule_policy(request):
     whole_list = []
+    utils_manage_id = request.POST.get('utils_manage_id', '')
+
     try:
-        all_client_manage = Origin.objects.exclude(state="9").values("client_name")
-        tmp_client_manage = [tmp_client["client_name"] for tmp_client in all_client_manage]
-
-        dm = SQLApi.CustomFilter(settings.sql_credit)
-        ret, row_dict = dm.custom_all_schedules(tmp_client_manage)
-        dm.close()
-        for schedule in ret:
-            schedule_dict = OrderedDict()
-            schedule_dict["clientName"] = schedule["clientName"]
-            schedule_dict["appName"] = schedule["idaagent"]
-            schedule_dict["backupsetName"] = schedule["backupset"]
-            # schedule_dict["subclientName"] = schedule["subclient"]
-            schedule_dict["scheduePolicy"] = schedule["scheduePolicy"]
-            schedule_dict["schedbackuptype"] = schedule["schedbackuptype"]
-            schedule_dict["schedpattern"] = schedule["schedpattern"]
-            schedule_dict["schedbackupday"] = schedule["schedbackupday"]
-
-            schedule_dict["option"] = {
-                "schedpattern": schedule["schedpattern"],
-                "schednextbackuptime": schedule["schednextbackuptime"],
-                "scheduleName": schedule["scheduleName"],
-                "schedinterval": schedule["schedinterval"],
-                "schedbackupday": schedule["schedbackupday"],
-                "schedbackuptype": schedule["schedbackuptype"],
-            }
-
-            whole_list.append(schedule_dict)
-
-    except Exception as e:
-        print(e)
+        utils_manage_id = int(utils_manage_id)
+        utils_manage = UtilsManage.objects.get(id=utils_manage_id)
+    except:
         return JsonResponse({
             "ret": 0,
-            "data": "获取计划策略信息失败。",
+            "data": "Commvault工具未配置。",
         })
     else:
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
+        try:
+            all_client_manage = Origin.objects.exclude(state="9").values("client_name")
+            tmp_client_manage = [tmp_client["client_name"] for tmp_client in all_client_manage]
+
+            dm = SQLApi.CVApi(sqlserver_credit)
+            whole_list = dm.get_schedule_policy(tmp_client_manage)
+            ordered_whole_list = []
+            dm.close()
+            for num, wl in enumerate(whole_list):
+
+                schedule_dict = OrderedDict()
+
+                clientname_rowspan = get_rowspan(whole_list, clientname=wl['clientname'])
+                idataagent_rowspan = get_rowspan(whole_list, clientname=wl['clientname'], idataagent=wl['idataagent'])
+                type_rowspan = get_rowspan(whole_list, clientname=wl['clientname'], idataagent=wl['idataagent'],
+                                           type=wl['type'])
+                # 子客户端，计划策略，备份类型
+                subclient_rowspan = get_rowspan(whole_list, clientname=wl['clientname'],
+                                                      idataagent=wl['idataagent'],
+                                                      type=wl['type'], subclient=wl['subclient'])
+                if wl['scheduePolicy']:
+                    scheduePolicy_rowspan = get_rowspan(whole_list, clientname=wl['clientname'],
+                                                          idataagent=wl['idataagent'],
+                                                          type=wl['type'], subclient=wl['subclient'],
+                                                          scheduePolicy=wl['scheduePolicy'])
+                else:
+                    scheduePolicy_rowspan = 1
+                if wl['schedbackuptype'] and wl['scheduePolicy']:
+                    schedbackuptype_rowspan = get_rowspan(whole_list, clientname=wl['clientname'],
+                                                          idataagent=wl['idataagent'],
+                                                          type=wl['type'], subclient=wl['subclient'],
+                                                          scheduePolicy=wl['scheduePolicy'],
+                                                          schedbackuptype=wl['schedbackuptype'])
+                else:
+                    schedbackuptype_rowspan = 1
+                schedule_dict['clientname_rowspan'] = clientname_rowspan
+                schedule_dict['idataagent_rowspan'] = idataagent_rowspan
+                schedule_dict['type_rowspan'] = type_rowspan
+                schedule_dict['subclient_rowspan'] = subclient_rowspan
+                schedule_dict['scheduePolicy_rowspan'] = scheduePolicy_rowspan
+                schedule_dict['schedbackuptype_rowspan'] = schedbackuptype_rowspan
+
+                schedule_dict["clientname"] = wl["clientname"]
+                schedule_dict["idataagent"] = wl["idataagent"]
+                schedule_dict["type"] = wl["type"]
+                schedule_dict["subclient"] = wl["subclient"]
+                schedule_dict["scheduePolicy"] = wl["scheduePolicy"] if wl["scheduePolicy"] else "无"
+                schedule_dict["schedbackuptype"] = wl["schedbackuptype"] if wl["schedbackuptype"] else "无"
+                schedule_dict["schedpattern"] = wl["schedpattern"] if wl["schedpattern"] else "无"
+
+                schedule_dict["option"] = {
+                    "schedpattern": wl["schedpattern"],
+                    "schednextbackuptime": wl["schednextbackuptime"],
+                    "scheduleName": wl["scheduleName"],
+                    "schedinterval": wl["schedinterval"],
+                    "schedbackupday": wl["schedbackupday"],
+                    "schedbackuptype": wl["schedbackuptype"],
+                }
+
+                ordered_whole_list.append(schedule_dict)
+
+        except Exception as e:
+            print(e)
+            return JsonResponse({
+                "ret": 0,
+                "data": "获取计划策略信息失败。",
+            })
+        else:
+            return JsonResponse({
+                "ret": 1,
+                "data": ordered_whole_list,
+            })
+
+
+@login_required
+def get_client_info(request):
+    utils_manage_id = request.POST.get('utils_manage_id', '')
+
+    try:
+        utils_manage_id = int(utils_manage_id)
+        utils_manage = UtilsManage.objects.get(id=utils_manage_id)
+    except:
         return JsonResponse({
-            "ret": 1,
-            "data": {
-                "whole_list": whole_list,
-                "row_dict": row_dict,
-            },
+            "ret": 0,
+            "data": "Commvault工具未配置。",
         })
+    else:
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
+        try:
+
+
+            dm = SQLApi.CVApi(sqlserver_credit)
+            whole_list = dm.get_clients_info()
+            dm.close()
+            for client in whole_list:
+                client["net"] = "正常"
+                # for i in range(4):
+                #     netresult = os.system(u'ping -n 1 ' + client["network_interface"])
+                #     if netresult == 0:
+                #         client["net"] = "正常"
+                #         break;
+                # else:
+                #     client["net"] = "中断"
+
+        except Exception as e:
+            print(e)
+            return JsonResponse({
+                "ret": 0,
+                "data": "获取客户端基础信息失败。",
+            })
+        else:
+            return JsonResponse({
+                "ret": 1,
+                "data": whole_list,
+            })
 
 
 ######################

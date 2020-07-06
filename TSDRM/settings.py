@@ -17,6 +17,8 @@ import xml.dom.minidom
 from xml.dom.minidom import parse, parseString
 from lxml import etree
 
+LOGIN_URL = '/login/'
+
 
 #############################################
 # 从config/db_config.xml中读取数据库认证信息 #
@@ -117,10 +119,10 @@ CVApi_credit = {
 
 # SQLApi
 sql_credit = {
-    "host": SQLServerHost,
-    "user": SQLServerUser,
-    "password": SQLServerPasswd,
-    "database": SQLServerDataBase,
+    "SQLServerHost": SQLServerHost,
+    "SQLServerUser": SQLServerUser,
+    "SQLServerPasswd": SQLServerPasswd,
+    "SQLServerDataBase": SQLServerDataBase,
 }
 
 # sql_credit = {

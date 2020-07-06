@@ -1,19 +1,13 @@
 from __future__ import absolute_import
 from celery import shared_task
-import pymssql
-from drm.models import *
-from django.db import connection
-from xml.dom.minidom import parse, parseString
 from . import remote
 from .models import *
 import datetime
 from django.db.models import Q
-import time
-import paramiko
 import os
 from TSDRM import settings
 import json
-from .api import SQLApi
+from drm.api.commvault import SQLApi
 import subprocess
 
 

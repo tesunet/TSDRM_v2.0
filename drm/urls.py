@@ -1,6 +1,8 @@
 from django.conf.urls import url
 from django.views.generic.base import RedirectView
 from .viewset.basic_views import *
+from .viewset.system_views import *
+from .viewset.dashboard_views import *
 from .viewset.config_views import *
 from .viewset.monitor_views import *
 from .viewset.commv_views import *
@@ -8,7 +10,7 @@ from .viewset.report_views import *
 
 
 urlpatterns = [
-    url(r'^favicon.ico$', RedirectView.as_view(url=r'static/upload/favicon.ico')),
+    url(r'^favicon.ico$', RedirectView.as_view(url=r'static/pages/images/logo/favicon.ico')),
     url(r'^$', index, {'funid': '2'}),
     url(r'^test/$', test),
     url(r'^processindex/(\d+)/$', processindex),
@@ -45,6 +47,12 @@ urlpatterns = [
     url(r'^function/$', function, {'funid': '63'}),
     url(r'^fundel/$', fundel),
     url(r'^funmove/$', funmove),
+
+    # 工具管理
+    url(r'^util_manage/$', util_manage, {'funid': '88'}),
+    url(r'^util_manage_save/$', util_manage_save),
+    url(r'^util_manage_data/$', util_manage_data),
+    url(r'^util_manage_del/$', util_manage_del),
 
     # 客户端管理
     url(r'^target/$', target, {'funid': '71'}),
@@ -145,21 +153,7 @@ urlpatterns = [
     url(r'^serverconfig/$', serverconfig, {'funid': '72'}),
     url(r'^serverconfigsave/$', serverconfigsave),
 
-    # 备份内容
-    url(r'^backup_content/$', backup_content, {'funid': '74'}),
-    url(r'^get_backup_content/$', get_backup_content),
 
-    # 计划策略
-    url(r'^schedule_policy/$', schedule_policy, {'funid': '75'}),
-    url(r'^get_schedule_policy/$', get_schedule_policy),
-
-    # 存储策略
-    url(r'^storage_policy/$', storage_policy, {'funid': '76'}),
-    url(r'^get_storage_policy/$', get_storage_policy),
-
-    # 备份状态
-    url(r'^backup_status/$', backup_status, {'funid': '78'}),
-    url(r'^get_backup_status/$', get_backup_status),
 
     # 自主恢复
     url(r'^manualrecovery/$', manualrecovery, {'funid': '79'}),
@@ -177,4 +171,22 @@ urlpatterns = [
     url(r'^process_schedule_data/$', process_schedule_data),
     url(r'^change_periodictask/$', change_periodictask),
     url(r'^process_schedule_del/$', process_schedule_del),
+
+    # 仪表盘
+    url(r'^dashboard/$', dashboard, {'funid': '89'}),
+    url(r'^get_frameworkstate/$', get_frameworkstate),
+
+    #灾备基础框架
+    url(r'^framework/$', framework, {'funid': '90'}),
+    url(r'^get_framework/$', get_framework),
+
+    # 客户端监控
+    url(r'^client_list/$', client_list, {'funid': '91'}),
+    url(r'^get_client_info/$', get_client_info),
+    url(r'^get_backup_content/$', get_backup_content),
+    url(r'^get_schedule_policy/$', get_schedule_policy),
+    url(r'^get_storage_policy/$', get_storage_policy),
+    url(r'^get_backup_status/$', get_backup_status),
+
+
 ]

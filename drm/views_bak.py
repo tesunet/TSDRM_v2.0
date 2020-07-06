@@ -1,50 +1,30 @@
 # coding:utf-8
-import time
-import datetime
-import sys
-import os
-import json
-import random
 import uuid
-import xml.dom.minidom
-from xml.dom.minidom import parse, parseString
+from xml.dom.minidom import parseString
 import xlrd
 import xlwt
-from lxml import etree
 import re
 import pdfkit
-import sys
-import requests
-from operator import itemgetter
-import logging
 from collections import OrderedDict
 
 from django.contrib.auth.decorators import login_required
-from django.utils.timezone import utc
-from django.utils.timezone import localtime
 from django.shortcuts import render
 from django.contrib import auth
-from django.template import RequestContext
 from django.http import HttpResponseRedirect, Http404, HttpResponse, JsonResponse
 from django.http import StreamingHttpResponse
-from django.db.models import Q
-from django.db.models import Count
-from django.db.models import Sum, Max
+from django.db.models import Max
 from django.db import connection
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.cache import cache_page
 from django.utils.encoding import escape_uri_path
 from django.core.mail import send_mail
-from django.forms.models import model_to_dict
 from django.template.response import TemplateResponse
-from djcelery.models import CrontabSchedule, PeriodicTask, IntervalSchedule
+from djcelery.models import CrontabSchedule, PeriodicTask
 
 from drm.tasks import *
 from drm.models import *
 from .remote import ServerByPara
 from TSDRM import settings
-from .api import SQLApi
-from .CVApi import *
+from drm.api.commvault import SQLApi
+from drm.api.commvault.RestApi import *
 
 funlist = []
 

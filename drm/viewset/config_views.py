@@ -5,14 +5,15 @@ import xlwt
 from django.shortcuts import render
 from django.http import HttpResponseRedirect, Http404, HttpResponse, JsonResponse
 from django.http import StreamingHttpResponse
-from django.db.models import Sum, Max
+from django.db.models import Max
 
 from ..tasks import *
-from ..models import *
 from TSDRM import settings
-from ..CVApi import *
+from drm.api.commvault.RestApi import *
 from .public_func import *
 from .basic_views import getpagefuns
+from django.contrib.auth.decorators import login_required
+from lxml import etree
 
 
 ######################
@@ -1239,6 +1240,241 @@ def hosts_manage_del(request):
                 })
     else:
         return HttpResponseRedirect("/login")
+
+######################
+# 工具管理
+######################
+@login_required
+def util_manage(request, funid):
+    return render(request, 'util_manage.html',
+                  {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request)})
+
+
+def get_credit_info(content):
+    commvault_credit = {
+        'webaddr': '',
+        'port': '',
+        'hostusername': '',
+        'hostpasswd': '',
+        'username': '',
+        'passwd': '',
+    }
+    sqlserver_credit = {
+        'SQLServerHost': '',
+        'SQLServerUser': '',
+        'SQLServerPasswd': '',
+        'SQLServerDataBase': '',
+    }
+    try:
+        doc = etree.XML(content)
+
+        # Commvault账户信息
+        try:
+            commvault_credit['webaddr'] = doc.xpath('//webaddr/text()')[0]
+        except:
+            pass
+        try:
+            commvault_credit['port'] = doc.xpath('//port/text()')[0]
+        except:
+            pass
+        try:
+            commvault_credit['hostusername'] = doc.xpath('//hostusername/text()')[0]
+        except:
+            pass
+        try:
+            commvault_credit['hostpasswd'] = base64.b64decode(doc.xpath('//hostpasswd/text()')[0]).decode()
+        except:
+            pass
+        try:
+            commvault_credit['username'] = doc.xpath('//username/text()')[0]
+        except:
+            pass
+        try:
+            commvault_credit['passwd'] = base64.b64decode(doc.xpath('//passwd/text()')[0]).decode()
+        except:
+            pass
+
+        # SQL Server账户信息
+        try:
+            sqlserver_credit['SQLServerHost'] = doc.xpath('//SQLServerHost/text()')[0]
+        except:
+            pass
+        try:
+            sqlserver_credit['SQLServerUser'] = doc.xpath('//SQLServerUser/text()')[0]
+        except:
+            pass
+        try:
+            sqlserver_credit['SQLServerPasswd'] = base64.b64decode(
+                doc.xpath('//SQLServerPasswd/text()')[0]).decode()
+        except:
+            pass
+        try:
+            sqlserver_credit['SQLServerDataBase'] = doc.xpath('//SQLServerDataBase/text()')[0]
+        except:
+            pass
+
+    except Exception as e:
+        print(e)
+    return commvault_credit, sqlserver_credit
+
+
+@login_required
+def util_manage_data(request):
+    """
+    工具管理信息
+    """
+    util_manage_list = []
+
+    util_manages = UtilsManage.objects.exclude(state='9')
+
+    for um in util_manages:
+        commvault_credit = {
+            'webaddr': '',
+            'port': '',
+            'hostusername': '',
+            'hostpasswd': '',
+            'username': '',
+            'passwd': '',
+        }
+        sqlserver_credit = {
+            'SQLServerHost': '',
+            'SQLServerUser': '',
+            'SQLServerPasswd': '',
+            'SQLServerDataBase': '',
+        }
+        if um.util_type.upper() == 'COMMVAULT':
+            commvault_credit, sqlserver_credit = get_credit_info(um.content)
+
+        util_manage_list.append({
+            'id': um.id,
+            'code': um.code,
+            'name': um.name,
+            'util_type': um.util_type,
+            'commvault_credit': commvault_credit,
+            'sqlserver_credit': sqlserver_credit
+        })
+
+    return JsonResponse({"data": util_manage_list})
+
+
+@login_required
+def util_manage_save(request):
+    status = 1
+    info = '保存成功。'
+
+    util_manage_id = request.POST.get('util_manage_id', '')
+
+    util_type = request.POST.get('util_type', '')
+    code = request.POST.get('code', '')
+    name = request.POST.get('name', '')
+
+    webaddr = request.POST.get('webaddr', '')
+    port = request.POST.get('port', '')
+    hostusername = request.POST.get('hostusernm', '')
+    hostpasswd = request.POST.get('hostpasswd', '')
+    username = request.POST.get('usernm', '')
+    passwd = request.POST.get('passwd', '')
+
+    SQLServerHost = request.POST.get('SQLServerHost', '')
+    SQLServerUser = request.POST.get('SQLServerUser', '')
+    SQLServerPasswd = request.POST.get('SQLServerPasswd', '')
+    SQLServerDataBase = request.POST.get('SQLServerDataBase', '')
+
+    credit = ''
+
+    try:
+        util_manage_id = int(util_manage_id)
+    except:
+        status = 0
+        info = '网络异常。'
+    else:
+        if not util_type.strip():
+            status = 0
+            info = '工具类型未选择。'
+        elif not code.strip():
+            status = 0
+            info = '工具编号未填写。'
+        elif not name.strip():
+            status = 0
+            info = '工具名称未填写。'
+        elif UtilsManage.objects.exclude(state='9').exclude(id=util_manage_id).filter(code=code).exists():
+            status = 0
+            info = '工具编号已存在。'
+        else:
+            if util_type.strip().upper() == 'COMMVAULT':
+                credit = """<?xml version="1.0" ?>
+                    <vendor>
+                        <webaddr>{webaddr}</webaddr>
+                        <port>{port}</port>
+                        <hostusername>{hostusername}</hostusername>
+                        <hostpasswd>{hostpasswd}</hostpasswd>
+                        <username>{username}</username>
+                        <passwd>{passwd}</passwd>
+                        <SQLServerHost>{SQLServerHost}</SQLServerHost>
+                        <SQLServerUser>{SQLServerUser}</SQLServerUser>
+                        <SQLServerPasswd>{SQLServerPasswd}</SQLServerPasswd>
+                        <SQLServerDataBase>{SQLServerDataBase}</SQLServerDataBase>
+                    </vendor>""".format(**{
+                    "webaddr": webaddr,
+                    "port": port,
+                    "hostusername": hostusername,
+                    "hostpasswd": base64.b64encode(hostpasswd.encode()).decode(),
+                    "username": username,
+                    "passwd": base64.b64encode(passwd.encode()).decode(),
+                    "SQLServerHost": SQLServerHost,
+                    "SQLServerUser": SQLServerUser,
+                    "SQLServerPasswd": base64.b64encode(SQLServerPasswd.encode()).decode(),
+                    "SQLServerDataBase": SQLServerDataBase
+                })
+            try:
+                cur_util_manage = UtilsManage.objects.filter(id=util_manage_id)
+                if cur_util_manage.exists():
+                    cur_util_manage.update(**{
+                        'util_type': util_type,
+                        'code': code,
+                        'name': name,
+                        'content': credit
+                    })
+                else:
+                    cur_util_manage.create(**{
+                        'util_type': util_type,
+                        'code': code,
+                        'name': name,
+                        'content': credit
+                    })
+            except Exception as e:
+                print(e)
+                status = 0
+                info = '保存失败。'
+
+    return JsonResponse({
+        'status': status,
+        'info': info,
+    })
+
+
+@login_required
+def util_manage_del(request):
+    status = 1
+    info = '删除成功。'
+    util_manage_id = request.POST.get('util_manage_id', '')
+
+    try:
+        util_manage_id = int(util_manage_id)
+    except:
+        status = 0
+        info = '网络异常。'
+    else:
+        util_manage = UtilsManage.objects.filter(id=util_manage_id)
+        if util_manage.exists():
+            util_manage.update(**{'state': '9'})
+        else:
+            status = 0
+            info = '该工具不存在，删除失败。'
+    return JsonResponse({
+        'status': status,
+        'info': info
+    })
 
 
 

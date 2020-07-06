@@ -6,12 +6,11 @@ from django.shortcuts import render
 from django.http import HttpResponseRedirect, Http404, HttpResponse, JsonResponse
 from django.http import StreamingHttpResponse
 from django.template.response import TemplateResponse
-from djcelery.models import CrontabSchedule, PeriodicTask, IntervalSchedule
+from djcelery.models import CrontabSchedule, PeriodicTask
 
 from ..tasks import *
-from ..models import *
 from ..remote import ServerByPara
-from ..CVApi import *
+from drm.api.commvault.RestApi import *
 from .public_func import *
 from .basic_views import getpagefuns
 

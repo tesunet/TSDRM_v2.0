@@ -232,6 +232,18 @@ class Vendor(models.Model):
     content = models.TextField("内容", blank=True, null=True)
 
 
+class UtilsManage(models.Model):
+    """
+    工具管理表
+        content: Commvault/SQL Server账户信息
+    """
+    util_type = models.CharField("工具类型", default='', null=True, max_length=128)
+    code = models.CharField("工具编号", default='', null=True, max_length=128)
+    name = models.CharField("工具编号", default='', null=True, max_length=128)
+    content = models.TextField("内容", default='', null=True)
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
+
+
 class ProcessSchedule(models.Model):
     dj_periodictask = models.OneToOneField(djmodels.PeriodicTask, null=True, verbose_name="定时任务")
     process = models.ForeignKey(Process, null=True, verbose_name="流程预案")

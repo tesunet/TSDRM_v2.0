@@ -1,5 +1,4 @@
-﻿﻿﻿
-var csrfToken = $("[name='csrfmiddlewaretoken']").val();
+﻿var csrfToken = $("[name='csrfmiddlewaretoken']").val();
 var state = '',
     refresh= true,
     interval = 0,
@@ -49,7 +48,7 @@ var util = {
             var year = date.getFullYear();
             headerTitle = data.name;
             var process_run_url = $("#process_url").val() + "/" + $("#process_run_id").val()
-            $('.header-title h1').html("<span >嘉兴银行自动化恢复演练" + "</span>");
+            $('.header-title h1').html("<span >上海特速自动化恢复演练" + "</span>");
             $('.progress_run h2').html("<a  href='" + process_run_url + "' target='_blank' style='color:#e8e8e8 '>" + headerTitle + "</a>");
         }
         $(".progress_list").html("");

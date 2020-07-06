@@ -4,7 +4,7 @@
     <meta charset="utf-8"/>
     <title>
         {% if homepage %}
-            自动化灾难恢复管理平台
+            TSDRM
         {% else %}
             {% for  fun in pagefuns.pagefuns %}
                 {% if fun.isselected %}
@@ -57,8 +57,8 @@
                 <i class="fa fa-bars"></i>
             </a>
             <a href="/index" class="navbar-brand">
-                <img src="/static/upload/cloud-logo3.png" class="m-r-sm" alt="scale">
-                <span class="hidden-nav-xs">嘉兴银行CommVault自动化恢复演练平台</span>
+                <img src="/static/pages/images/logo/logo.png" class="m-r-sm" alt="scale">
+                <span class="hidden-nav-xs">自动化灾难恢复管理平台</span>
             </a>
             <a class="btn btn-link visible-xs" data-toggle="dropdown" data-target=".user">
                 <i class="fa fa-cog"></i>
@@ -655,17 +655,12 @@
         });
     }
 
-    //var loadTasksTag = $("#load_tasks_tag").val();
-    // if (loadTasksTag == 1) {
     /*
     避免页面跳转时定时器的叠加
      */
-    clearTimeout(my_t);
-    var my_t = window.setInterval(getTaskInfo, 6000);
-    //}
-    //else {
-    //    window.clearInterval(my_t)
-    //}
+    //clearTimeout(my_t);
+    //var my_t = window.setInterval(getTaskInfo, 6000);
+    getTaskInfo();
 
 
     // 任务信息写入模态框
