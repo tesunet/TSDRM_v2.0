@@ -33,13 +33,13 @@ function getframework(){
                         $("#cs_dbconnect").css("color","red");
                     }
 
-                    $('#cs_memtotal').text(data.data.commserve.memtotal);
-                    $('#cs_memutilization').text(data.data.commserve.memutilization);
-                    $('#cs_swaptotal').text(data.data.commserve.swaptotal);
-                    $('#cs_swaputilization').text(data.data.commserve.swaputilization);
-                    $('#cs_cpuloadpercentage').text(data.data.commserve.cpuloadpercentage);
-                    $('#cs_disktotal').text(data.data.commserve.disktotal);
-                    $('#cs_diskutilization').text(data.data.commserve.diskutilization);
+                    //$('#cs_memtotal').text(data.data.commserve.memtotal);
+                    //$('#cs_memutilization').text(data.data.commserve.memutilization);
+                    //$('#cs_swaptotal').text(data.data.commserve.swaptotal);
+                    //$('#cs_swaputilization').text(data.data.commserve.swaputilization);
+                    //$('#cs_cpuloadpercentage').text(data.data.commserve.cpuloadpercentage);
+                    //$('#cs_disktotal').text(data.data.commserve.disktotal);
+                    //$('#cs_diskutilization').text(data.data.commserve.diskutilization);
 
                     for (var i = 0; i < data.data.ma.length; i++) {
                         var result="";
@@ -66,6 +66,39 @@ function getframework(){
 
                         result +="</tr>";
                         $("#matable tbody").append(result);
+                    }
+                    if(data.data.commserve.net=="正常") {
+                        $.ajax({
+                            type: 'POST',
+                            dataType: 'json',
+                            url: '../get_csinfo/',
+                            data: {
+                                "util": $('#util').val(),
+                            },
+                            success: function (data1) {
+                                if (data.ret == 0) {
+                                    alert(data1.data)
+                                } else {
+
+                                    $('#cs_memtotal').text(data1.data.commserve.memtotal);
+                                    $('#cs_memutilization').text(data1.data.commserve.memutilization);
+                                    $('#cs_swaptotal').text(data1.data.commserve.swaptotal);
+                                    $('#cs_swaputilization').text(data1.data.commserve.swaputilization);
+                                    $('#cs_cpuloadpercentage').text(data1.data.commserve.cpuloadpercentage);
+                                    $('#cs_disktotal').text(data1.data.commserve.disktotal);
+                                    $('#cs_diskutilization').text(data1.data.commserve.diskutilization);
+                                }
+                            }
+                        });
+                    }
+                    else{
+                         $('#cs_memtotal').text("无法获取");
+                        $('#cs_memutilization').text("无法获取");
+                        $('#cs_swaptotal').text("无法获取");
+                        $('#cs_swaputilization').text("无法获取");
+                        $('#cs_cpuloadpercentage').text("无法获取");
+                        $('#cs_disktotal').text("无法获取");
+                        $('#cs_diskutilization').text("无法获取");
                     }
                 }
         }

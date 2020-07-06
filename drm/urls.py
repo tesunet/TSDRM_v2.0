@@ -179,6 +179,7 @@ urlpatterns = [
     #灾备基础框架
     url(r'^framework/$', framework, {'funid': '90'}),
     url(r'^get_framework/$', get_framework),
+    url(r'^get_csinfo/$', get_csinfo),
 
     # 客户端监控
     url(r'^client_list/$', client_list, {'funid': '91'}),

@@ -130,13 +130,6 @@ def get_framework(request):
                 'sp': '无法获取',
                 'os': '无法获取',
                 'net': '无法获取',
-                'cpuloadpercentage': '无法获取',
-                'memtotal': '无法获取',
-                'memutilization': '无法获取',
-                'swaptotal': '无法获取',
-                'swaputilization': '无法获取',
-                'disktotal': '无法获取',
-                'diskutilization': '无法获取',
 
                 'apiport': '无法获取',
                 'apiconnect': '无法获取',
@@ -214,49 +207,6 @@ def get_framework(request):
                         commserve["apiconnect"] = "正常"
                     else:
                         commserve["apiconnect"] = "中断"
-                    # 网络正常时取CS主机信息
-                    try:
-                        conn = wmi.WMI(computer=commvault_credit["webaddr"], user=commvault_credit["hostusername"],
-                                       password=commvault_credit["hostpasswd"])
-                        cs = conn.Win32_ComputerSystem()
-                        ops = conn.Win32_OperatingSystem()
-                        pfu = conn.Win32_PageFileUsage()
-                        processor = conn.Win32_Processor()
-                        dd = conn.Win32_DiskDrive()
-                        commserve["memtotal"] = str(round(int(cs[0].TotalPhysicalMemory) / 1024 / 1024/1024,2))+'GB'
-                        commserve["memutilization"] = str(round((int(cs[0].TotalPhysicalMemory) / 1024 -int(ops[0].FreePhysicalMemory) )/(int(cs[0].TotalPhysicalMemory) / 1024 )*100,2))+'%'
-                        commserve["swaptotal"] = str(round(int(pfu[0].AllocatedBaseSize)/1024,2))+'GB'
-                        commserve["swaputilization"] = str(round(pfu[0].CurrentUsage/pfu[0].AllocatedBaseSize*100,2))+'%'
-                        cpuloadpercentage=""
-                        for cpu in processor:
-                            cpuloadpercentage+=str(cpu.DeviceID) + ':' + str(cpu.LoadPercentage) + '% '
-                        commserve["cpuloadpercentage"] = cpuloadpercentage
-
-                        tmplist = []
-                        diskTotal=0
-                        freeSpace=0
-                        percent = 0
-                        for physical_disk in dd:
-                            for partition in physical_disk.associators("Win32_DiskDriveToDiskPartition"):
-                                for logical_disk in partition.associators("Win32_LogicalDiskToPartition"):
-                                    tmpdict = {}
-                                    tmpdict["Caption"] = logical_disk.Caption
-                                    tmpdict["DiskTotal"] = int(logical_disk.Size) / 1024 / 1024 / 1024
-                                    diskTotal +=int(logical_disk.Size) / 1024 / 1024 / 1024
-                                    tmpdict["FreeSpace"] = int(logical_disk.FreeSpace) / 1024 / 1024 / 1024
-                                    freeSpace += int(logical_disk.FreeSpace) / 1024 / 1024 / 1024
-                                    tmpdict["Percent"] = int(
-                                        100.0 * (int(logical_disk.Size) - int(logical_disk.FreeSpace)) / int(
-                                            logical_disk.Size))
-                                    tmplist.append(tmpdict)
-                        try:
-                            percent = (diskTotal-freeSpace)/diskTotal*100
-                        except:
-                            pass
-                        commserve["disktotal"]= str(round(diskTotal,2))+'GB'
-                        commserve["diskutilization"] = str(round(percent, 2)) + '%'
-                    except Exception as e:
-                        pass
 
                 break;
             else:
@@ -264,6 +214,80 @@ def get_framework(request):
 
 
 
+
+            frameworkdata["commserve"] = commserve
+
+    return JsonResponse({
+        "ret": 1,
+        "data": frameworkdata,
+    })
+
+
+@login_required
+def get_csinfo(request):
+    util = request.POST.get('util', '')
+    try:
+        util = int(util)
+    except:
+        raise Http404()
+    frameworkdata={}
+    util_manages = UtilsManage.objects.exclude(state='9').filter(id=util)
+    if len(util_manages)>0:
+        util=util_manages[0]
+        if util.util_type.upper() == 'COMMVAULT':
+            commvault_credit, sqlserver_credit = get_credit_info(util.content)
+
+            commserve = {
+                'cpuloadpercentage': '无法获取',
+                'memtotal': '无法获取',
+                'memutilization': '无法获取',
+                'swaptotal': '无法获取',
+                'swaputilization': '无法获取',
+                'disktotal': '无法获取',
+                'diskutilization': '无法获取',
+            }
+            try:
+                conn = wmi.WMI(computer=commvault_credit["webaddr"], user=commvault_credit["hostusername"],
+                               password=commvault_credit["hostpasswd"])
+                cs = conn.Win32_ComputerSystem()
+                ops = conn.Win32_OperatingSystem()
+                pfu = conn.Win32_PageFileUsage()
+                processor = conn.Win32_Processor()
+                dd = conn.Win32_DiskDrive()
+                commserve["memtotal"] = str(round(int(cs[0].TotalPhysicalMemory) / 1024 / 1024/1024,2))+'GB'
+                commserve["memutilization"] = str(round((int(cs[0].TotalPhysicalMemory) / 1024 -int(ops[0].FreePhysicalMemory) )/(int(cs[0].TotalPhysicalMemory) / 1024 )*100,2))+'%'
+                commserve["swaptotal"] = str(round(int(pfu[0].AllocatedBaseSize)/1024,2))+'GB'
+                commserve["swaputilization"] = str(round(pfu[0].CurrentUsage/pfu[0].AllocatedBaseSize*100,2))+'%'
+                cpuloadpercentage=""
+                for cpu in processor:
+                    cpuloadpercentage+=str(cpu.DeviceID) + ':' + str(cpu.LoadPercentage) + '% '
+                commserve["cpuloadpercentage"] = cpuloadpercentage
+
+                tmplist = []
+                diskTotal=0
+                freeSpace=0
+                percent = 0
+                for physical_disk in dd:
+                    for partition in physical_disk.associators("Win32_DiskDriveToDiskPartition"):
+                        for logical_disk in partition.associators("Win32_LogicalDiskToPartition"):
+                            tmpdict = {}
+                            tmpdict["Caption"] = logical_disk.Caption
+                            tmpdict["DiskTotal"] = int(logical_disk.Size) / 1024 / 1024 / 1024
+                            diskTotal +=int(logical_disk.Size) / 1024 / 1024 / 1024
+                            tmpdict["FreeSpace"] = int(logical_disk.FreeSpace) / 1024 / 1024 / 1024
+                            freeSpace += int(logical_disk.FreeSpace) / 1024 / 1024 / 1024
+                            tmpdict["Percent"] = int(
+                                100.0 * (int(logical_disk.Size) - int(logical_disk.FreeSpace)) / int(
+                                    logical_disk.Size))
+                            tmplist.append(tmpdict)
+                try:
+                    percent = (diskTotal-freeSpace)/diskTotal*100
+                except:
+                    pass
+                commserve["disktotal"]= str(round(diskTotal,2))+'GB'
+                commserve["diskutilization"] = str(round(percent, 2)) + '%'
+            except Exception as e:
+                pass
 
             frameworkdata["commserve"] = commserve
 
