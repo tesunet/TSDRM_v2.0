@@ -174,7 +174,10 @@ urlpatterns = [
 
     # 仪表盘
     url(r'^dashboard/$', dashboard, {'funid': '89'}),
+    url(r'^get_dashboard/$', get_dashboard),
     url(r'^get_frameworkstate/$', get_frameworkstate),
+    url(r'^twentyfour_hours_job/$', twentyfour_hours_job, {'funid': '92'}),
+    url(r'^get_twentyfour_hours_job/$', get_twentyfour_hours_job),
 
     #灾备基础框架
     url(r'^framework/$', framework, {'funid': '90'}),

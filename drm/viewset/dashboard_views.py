@@ -27,6 +27,98 @@ def dashboard(request, funid):
     })
 
 @login_required
+def get_dashboard(request):
+    util = request.POST.get('util', '')
+    try:
+        util = int(util)
+    except:
+        return JsonResponse({
+            "ret": 0,
+            "data": '获取信息失败。',
+        })
+
+    util_manages = UtilsManage.objects.exclude(state='9').filter(id=util)
+    if len(util_manages) > 0:
+        util = util_manages[0]
+        if util.util_type.upper() == 'COMMVAULT':
+            commvault_credit, sqlserver_credit = get_credit_info(util.content)
+
+            # 24小时作业显示成功，执行中，失败状态的个数
+            job_run_num = 0
+            job_success_num = 0
+            job_failed_num = 0
+            try:
+                dm = SQLApi.CustomFilter(sqlserver_credit)
+                #异常事件
+                error_job_list = dm.display_error_job_list()
+                #24小时作业
+                twentyfour_job_list = dm.twentyfour_hours_job_list()
+
+                for job_list in twentyfour_job_list:
+                    if "成功" in job_list['jobstatus']:
+                        job_success_num += 1
+                    elif "运行中" in job_list['jobstatus']:
+                        job_run_num += 1
+                    elif "失败" in job_list['jobstatus']:
+                        job_failed_num += 1
+
+            except Exception as e:
+                print(e)
+                return JsonResponse({
+                    "ret": 0,
+                    "data": "获取异常事件信息失败。",
+                })
+            return JsonResponse({"error_job_list": error_job_list,
+                                 "job_run_num": job_run_num,
+                                 "job_success_num": job_success_num,
+                                 "job_failed_num": job_failed_num,
+                                 })
+
+
+@login_required
+def twentyfour_hours_job(request,funid):
+    util_manages = UtilsManage.objects.exclude(state='9')
+
+    return render(request, "twentyfour_hours_job.html", {
+        'username': request.user.userinfo.fullname,
+        "pagefuns": getpagefuns(funid, request=request),
+        "util_manages": util_manages,
+    })
+
+
+@login_required
+def get_twentyfour_hours_job(request):
+    util = request.GET.get('util', '')
+    try:
+        util = int(util)
+    except:
+        return JsonResponse({
+            "ret": 0,
+            "data": [],
+        })
+
+    util_manages = UtilsManage.objects.exclude(state='9').filter(id=util)
+    if len(util_manages) > 0:
+        util = util_manages[0]
+        if util.util_type.upper() == 'COMMVAULT':
+            commvault_credit, sqlserver_credit = get_credit_info(util.content)
+
+            try:
+                dm = SQLApi.CustomFilter(sqlserver_credit)
+                job_list = dm.twentyfour_hours_job_list()
+
+            except Exception as e:
+                print(e)
+                return JsonResponse({
+                    "ret": 0,
+                    "data": "获取信息失败。",
+                })
+
+            return JsonResponse({"data": job_list})
+
+
+
+@login_required
 def get_frameworkstate(request):
     util = request.POST.get('util', '')
     try:

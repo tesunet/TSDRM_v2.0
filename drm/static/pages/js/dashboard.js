@@ -1,3 +1,12 @@
+$("ul#locate").on("click", " li", function () {
+    var job_id = $(this).attr("id");
+    $("input#clientname").val($("#a".replace("a", job_id)).find("input#clientname_tag").val());
+    $("input#idataagent").val($("#a".replace("a", job_id)).find("input#idataagent_tag").val());
+    $("textarea#jobfailedreason").text($("#a".replace("a", job_id)).find("input#jobfailedreason_tag").val());
+    $("input#jobid").val(job_id);
+});
+
+
 function getframeworkstate(){
     $("#url_util").click(function () {
         window.open("/framework?util="+$("#util").val());
@@ -77,14 +86,66 @@ function getclientnum(){
     });
 }
 
+function getdashboard(){
+    $.ajax({
+        type: 'POST',
+        dataType: 'json',
+        url: '../get_dashboard/',
+        data: {
+            "util":$('#util').val(),
+        },
+        success: function (data) {
+            if (data.ret == 0){
+                alert(data.data)
+            }else {
+                $("#job_run_num").append('<span class="widget-thumb-subtitle">运行中</span>\n' +
+                '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.job_run_num + '</span>')
+                $("#job_success_num").append('<span class="widget-thumb-subtitle">成功</span>\n' +
+                    '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.job_success_num + '</span>')
+                $("#job_failed_num").append('<span class="widget-thumb-subtitle">失败</span>\n' +
+                    '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.job_failed_num + '</span>')
+
+                for (i = 0; i < data.error_job_list.length; i++) {
+                    $("#locate").append('<li id="' + data.error_job_list[i].jobid + '">\n' +
+                        '    <div class="col1">\n' +
+                        '        <div class="cont">\n' +
+                        '            <div class="cont-col1">\n' +
+                        '                <div class="label label-sm label-info">\n' +
+                        '                    <i class="fa fa-bullhorn"></i>\n' +
+                        '                </div>\n' +
+                        '            </div>\n' +
+                        '            <div class="cont-col2">\n' +
+                        '                <div class="desc">\n' +
+                        '                    <a href="#" data-toggle="modal" data-target="#static">\n' +
+                        '                        <font style="vertical-align: inherit;">\n' +
+                        '                            <font style="vertical-align: inherit;">' + data.error_job_list[i].jobfailedreason + '</font>\n' +
+                        '                        </font>\n' +
+                        '                    </a>\n' +
+                        '                    <input hidden id="clientname_tag" type="text" value="' + data.error_job_list[i].clientname + '">\n' +
+                        '                    <input hidden id="idataagent_tag" type="text" value="' + data.error_job_list[i].idataagent + '">\n' +
+                        '                    <input hidden id="jobfailedreason_tag" type="text" value="' + data.error_job_list[i].jobfailedreason + '">\n' +
+                        '                </div>\n' +
+                        '            </div>\n' +
+                        '        </div>\n' +
+                        '    </div>\n' +
+                        '</li>')
+                }
+        }
+
+    }
+});
+}
+
+
 $(document).ready(function () {
     getframeworkstate();
     getclientnum();
+    getdashboard();
     $("#util").change(function () {
         getframeworkstate();
         getclientnum();
+        getdashboard();
     });
-
 
 
     var Dashboard = function () {

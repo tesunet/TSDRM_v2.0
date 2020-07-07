@@ -1093,6 +1093,78 @@ class CVApi(DataMonitor):
                 pre_schedpattern = c[10]
         return schedule_policy_list
 
+
+class CustomFilter(CVApi):
+
+    def twentyfour_hours_job_list(self):
+        status_list = {"Running": "运行", "Waiting": "等待", "Pending": "阻塞", "Completed": "正常", "Success": "正常",
+                       "Failed": "失败", "Failed to Start": "启动失败",
+                       "Completed w/ one or more errors": "已完成，但有一个或多个错误",
+                       "Completed w/ one or more warnings": "已完成，但有一个或多个警告"}
+
+        twentyfour_datadate = (datetime.datetime.now()-datetime.timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
+        now_datadate = (datetime.datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
+        # 24小时作业
+        job_sql = """SELECT [jobid],[clientname],[idataagent],[instance],[backupset],[subclient],[data_sp],[backuplevel],[incrlevel],[jobstatus],[jobfailedreason],[startdate],[enddate],[totalBackupSize]
+                    FROM [commserv].[dbo].[CommCellBackupInfo] WHERE startdate >= '{twentyfour_datadate}' AND startdate <= '{now_datadate}'
+                    ORDER BY [startdate] DESC""".format(twentyfour_datadate=twentyfour_datadate, now_datadate=now_datadate)
+        content = self.fetch_all(job_sql)
+        job_list = []
+
+        for i in content:
+            job_status = i[9]
+            if job_status in status_list:
+                job_status = status_list[job_status]
+                if job_status == '运行' or job_status == '等待' or job_status == '阻塞':
+                    job_status_str = '运行中'
+                elif job_status == '正常' or job_status == '成功':
+                    job_status_str = '成功'
+                elif job_status == '已完成，但有一个或多个错误' or job_status == '已完成，但有一个或多个警告':
+                    job_status_str = '警告'
+                elif job_status == '失败' or job_status == '启动失败':
+                    job_status_str = '失败'
+                else:
+                    job_status_str = '其他'
+            else:
+                job_status_str = '其他'
+
+            job_list.append({
+
+                "jobid": i[0],
+                "clientname": i[1],
+                "idataagent": i[2],
+                "instance": i[3],
+                "backupset": i[4],
+                "subclient": i[5],
+                "data_sp": i[6],
+                "backuplevel": i[7],
+                "incrlevel": i[8],
+                "jobstatus": job_status_str,
+                "jobfailedreason": i[10],
+                "startdate": i[11].strftime('%Y-%m-%d %H:%M:%S') if i[11] else "",
+                "enddate": i[12].strftime('%Y-%m-%d %H:%M:%S') if i[12] else "",
+                "totalBackupSize": i[13],
+            })
+        return job_list
+
+    def display_error_job_list(self):
+        nowtime = datetime.datetime.now()
+        dttime = datetime.datetime.strptime(
+            ((nowtime - datetime.timedelta(days=28 + nowtime.weekday())).strftime("%Y-%m-%d")), '%Y-%m-%d')
+        # 异常事件
+        job_sql = """SELECT [jobid],[clientname],[idataagent],[jobfailedreason],[jobstatus] FROM [commserv].[dbo].[CommCellBackupInfo] WHERE startdate >= '{0}' AND jobstatus!='Success'""".format(dttime)
+        content = self.fetch_all(job_sql)
+        error_job_list = []
+        for i in content:
+            error_job_list.append({
+                "jobid": i[0],
+                "clientname": i[1],
+                "idataagent": i[2],
+                "jobfailedreason": i[3],
+            })
+        return error_job_list
+
+
 if __name__ == '__main__':
     credit = {
         "host": "10.1.5.160\COMMVAULT",
