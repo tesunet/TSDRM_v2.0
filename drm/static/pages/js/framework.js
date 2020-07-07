@@ -33,13 +33,13 @@ function getframework(){
                         $("#cs_dbconnect").css("color","red");
                     }
 
-                    //$('#cs_memtotal').text(data.data.commserve.memtotal);
-                    //$('#cs_memutilization').text(data.data.commserve.memutilization);
-                    //$('#cs_swaptotal').text(data.data.commserve.swaptotal);
-                    //$('#cs_swaputilization').text(data.data.commserve.swaputilization);
-                    //$('#cs_cpuloadpercentage').text(data.data.commserve.cpuloadpercentage);
-                    //$('#cs_disktotal').text(data.data.commserve.disktotal);
-                    //$('#cs_diskutilization').text(data.data.commserve.diskutilization);
+                    $('#cs_memtotal').text("获取中");
+                    $('#cs_memutilization').text("获取中");
+                    $('#cs_swaptotal').text("获取中");
+                    $('#cs_swaputilization').text("获取中");
+                    $('#cs_cpuloadpercentage').text("获取中");
+                    $('#cs_disktotal').text("获取中");
+                    $('#cs_diskutilization').text("获取中");
 
                     for (var i = 0; i < data.data.ma.length; i++) {
                         var result="";

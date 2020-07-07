@@ -119,8 +119,11 @@ def get_backup_content(request):
 
         whole_list = []
         try:
+            all_client_manage = Origin.objects.exclude(state="9").values("client_name")
+            tmp_client_manage = [tmp_client["client_name"] for tmp_client in all_client_manage]
+
             dm = SQLApi.CVApi(sqlserver_credit)
-            whole_list = dm.get_backup_content()
+            whole_list = dm.get_backup_content(tmp_client_manage)
 
             for num, wl in enumerate(whole_list):
                 clientname_rowspan = get_rowspan(whole_list, clientname=wl['clientname'])
@@ -411,7 +414,7 @@ def oraclerecoverydata(request):
         client_name = request.GET.get('clientName', '')
         result = []
 
-        dm = SQLApi.CustomFilter(settings.sql_credit)
+        dm = SQLApi.CVApi(settings.sql_credit)
         result = dm.get_oracle_backup_job_list(client_name)
         dm.close()
         return JsonResponse({"data": result})
@@ -539,7 +542,7 @@ def target(request, funid):
         #############################################
         # clientid, clientname, agent, instance, os #
         #############################################
-        dm = SQLApi.CustomFilter(settings.sql_credit)
+        dm = SQLApi.CVApi(settings.sql_credit)
 
         oracle_data = dm.get_instance_from_oracle()
 
@@ -711,7 +714,7 @@ def origin(request, funid):
         #############################################
         # clientid, clientname, agent, instance, os #
         #############################################
-        dm = SQLApi.CustomFilter(settings.sql_credit)
+        dm = SQLApi.CVApi(settings.sql_credit)
 
         oracle_data = dm.get_instance_from_oracle()
 

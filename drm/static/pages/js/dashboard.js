@@ -1,4 +1,7 @@
 function getframeworkstate(){
+    $("#url_util").click(function () {
+        window.open("/framework?util="+$("#util").val());
+    });
     $.ajax({
         type: 'POST',
         dataType: 'json',
@@ -22,16 +25,13 @@ function getframeworkstate(){
     });
 }
 
-$(document).ready(function () {
-    getframeworkstate();
-    $("#util").change(function () {
-        getframeworkstate();
+function getclientnum(){
+    $("#url_allclient").click(function () {
+        window.open("/client_list?util="+$("#util").val());
     });
-    $("#url_util").click(function () {
-        window.open("/framework?util="+$("#util").val());
+    $("#url_wnclient").click(function () {
+        window.open("/client_list?util="+$("#util").val());
     });
-
-
     $.ajax({
         type: 'POST',
         dataType: 'json',
@@ -45,36 +45,26 @@ $(document).ready(function () {
                 alert(data.data)
             } else {
                 // 报警客户端
+                var all_client_num = 0;
                 var warning_client_num = 0;
-
+                var allclientlist = []
+                var warningclientlist = []
                 var whole_list = data.data;
 
                 // 加载数据
                 var content_el = ''
                 for (var i = 0; i < whole_list.length; i++) {
-
-                    var agent_job_list = whole_list[i].agent_job_list;
-                    var agent_length = whole_list[i].agent_length;
-
-                    for (var j = 0; j < agent_job_list.length; j++) {
-                        var tr_el = '<tr>';
-                        if (j == 0) {
-                            tr_el += '<td rowspan="' + whole_list[i].agent_length + '" style="vertical-align:middle">' + (i + 1) + '</td><td rowspan="' + whole_list[i].agent_length + '" style="vertical-align:middle">' + agent_job_list[j].client_name + '</td>';
-                        }
-                        tr_el += '<td>' + agent_job_list[j].agent_type_name + '</td><td>' + agent_job_list[j].job_start_time + '</td><td><span class="' + agent_job_list[j].status_label + '">' + agent_job_list[j].job_backup_status + '</span></td>'
-                        tr_el += '<td><span class="' + agent_job_list[j].aux_status_label + '">' + agent_job_list[j].aux_copy_status + '</span></td></tr>'
-                        content_el += tr_el;
+                    if( allclientlist.indexOf(whole_list[i]["clientname"]) == -1){
+                        allclientlist.push(whole_list[i]["clientname"]);
                     }
-
-                    // 报警客户端
-                    for (var j = 0; j < agent_job_list.length; j++) {
-                        if (agent_job_list[j].job_backup_status.indexOf("失败") != -1) {
-                            warning_client_num += 1;
-                            break
-                        }
+                    if(whole_list[i]["bk_status"].indexOf("失败") != -1 && warningclientlist.indexOf(whole_list[i]["clientname"]) == -1){
+                        warningclientlist.push(whole_list[i]["clientname"]);
                     }
                 }
+                var all_client_num = allclientlist.length;
+                var warning_client_num = warningclientlist.length;
 
+                $("#all_client_num").text(all_client_num)
                 $("#warning_client_num").text(warning_client_num)
                 if (warning_client_num > 0) {
                     $("#warning_client_num").css("color", "red");
@@ -85,6 +75,17 @@ $(document).ready(function () {
             }
         }
     });
+}
+
+$(document).ready(function () {
+    getframeworkstate();
+    getclientnum();
+    $("#util").change(function () {
+        getframeworkstate();
+        getclientnum();
+    });
+
+
 
     var Dashboard = function () {
 

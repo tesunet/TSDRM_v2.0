@@ -21,7 +21,7 @@ $(document).ready(function () {
                     for (var i = 0; i < data.data.length; i++) {
                         var result="";
                         result +="<tr>";
-                        result +="<td>" + data.data[i]["client_id"] + "</td>";
+                        result +="<td>" + (i+1) + "</td>";
                         result +="<td>" + data.data[i]["client_name"] + "</td>";
                         result +="<td>" + data.data[i]["network_interface"] + "</td>";
                         result +="<td>" + data.data[i]["galaxy_release"] + "</td>";
@@ -150,15 +150,20 @@ $(document).ready(function () {
                         if (pre_clientname == backup_content[i]["clientname"]&&pre_idataagent == backup_content[i]["idataagent"]&&pre_type == backup_content[i]["type"]) {
                             type_hidden = "display:none";
                         }
+                        // 备份大小、应用大小
+                        var numbytescomp = (backup_content[i]["numbytescomp"]/1024/1024/1024).toFixed(2)
+                        var numbytesuncomp = (backup_content[i]["numbytesuncomp"]/1024/1024/1024).toFixed(2)
 
                         $("#tbody3").append(
-                            '<tr>' +
+                             '<tr>' +
                             '<td rowspan="' + backup_content[i].clientname_rowspan + '" style="vertical-align:middle; ' + clientname_hidden + '">' + sort + '</td>' +
                             '<td rowspan="' + backup_content[i].clientname_rowspan + '" style="vertical-align:middle; ' + clientname_hidden + '">' + backup_content[i]["clientname"] + '</td>' +
                             '<td rowspan="' + backup_content[i].idataagent_rowspan + '" style="vertical-align:middle; ' + idataagent_hidden + '">' + backup_content[i]["idataagent"] + '</td>' +
                             '<td rowspan="' + backup_content[i].type_rowspan + '" style="vertical-align:middle; ' + type_hidden + '">' + backup_content[i]["type"] + '</td>' +
                             '<td style="vertical-align:middle">' + backup_content[i]["subclient"] + '</td>' +
                             '<td style="vertical-align:middle">' + backup_content[i]["content"] + '</td>' +
+                            '<td style="vertical-align:middle">' + numbytesuncomp + ' GB</td>' +
+                            '<td style="vertical-align:middle">' + numbytescomp + ' GB</td>' +
                             '</tr>'
                         );
 

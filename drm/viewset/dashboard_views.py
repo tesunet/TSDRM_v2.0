@@ -20,28 +20,10 @@ import wmi
 def dashboard(request, funid):
     util_manages = UtilsManage.objects.exclude(state='9')
 
-    dm = SQLApi.CustomFilter(settings.sql_credit)
-    if dm.msg == "链接数据库失败。":
-        service_status = "中断"
-        net_status = "中断"
-    else:
-        service_status = "正常"
-        net_status = "正常"
-
-    # 客户端列表
-    client_list = dm.get_all_install_clients()
-
-    # 报警客户端
-    warning_client_num = "loading..."
-
     return render(request, "dashboard.html", {
         'username': request.user.userinfo.fullname,
         "pagefuns": getpagefuns(funid, request=request),
         "util_manages":util_manages,
-        "service_status": service_status,
-        "net_status": net_status,
-        "warning_client_num": warning_client_num,
-        "client_sum": len(client_list) if client_list else ""
     })
 
 @login_required
@@ -70,7 +52,7 @@ def get_frameworkstate(request):
                     if not cvToken.isLogin:
                         state=1
                     # 网络正常时取数据库信息
-                    dm = SQLApi.CustomFilter(sqlserver_credit)
+                    dm = SQLApi.CVApi(sqlserver_credit)
                     if dm.isconnected() is not None:
                         #数据库正常时取ma信息
                         ma_info = dm.get_ma_info()
@@ -145,7 +127,7 @@ def get_framework(request):
                     commserve["net"] = "正常"
                     # 网络正常时取数据库信息
                     commserve["dbname"] = sqlserver_credit["SQLServerDataBase"]
-                    dm = SQLApi.CustomFilter(sqlserver_credit)
+                    dm = SQLApi.CVApi(sqlserver_credit)
                     if dm.isconnected() is not None:
                         commserve["dbconnect"] = "正常"
 
