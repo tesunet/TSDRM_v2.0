@@ -54,11 +54,11 @@ def get_dashboard(request):
                 twentyfour_job_list = dm.twentyfour_hours_job_list()
 
                 for job_list in twentyfour_job_list:
-                    if "成功" in job_list['jobstatus']:
+                    if job_list['jobstatus'] == "成功":
                         job_success_num += 1
-                    elif "运行中" in job_list['jobstatus']:
+                    elif job_list['jobstatus'] == "运行中":
                         job_run_num += 1
-                    elif "失败" in job_list['jobstatus']:
+                    elif job_list['jobstatus'] == "失败":
                         job_failed_num += 1
 
             except Exception as e:
