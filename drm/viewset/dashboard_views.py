@@ -36,7 +36,6 @@ def get_dashboard(request):
             "ret": 0,
             "data": '获取信息失败。',
         })
-
     util_manages = UtilsManage.objects.exclude(state='9').filter(id=util)
     if len(util_manages) > 0:
         util = util_manages[0]
@@ -48,7 +47,7 @@ def get_dashboard(request):
             job_success_num = 0
             job_failed_num = 0
             try:
-                dm = SQLApi.CustomFilter(sqlserver_credit)
+                dm = SQLApi.CVApi(sqlserver_credit)
                 #异常事件
                 error_job_list = dm.display_error_job_list()
                 #24小时作业
@@ -104,7 +103,7 @@ def get_twentyfour_hours_job(request):
             commvault_credit, sqlserver_credit = get_credit_info(util.content)
 
             try:
-                dm = SQLApi.CustomFilter(sqlserver_credit)
+                dm = SQLApi.CVApi(sqlserver_credit)
                 job_list = dm.twentyfour_hours_job_list()
 
             except Exception as e:
@@ -115,7 +114,6 @@ def get_twentyfour_hours_job(request):
                 })
 
             return JsonResponse({"data": job_list})
-
 
 
 @login_required

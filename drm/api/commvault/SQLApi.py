@@ -1093,9 +1093,6 @@ class CVApi(DataMonitor):
                 pre_schedpattern = c[10]
         return schedule_policy_list
 
-
-class CustomFilter(CVApi):
-
     def twentyfour_hours_job_list(self):
         status_list = {"Running": "运行", "Waiting": "等待", "Pending": "阻塞", "Completed": "正常", "Success": "正常",
                        "Failed": "失败", "Failed to Start": "启动失败",
