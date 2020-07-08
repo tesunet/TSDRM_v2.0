@@ -1159,15 +1159,7 @@ class CVApi(DataMonitor):
             pre_backupset = c[3]
             pre_subclient = c[4]
 
-        # 排序
-        sorted_subclient_list = []
-        for client in client_list:
-            for ds in duplicated_subclient_list:
-                if client == ds["clientname"]:
-                    sorted_subclient_list.append(ds)
-                    break
-
-        return sorted_subclient_list
+        return duplicated_subclient_list
 
     def get_duplicated_aux_copy(self):
         auxcopy_sql = """SELECT DISTINCT [jobId], [auxCopyJobId], [status], [copiedTime]
