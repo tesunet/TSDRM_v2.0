@@ -178,6 +178,9 @@ urlpatterns = [
     url(r'^get_frameworkstate/$', get_frameworkstate),
     url(r'^twentyfour_hours_job/$', twentyfour_hours_job, {'funid': '92'}),
     url(r'^get_twentyfour_hours_job/$', get_twentyfour_hours_job),
+    url(r'^display_error_job/$', display_error_job, {'funid': '93'}),
+    url(r'^get_display_error_job/$', get_display_error_job),
+
 
     #灾备基础框架
     url(r'^framework/$', framework, {'funid': '90'}),
