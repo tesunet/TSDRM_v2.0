@@ -58,6 +58,7 @@ class DataMonitor(object):
     def isconnected(self):
         return self._conn
 
+
 class CVApi(DataMonitor):
     def get_all_install_clients(self):
         clients_sql = """SELECT [ClientId],[Client],[NetworkInterface],[OS [Version]]],[Hardware],[GalaxyRelease],[InstallTime],[UninstallTime],[DeletedTime],[ClientStatus],[ClientBkpEnable],[ClientRstEnable]
@@ -282,91 +283,6 @@ class CVApi(DataMonitor):
             })
         return instance_list
 
-    def get_all_backup_content(self):
-        # 虚机备份内容
-        # cv_token = CVRestApiToken()
-        # cv_token.login(settings.CVApi_credit)
-        # cv_api = CVApiOperate(cv_token)
-
-        # "Mysql", "Windows File System", "Linux File System"
-        backupset_content_sql = """SELECT [clientname],[idataagent],[backupset],[subclient],[content]
-                                   FROM [commserv].[dbo].[CommCellClientFSFilters]
-                                   WHERE [subclientstatus]='valid'"""
-        # ["Oracle Database", "SQL Server", "Virtual Server"]
-        instance_content_sql = """SELECT [clientname],[idataagent],[instance],[backupset],[subclient], [clientid]
-                                  FROM [commserv].[dbo].[CommCellSubClientConfig]
-                                  WHERE [idataagentstatus] = 'installed' AND [data_sp]!='not assigned'"""
-        backupset_content = self.fetch_all(backupset_content_sql)
-        instance_content = self.fetch_all(instance_content_sql)
-
-        backupset_content_list = []
-        for i in backupset_content:
-            if i[1] in ["Mysql", "Windows File System", "Linux File System"]:
-                backupset_content_list.append({
-                    "clientname": i[0],
-                    "idataagent": i[1],
-                    "backupset": i[2],
-                    "subclient": i[3],
-                    "content": i[4],
-                })
-
-        for i in instance_content:
-            if i[1] in ["Oracle Database", "SQL Server"]:
-                backupset_content_list.append({
-                    "clientname": i[0],
-                    "idataagent": i[1],
-                    "backupset": i[3],
-                    "subclient": i[4],
-                    "content": i[2],
-                })
-            if i[1] in ["Virtual Server"]:
-                # clientId
-                client_id = i[5]
-
-                content = self.get_vm_backup_content(client_id)
-
-                for vm_content in content:
-                    backupset_content_list.append({
-                        "clientname": i[0],
-                        "idataagent": i[1],
-                        "backupset": i[3],
-                        "subclient": i[4],
-                        "content": vm_content["vmname"],
-                    })
-
-        extra_content = self.get_installed_sub_clients_for_info()
-        # 去重
-        extra_content = remove_duplicate_for_info(extra_content)
-        whole_list = []
-
-        for b_content in backupset_content_list:
-
-            for content in extra_content:
-                if content['clientname'] == b_content['clientname'] and content['idataagent'] == b_content[
-                        'idataagent'] and content['backupset'] == b_content['backupset']:
-                    whole_list.append({
-                        "clientname": b_content['clientname'],
-                        "idataagent": b_content['idataagent'],
-                        "backupset": b_content['backupset'],
-                        "content": b_content['content'],
-                    })
-                    # 剔除已经包含的
-                    extra_content.remove({
-                        "clientname": b_content['clientname'],
-                        "idataagent": b_content['idataagent'],
-                        "backupset": b_content['backupset'],
-                    })
-        # 未包含的置空
-        for e_content in extra_content:
-            whole_list.append({
-                "clientname": e_content['clientname'],
-                "idataagent": e_content['idataagent'],
-                "backupset": e_content['backupset'],
-                "content": '无',
-            })
-
-        return whole_list
-
     def get_schedules(self, client=None, agent=None, backup_set=None, sub_client=None, schedule=None,
                       schedule_type=None):
         if all([client, agent, backup_set, sub_client, schedule, schedule_type]):
@@ -470,7 +386,7 @@ class CVApi(DataMonitor):
 
     def get_all_auxcopys(self):
         auxcopy_sql = """SELECT [storagepolicy], [jobstatus], [sourcecopyid], [destcopyid] FROM [commserv].[dbo].[CommCellAuxCopyInfo] 
-                        WHERE [destcopyid] != '' ORDER BY [startdate] DESC"""
+        WHERE [destcopyid] != '' ORDER BY [startdate] DESC"""
         content = self.fetch_all(auxcopy_sql)
         auxcopys = []
         for i in content:
@@ -582,7 +498,8 @@ class CVApi(DataMonitor):
     def get_oracle_backup_job_list(self, client_name):
         oracle_backup_sql = """SELECT DISTINCT [jobid],[backuplevel],[startdate],[enddate],[instance], [nextSCN], [idataagent], [subclient]
                             FROM [CommServ].[dbo].[CommCellOracleBackupInfo] 
-                            WHERE [jobstatus]='Success' AND [clientname]='{0}' ORDER BY [startdate] DESC;""".format(client_name)
+                            WHERE [jobstatus]='Success' AND [clientname]='{0}' ORDER BY [startdate] DESC;""".format(
+            client_name)
         content = self.fetch_all(oracle_backup_sql)
         oracle_backuplist = []
         for i in content:
@@ -657,7 +574,7 @@ class CVApi(DataMonitor):
 
     def get_clients_info(self, selected_clients=[]):
         clients_sql = """SELECT [ClientId],[Client],[NetworkInterface],[OS [Version]]],[Hardware],[GalaxyRelease],[InstallTime]
-                            FROM [commserv].[dbo].[CommCellClientConfig] where ClientStatus='installed'"""
+        FROM [commserv].[dbo].[CommCellClientConfig] where ClientStatus='installed'"""
         ret = self.fetch_all(clients_sql)
         client_list = []
         automatic_clients = self.get_automatic_clients()
@@ -689,72 +606,88 @@ class CVApi(DataMonitor):
             "Completed w/ one or more errors": "已完成，但有一个或多个错误",
             "Completed w/ one or more warnings": "已完成，但有一个或多个警告", "Success": "成功"
         }
-        backup_status_sql = """SELECT ccbi.clientname, ccbi.idataagent, ccbi.instance, ccbi.backupset, ccbi.subclient, ccbi.startdate, ccbi.jobstatus bk_status, ccaci.jobstatus aux_status
-        FROM commserv.dbo.CommCellBackupInfo AS ccbi
-        LEFT JOIN commserv.dbo.CommCellClientConfig AS cccc ON ccbi.clientname=cccc.Client AND cccc.ClientStatus='installed'
-        LEFT JOIN commserv.dbo.CommCellAuxCopyInfo AS ccaci ON CAST(ccaci.storagepolicy AS char)= CAST(ccbi.data_sp AS char)
-        ORDER BY ccbi.clientname DESC, ccbi.idataagent DESC, ccbi.instance DESC, ccbi.backupset DESC, ccbi.subclient DESC, ccbi.startdate DESC
+
+        backup_status_sql = """SELECT clientname, idataagent, instance, backupset, subclient, startdate, jobstatus, jobid
+        FROM commserv.dbo.CommCellBackupInfo
+        ORDER BY startdate DESC
         """
-        ret = self.fetch_all(backup_status_sql)
+
+        backup_status = self.fetch_all(backup_status_sql)
+        duplicated_subclients = self.get_duplicated_subclients()
+        aux_copy = self.get_duplicated_aux_copy()
 
         backup_status_list = []
-        pre_clientname = ""
-        pre_idataagent = ""
-        pre_instance = ""
-        pre_backupset = ""
-        pre_subclient = ""
+        for ds in duplicated_subclients:
+            catched = False  # 是否匹配到
+            for bs in backup_status:
+                if bs[0] == ds["clientname"] and bs[1] == ds["idataagent"] and bs[2] == ds["instance"] and bs[3] == ds[
+                    "backupset"] and bs[4] == ds["subclient"]:
+                    catched = True
+                    # 在指定客户端列表内
+                    if bs[0] in selected_clients or not selected_clients:  # selected_clients为空
+                        bk_status = bs[6]
+                        aux_status = "无"
+                        # 辅助拷贝
+                        for ac in aux_copy:
+                            if ac["jobId"] == bs[7]:
+                                aux_status = ac["status"]
+                                break
 
-        # 客户端 应用类型
-        for c in ret:
-            # 不在选择agents列表 不展示 默认都展示
-            if selected_agents and c[1] not in selected_agents:
-                continue
-            # 去重
-            if c[0] == pre_clientname and c[1] == pre_idataagent and c[2] == pre_instance and c[3] == pre_backupset and \
-                    c[4] == pre_subclient:
-                continue
+                        try:
+                            bk_status = status_list[bk_status]
+                        except:
+                            pass
 
-            # 在指定客户端列表内
-            if c[0] in selected_clients or not selected_clients:  # selected_clients为空
-                bk_status = c[6]
-                aux_status = c[7]
-                try:
-                    bk_status = status_list[bk_status]
-                except:
-                    pass
-                try:
-                    aux_status = status_list[aux_status]
-                except:
-                    pass
+                        # 判断 实例 或 备份集
+                        type = ""
+                        # 备份内容
+                        if "File System" in bs[1] or "Virtual" in bs[1] or "Big Data Apps" in ds['idataagent']:
+                            type = bs[3]
+                        if "Oracle" in bs[1] or "SQL Server" in bs[1] or "MySQL" in bs[1] or "Exchange Database" in bs[1]:
+                            type = bs[2]
 
-                    # 判断 实例 或 备份集
+                        # 数据库没有实例 或者 文件系统没有备份集
+                        if not type:
+                            continue
+
+                        backup_status_list.append({
+                            "clientname": bs[0],
+                            "idataagent": bs[1],
+                            "instance": bs[2],
+                            "backupset": bs[3],
+                            "subclient": bs[4],
+                            "startdate": bs[5],
+                            "bk_status": bk_status if bk_status else "无",
+                            "aux_status": aux_status,
+                            "type": type
+                        })
+                    break
+            if not catched:
+                # 添加一条空的
+                # 判断 实例 或 备份集
                 type = ""
                 # 备份内容
-                if "File System" in c[1] or "Virtual" in c[1]:
-                    type = c[3]
-                if "Oracle" in c[1] or "SQL Server" in c[1] or "MySQL" in c[1]:
-                    type = c[2]
+                if "File System" in ds['idataagent'] or "Virtual" in ds['idataagent'] or "Big Data Apps" in ds['idataagent']:
+                    type = ds['backupset']
+                if "Oracle" in ds['idataagent'] or "SQL Server" in ds['idataagent'] or "MySQL" in ds['idataagent'] or "Exchange Database" in ds['idataagent']:
+                    type = ds['instance']
 
                 # 数据库没有实例 或者 文件系统没有备份集
                 if not type:
                     continue
 
                 backup_status_list.append({
-                    "clientname": c[0],
-                    "idataagent": c[1],
-                    "instance": c[2],
-                    "backupset": c[3],
-                    "subclient": c[4],
-                    "startdate": c[5],
-                    "bk_status": bk_status if bk_status else "无",
-                    "aux_status": aux_status if aux_status else "无",
+                    "clientname": ds["clientname"],
+                    "idataagent": ds["idataagent"],
+                    "instance": ds["instance"],
+                    "backupset": ds["backupset"],
+                    "subclient": ds["subclient"],
+                    "startdate": "无",
+                    "bk_status": "无",
+                    "aux_status": "无",
                     "type": type
                 })
-                pre_clientname = c[0]
-                pre_idataagent = c[1]
-                pre_instance = c[2]
-                pre_backupset = c[3]
-                pre_subclient = c[4]
+
         return backup_status_list
 
     def get_backup_content(self, selected_clients=[], selected_agents=[]):
@@ -1099,12 +1032,13 @@ class CVApi(DataMonitor):
                        "Completed w/ one or more errors": "已完成，但有一个或多个错误",
                        "Completed w/ one or more warnings": "已完成，但有一个或多个警告"}
 
-        twentyfour_datadate = (datetime.datetime.now()-datetime.timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
+        twentyfour_datadate = (datetime.datetime.now() - datetime.timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
         now_datadate = (datetime.datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
         # 24小时作业
         job_sql = """SELECT [jobid],[clientname],[idataagent],[instance],[backupset],[subclient],[data_sp],[backuplevel],[incrlevel],[jobstatus],[jobfailedreason],[startdate],[enddate],[totalBackupSize]
                     FROM [commserv].[dbo].[CommCellBackupInfo] WHERE startdate >= '{twentyfour_datadate}' AND startdate <= '{now_datadate}'
-                    ORDER BY [startdate] DESC""".format(twentyfour_datadate=twentyfour_datadate, now_datadate=now_datadate)
+                    ORDER BY [startdate] DESC""".format(twentyfour_datadate=twentyfour_datadate,
+                                                        now_datadate=now_datadate)
         content = self.fetch_all(job_sql)
         job_list = []
 
@@ -1189,14 +1123,83 @@ class CVApi(DataMonitor):
             })
         return error_job_list
 
+    def get_duplicated_subclients(self):
+        client_list = [client["client_name"] for client in self.get_clients_info()]
+        subclient_sql = """SELECT [clientname],[idataagent],[instance],[backupset],[subclient]
+        FROM [commserv].[dbo].[CommCellSubClientConfig] 
+        WHERE [backupset]!='Indexing BackupSet' AND [subclient]!='(command line)' {0}
+        ORDER BY [clientname] DESC, [idataagent] DESC, [instance] DESC, [backupset] DESC, [subclient] DESC""".format(
+            "AND [clientname] IN {0}".format(tuple(client_list)) if client_list else ""
+        )
+
+        ret = self.fetch_all(subclient_sql)
+        pre_clientname = ""
+        pre_idataagent = ""
+        pre_instance = ""
+        pre_backupset = ""
+        pre_subclient = ""
+
+        duplicated_subclient_list = []
+        # 客户端 应用类型
+        for c in ret:
+            # 去重
+            if c[0] == pre_clientname and c[1] == pre_idataagent and c[2] == pre_instance and c[3] == pre_backupset and \
+                    c[4] == pre_subclient:
+                continue
+            duplicated_subclient_list.append({
+                "clientname": c[0],
+                "idataagent": c[1],
+                "instance": c[2],
+                "backupset": c[3],
+                "subclient": c[4],
+            })
+            pre_clientname = c[0]
+            pre_idataagent = c[1]
+            pre_instance = c[2]
+            pre_backupset = c[3]
+            pre_subclient = c[4]
+
+        # 排序
+        sorted_subclient_list = []
+        for client in client_list:
+            for ds in duplicated_subclient_list:
+                if client == ds["clientname"]:
+                    sorted_subclient_list.append(ds)
+                    break
+
+        return sorted_subclient_list
+
+    def get_duplicated_aux_copy(self):
+        auxcopy_sql = """SELECT DISTINCT [jobId], [auxCopyJobId], [status], [copiedTime]
+        FROM [commserv].[dbo].[JMJobDataStats]
+        WHERE [auxCopyJobId]<>0
+        ORDER BY [copiedTime] DESC"""
+        aux_copy_list = []
+        aux_copy = self.fetch_all(auxcopy_sql)
+        pre_ac = ""
+        for ac in aux_copy:
+            if pre_ac != ac[0]:
+                aux_copy_list.append({
+                    "jobId": ac[0],
+                    "auxCopyJobId": ac[1],
+                    "status": "成功" if ac[2] == 100 else "失败",
+                    "copiedTime": ac[3],
+                })
+            pre_ac = ac[0]
+        return aux_copy_list
+
 
 if __name__ == '__main__':
     credit = {
-        "host": "10.1.5.160\COMMVAULT",
-        "user": "sa_cloud",
-        "password": "1qaz@WSX",
-        "database": "CommServ",
+        "SQLServerHost": "192.168.100.222\COMMVAULT",
+        "SQLServerUser": "sa_cloud",
+        "SQLServerPasswd": "1qaz@WSX",
+        "SQLServerDataBase": "CommServ",
     }
+    dm = CVApi(credit)
+    dm.get_backup_status()
+    # dm.get_duplicated_subclients()
+
     # data = [{'name': "mic", 'age': 2, 'sex': 'male'}, {'name': 'm', 'age': 2, 'sex': 'male'}, {'name': 'mic', 'age': 2, 'sex': 'female'}]
     # a = remove_duplicate_for_info(data, dup_model=['name', 'age'])
     # print(a)
@@ -1210,7 +1213,7 @@ if __name__ == '__main__':
     # pool = ThreadPoolExecutor(max_workers=5)
 
     # def get_info():
-    #dm = CustomFilter(credit)
+    # dm = CustomFilter(credit)
     # print(dm.connection)
     # ret = dm.get_all_install_clients()
     # ret = dm.get_oracle_backup_job_list("jxxd")
@@ -1238,7 +1241,7 @@ if __name__ == '__main__':
     # ret, row_dict = dm.custom_all_backup_content()
     # ret = dm.get_all_backup_content()
     # ret = dm.get_all_backup_jobs()
-    # ret = dm.get_all_auxcopys()
+    ret = dm.get_all_auxcopys()
     # ret = dm.custom_concrete_job_list()
     # ret = dm.get_all_schedules()
 
