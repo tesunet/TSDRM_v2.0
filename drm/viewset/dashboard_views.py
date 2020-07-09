@@ -10,6 +10,7 @@ from drm.api.commvault import SQLApi
 from drm.api.commvault.RestApi import *
 from django.contrib.auth.decorators import login_required
 import pythoncom
+from ping3 import ping
 pythoncom.CoInitialize ()
 import wmi
 
@@ -71,11 +72,16 @@ def get_dashboard(request):
 @login_required
 def twentyfour_hours_job(request,funid):
     util_manages = UtilsManage.objects.exclude(state='9')
-
+    util = request.GET.get('util', '')
+    try:
+        util=int(util)
+    except:
+        pass
     return render(request, "twentyfour_hours_job.html", {
         'username': request.user.userinfo.fullname,
         "pagefuns": getpagefuns(funid, request=request),
         "util_manages": util_manages,
+        "util_id": util,
     })
 
 
@@ -113,11 +119,16 @@ def get_twentyfour_hours_job(request):
 @login_required
 def display_error_job(request,funid):
     util_manages = UtilsManage.objects.exclude(state='9')
-
+    util = request.GET.get('util', '')
+    try:
+        util=int(util)
+    except:
+        pass
     return render(request, "display_error_job.html", {
         'username': request.user.userinfo.fullname,
         "pagefuns": getpagefuns(funid, request=request),
         "util_manages": util_manages,
+        "util_id": util,
     })
 
 
@@ -165,36 +176,30 @@ def get_frameworkstate(request):
         util=util_manages[0]
         if util.util_type.upper() == 'COMMVAULT':
             commvault_credit, sqlserver_credit = get_credit_info(util.content)
-
-            for i in range(4):
-                #先判断网络
-                netresult = os.system(u'ping -n 1 ' + commvault_credit["webaddr"])
-                if netresult == 0:
-                    # 网络正常时取接口信息
-                    cvToken = CV_RestApi_Token()
-                    commvault_credit["token"]=""
-                    commvault_credit["lastlogin"] = 0
-                    cvToken.login(commvault_credit)
-                    if not cvToken.isLogin:
-                        state=1
-                    # 网络正常时取数据库信息
-                    dm = SQLApi.CVApi(sqlserver_credit)
-                    if dm.isconnected() is not None:
-                        #数据库正常时取ma信息
-                        ma_info = dm.get_ma_info()
-                        for ma in ma_info:
-                            for i in range(4):
-                                netresult = os.system(u'ping -n 1 ' + ma["InterfaceName"])
-                                if netresult == 0:
-                                    break;
-                            else:
-                                state=1
-                        for ma in ma_info:
-                            if ma["Offline"] == 0:
-                                break
-                            else:
-                                state=2
-                break;
+            # 先判断网络
+            netresult = ping(commvault_credit["webaddr"])
+            if netresult is not None:
+                # 网络正常时取接口信息
+                cvToken = CV_RestApi_Token()
+                commvault_credit["token"]=""
+                commvault_credit["lastlogin"] = 0
+                cvToken.login(commvault_credit)
+                if not cvToken.isLogin:
+                    state=1
+                # 网络正常时取数据库信息
+                dm = SQLApi.CVApi(sqlserver_credit)
+                if dm.isconnected() is not None:
+                    #数据库正常时取ma信息
+                    ma_info = dm.get_ma_info()
+                    for ma in ma_info:
+                        netresult = ping(ma["InterfaceName"])
+                        if netresult is None:
+                            state=1
+                    for ma in ma_info:
+                        if ma["Offline"] == 0:
+                            break
+                        else:
+                            state=2
             else:
                 state = 2
     return JsonResponse({
@@ -209,6 +214,10 @@ def get_frameworkstate(request):
 def framework(request, funid):
     util = request.GET.get("util", "")
     util_manages = UtilsManage.objects.exclude(state='9')
+    try:
+        util=int(util)
+    except:
+        pass
 
 
     return render(request, "framework.html", {
@@ -246,82 +255,75 @@ def get_framework(request):
             }
             mas=[]
 
-            for i in range(4):
-                #先判断网络
-                netresult = os.system(u'ping -n 1 ' + commvault_credit["webaddr"])
-                if netresult == 0:
-                    commserve["net"] = "正常"
-                    # 网络正常时取数据库信息
-                    commserve["dbname"] = sqlserver_credit["SQLServerDataBase"]
-                    dm = SQLApi.CVApi(sqlserver_credit)
-                    if dm.isconnected() is not None:
-                        commserve["dbconnect"] = "正常"
+            #先判断网络
+            netresult = ping(commvault_credit["webaddr"])
+            if netresult is not None:
+                commserve["net"] = "正常"
+                # 网络正常时取数据库信息
+                commserve["dbname"] = sqlserver_credit["SQLServerDataBase"]
+                dm = SQLApi.CVApi(sqlserver_credit)
+                if dm.isconnected() is not None:
+                    commserve["dbconnect"] = "正常"
 
-                        # 数据库连接正常，取cs信息
-                        commserv_info = dm.get_commserv_info()
-                        if commserv_info is not None:
-                            commserve["host"] = commserv_info[3]
-                            commserve["version"] = commserv_info[0]
-                            commserve["sp"] = commserv_info[1]
-                            commserve["os"] = commserv_info[2]
-                        # 数据库连接正常，取ma信息
-                        ma_info = dm.get_ma_info()
-                        for ma in ma_info:
-                            for i in range(4):
-                                netresult = os.system(u'ping -n 1 ' + ma["InterfaceName"])
-                                if netresult == 0:
-                                    ma["net"] = "正常"
-                                    break;
-                            else:
-                                ma["net"] = "中断"
-                            if ma["Offline"] == 0:
-                                ma["Offline"] = "在线"
-                            else:
-                                ma["Offline"] = "离线"
-                            try:
-                                ma["TotalSpaceMB"] = round(ma["TotalSpaceMB"]/1024/1024,2)
-                            except:
-                                pass
-                            try:
-                                ma["TotalFreeSpaceMB"] = round(ma["TotalFreeSpaceMB"]/1024/1024,2)
-                            except:
-                                pass
-                            try:
-                                ma["Percent"] = round((ma["TotalSpaceMB"] - ma["TotalFreeSpaceMB"])/ma["TotalSpaceMB"]*100,2)
-                            except:
-                                ma["Percent"] = 0
-                            try:
-                                ma["SpaceReserved"] = round(ma["SpaceReserved"]/1024/1024,2)
-                            except:
-                                pass
-                            ma["CapacityAvailable"] = ma["TotalFreeSpaceMB"]
-                            try:
-                                ma["CapacityAvailable"] = ma["TotalFreeSpaceMB"]-ma["SpaceReserved"]
-                            except:
-                                pass
-                            mas.append(ma)
-                        frameworkdata["ma"] = mas
+                    # 数据库连接正常，取cs信息
+                    commserv_info = dm.get_commserv_info()
+                    if commserv_info is not None:
+                        commserve["host"] = commserv_info[3]
+                        commserve["version"] = commserv_info[0]
+                        commserve["sp"] = commserv_info[1]
+                        commserve["os"] = commserv_info[2]
+                    # 数据库连接正常，取ma信息
+                    ma_info = dm.get_ma_info()
+                    for ma in ma_info:
+                        netresult = ping(ma["InterfaceName"])
+                        if netresult is not None:
+                            ma["net"] = "正常"
+                        else:
+                            ma["net"] = "中断"
+                        if ma["Offline"] == 0:
+                            ma["Offline"] = "在线"
+                        else:
+                            ma["Offline"] = "离线"
+                        try:
+                            ma["TotalSpaceMB"] = round(ma["TotalSpaceMB"]/1024/1024,2)
+                        except:
+                            pass
+                        try:
+                            ma["TotalFreeSpaceMB"] = round(ma["TotalFreeSpaceMB"]/1024/1024,2)
+                        except:
+                            pass
+                        try:
+                            ma["Percent"] = round((ma["TotalSpaceMB"] - ma["TotalFreeSpaceMB"])/ma["TotalSpaceMB"]*100,2)
+                        except:
+                            ma["Percent"] = 0
+                        try:
+                            ma["SpaceReserved"] = round(ma["SpaceReserved"]/1024/1024,2)
+                        except:
+                            pass
+                        ma["CapacityAvailable"] = ma["TotalFreeSpaceMB"]
+                        try:
+                            ma["CapacityAvailable"] = ma["TotalFreeSpaceMB"]-ma["SpaceReserved"]
+                        except:
+                            pass
+                        mas.append(ma)
+                    frameworkdata["ma"] = mas
 
 
-                    else:
-                        commserve["dbconnect"] = "中断"
-                    commserve["apiport"] = commvault_credit["port"]
-                    # 网络正常时取接口信息
-                    cvToken = CV_RestApi_Token()
-                    commvault_credit["token"]=""
-                    commvault_credit["lastlogin"] = 0
-                    cvToken.login(commvault_credit)
-                    if cvToken.isLogin:
-                        commserve["apiconnect"] = "正常"
-                    else:
-                        commserve["apiconnect"] = "中断"
+                else:
+                    commserve["dbconnect"] = "中断"
+                commserve["apiport"] = commvault_credit["port"]
+                # 网络正常时取接口信息
+                cvToken = CV_RestApi_Token()
+                commvault_credit["token"]=""
+                commvault_credit["lastlogin"] = 0
+                cvToken.login(commvault_credit)
+                if cvToken.isLogin:
+                    commserve["apiconnect"] = "正常"
+                else:
+                    commserve["apiconnect"] = "中断"
 
-                break;
             else:
                 commserve["net"] = "中断"
-
-
-
 
             frameworkdata["commserve"] = commserve
 
@@ -408,6 +410,10 @@ def get_csinfo(request):
 def client_list(request, funid):
     util = request.GET.get("util", "")
     util_manages = UtilsManage.objects.exclude(state='9')
+    try:
+        util=int(util)
+    except:
+        pass
 
 
     return render(request, "client_list.html", {

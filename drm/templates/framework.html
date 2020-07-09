@@ -17,7 +17,7 @@
         <div class="col-md-10 col-lg-10">
             <select  class="form-control" id="util" name="util" style="width:250px; float:right;">
                 {% for util in util_manages %}
-                    <option value="{{ util.id }}">{{ util.name }} </option>
+                    <option value="{{ util.id }}"   {% if util_id == util.id %} selected {% endif %} >{{ util.name }} </option>
                 {% endfor %}
             </select>
         </div>
