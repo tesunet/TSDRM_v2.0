@@ -1027,7 +1027,7 @@ class CVApi(DataMonitor):
         return schedule_policy_list
 
     def twentyfour_hours_job_list(self):
-        status_list = {"Running": "运行", "Waiting": "等待", "Pending": "阻塞", "Completed": "正常", "Success": "正常",
+        status_list = {"Running": "运行", "Waiting": "等待", "Pending": "阻塞", "Completed": "正常", "Success": "成功",
                        "Failed": "失败", "Failed to Start": "启动失败",
                        "Completed w/ one or more errors": "已完成，但有一个或多个错误",
                        "Completed w/ one or more warnings": "已完成，但有一个或多个警告"}
@@ -1078,7 +1078,7 @@ class CVApi(DataMonitor):
         return job_list
 
     def display_error_job_list(self):
-        status_list = {"Running": "运行", "Waiting": "等待", "Pending": "阻塞", "Completed": "正常", "Success": "正常",
+        status_list = {"Running": "运行", "Waiting": "等待", "Pending": "阻塞", "Completed": "正常", "Success": "成功",
                        "Failed": "失败", "Failed to Start": "启动失败",
                        "Completed w/ one or more errors": "已完成，但有一个或多个错误",
                        "Completed w/ one or more warnings": "已完成，但有一个或多个警告"}
