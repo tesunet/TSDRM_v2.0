@@ -578,6 +578,7 @@ class CVApi(DataMonitor):
         ret = self.fetch_all(clients_sql)
         client_list = []
         automatic_clients = self.get_automatic_clients()
+
         for c in ret:
             # 不在选择agents列表 不展示 默认都展示
             if c[0] in selected_clients or not selected_clients:  # selected_clients为空
@@ -613,7 +614,7 @@ class CVApi(DataMonitor):
         """
 
         backup_status = self.fetch_all(backup_status_sql)
-        duplicated_subclients = self.get_duplicated_subclients()
+        duplicated_subclients, client_list = self.get_duplicated_subclients()
         aux_copy = self.get_duplicated_aux_copy()
 
         backup_status_list = []
@@ -641,7 +642,7 @@ class CVApi(DataMonitor):
                         # 判断 实例 或 备份集
                         type = ""
                         # 备份内容
-                        if "File System" in bs[1] or "Virtual" in bs[1] or "Big Data Apps" in ds['idataagent']:
+                        if "File System" in bs[1] or "Virtual" in bs[1] or "Big Data Apps" in bs[1]:
                             type = bs[3]
                         if "Oracle" in bs[1] or "SQL Server" in bs[1] or "MySQL" in bs[1] or "Exchange Database" in bs[1]:
                             type = bs[2]
@@ -688,7 +689,14 @@ class CVApi(DataMonitor):
                     "type": type
                 })
 
-        return backup_status_list
+
+        # 排序
+        final_list = []
+        for ci in client_list:
+            for bs in backup_status_list:
+                if ci == bs["clientname"]:
+                    final_list.append(bs)
+        return final_list
 
     def get_backup_content(self, selected_clients=[], selected_agents=[]):
         """
@@ -702,15 +710,17 @@ class CVApi(DataMonitor):
         """
         backup_content_sql = """SELECT ccscc.clientname, ccscc.idataagent, ccscc.instance, ccscc.backupset, ccscc.subclient, ccvbi.vmname vm_content, cccff.content
         FROM (SELECT clientname, idataagent, instance, backupset, subclient FROM commserv.dbo.CommCellSubClientConfig WHERE backupset!='Indexing BackupSet' AND subclient !='(command line)') AS ccscc
-        LEFT JOIN commserv.dbo.CommCellClientConfig AS cccc ON ccscc.clientname=cccc.Client AND cccc.ClientStatus='installed'
         LEFT JOIN CommServ.dbo.CommCellVMBackupInfo AS ccvbi ON ccvbi.virtualizationclient=ccscc.clientname AND ccvbi.backupset=ccscc.backupset AND ccvbi.subclient=ccscc.subclient
         LEFT JOIN commserv.dbo.CommCellClientFSFilters AS cccff ON cccff.clientname=ccscc.clientname AND cccff.idataagent=ccscc.idataagent AND cccff.backupset=ccscc.backupset AND cccff.subclient=ccscc.subclient AND cccff.subclientstatus='valid'
         ORDER BY ccscc.clientname DESC, ccscc.idataagent DESC, ccscc.instance DESC, ccscc.backupset DESC, ccscc.subclient DESC
         """
+
         ret = self.fetch_all(backup_content_sql)
 
         # 所有全备记录
         job_list = self.get_all_backup_jobs(full=True, success=True)
+        # 可用客户端
+        client_list = [client["client_name"] for client in self.get_clients_info()]
 
         backup_content_list = []
         pre_clientname = ""
@@ -742,10 +752,10 @@ class CVApi(DataMonitor):
 
                 # 判断 实例 或 备份集
                 type = ""
-                if "File System" in c[1] or "Virtual" in c[1]:
+                if "File System" in c[1] or "Virtual" in c[1] or "Big Data Apps" in c[1]:
                     type = c[3]
 
-                if "Oracle" in c[1] or "SQL Server" in c[1] or "MySQL" in c[1]:
+                if "Oracle" in c[1] or "SQL Server" in c[1] or "MySQL" in c[1] or "Exchange Database" in c[1]:
                     type = c[2]
 
                 # 数据库没有实例 或者 文件系统没有备份集
@@ -761,24 +771,31 @@ class CVApi(DataMonitor):
                         numbytescomp = jl["numbytescomp"]
                         numbytesuncomp = jl["numbytesuncomp"]
                         break
-
-                backup_content_list.append({
-                    "clientname": c[0],
-                    "idataagent": c[1],
-                    "instance": c[2],
-                    "backupset": c[3],
-                    "subclient": c[4],
-                    "content": content if content else "无",
-                    "type": type,
-                    "numbytescomp": numbytescomp,
-                    "numbytesuncomp": numbytesuncomp,
-                })
+                if c[0] in client_list:
+                    backup_content_list.append({
+                        "clientname": c[0],
+                        "idataagent": c[1],
+                        "instance": c[2],
+                        "backupset": c[3],
+                        "subclient": c[4],
+                        "content": content if content else "无",
+                        "type": type,
+                        "numbytescomp": numbytescomp,
+                        "numbytesuncomp": numbytesuncomp,
+                    })
                 pre_clientname = c[0]
                 pre_idataagent = c[1]
                 pre_instance = c[2]
                 pre_backupset = c[3]
                 pre_subclient = c[4]
-        return backup_content_list
+
+        # 排序
+        final_list = []
+        for ci in client_list:
+            for bc in backup_content_list:
+                if ci == bc["clientname"]:
+                    final_list.append(bc)
+        return final_list
 
     def get_storage_policy(self, selected_clients=[], selected_agents=[]):
         """
@@ -797,6 +814,8 @@ class CVApi(DataMonitor):
         ORDER BY ccscc.clientname DESC, ccscc.idataagent DESC, ccscc.instance DESC, ccscc.backupset DESC, ccscc.subclient DESC
         """
         ret = self.fetch_all(storage_policy_sql)
+        # 可用客户端
+        client_list = [client["client_name"] for client in self.get_clients_info()]
 
         storage_policy_list = []
         pre_clientname = ""
@@ -819,30 +838,38 @@ class CVApi(DataMonitor):
             if c[0] in selected_clients or not selected_clients:
                 # 判断 实例 或 备份集
                 type = ""
-                if "File System" in c[1] or "Virtual" in c[1]:
+                if "File System" in c[1] or "Virtual" in c[1] or "Big Data Apps" in c[1]:
                     type = c[3]
 
-                if "Oracle" in c[1] or "SQL Server" in c[1] or "MySQL" in c[1]:
+                if "Oracle" in c[1] or "SQL Server" in c[1] or "MySQL" in c[1] or "Exchange Database" in c[1]:
                     type = c[2]
 
                 # 数据库没有实例 或者 文件系统没有备份集
                 if not type:
                     continue
-                storage_policy_list.append({
-                    "clientname": c[0],
-                    "idataagent": c[1],
-                    "instance": c[2],
-                    "backupset": c[3],
-                    "subclient": c[4],
-                    "storage_policy": c[5] if c[5] else "无",
-                    "type": type
-                })
+                if c[0] in client_list:
+                    storage_policy_list.append({
+                        "clientname": c[0],
+                        "idataagent": c[1],
+                        "instance": c[2],
+                        "backupset": c[3],
+                        "subclient": c[4],
+                        "storage_policy": c[5] if c[5] else "无",
+                        "type": type
+                    })
                 pre_clientname = c[0]
                 pre_idataagent = c[1]
                 pre_instance = c[2]
                 pre_backupset = c[3]
                 pre_subclient = c[4]
-        return storage_policy_list
+
+        # 排序
+        final_list = []
+        for ci in client_list:
+            for sp in storage_policy_list:
+                if ci == sp["clientname"]:
+                    final_list.append(sp)
+        return final_list
 
     def get_schedule_policy(self, selected_clients=[], selected_agents=[]):
         """
@@ -857,11 +884,12 @@ class CVApi(DataMonitor):
         schedule_policy_sql = """SELECT ccscc.clientname, ccscc.idataagent, ccscc.instance, ccscc.backupset, ccscc.subclient, ccsfs.scheduleId, ccsfs.scheduePolicy, ccsfs.scheduleName, ccsfs.scheduletask, ccsfs.schedbackuptype, ccsfs.schedpattern,
         ccsfs.schedinterval,ccsfs.schedbackupday,ccsfs.schednextbackuptime,ccsfs.schednextbackuptime
         FROM (SELECT clientname, idataagent, instance, backupset, subclient FROM commserv.dbo.CommCellSubClientConfig WHERE backupset!='Indexing BackupSet' AND subclient !='(command line)') AS ccscc
-        LEFT JOIN commserv.dbo.CommCellClientConfig AS cccc ON ccscc.clientname=cccc.Client AND cccc.ClientStatus='installed'
         LEFT JOIN commserv.dbo.CommCellBkScheduleForSubclients AS ccsfs ON ccsfs.clientname=ccscc.clientname AND ccsfs.idaagent=ccscc.idataagent AND ccsfs.backupset=ccscc.backupset AND ccsfs.subclient=ccscc.subclient
         ORDER BY ccscc.clientname DESC, ccscc.idataagent DESC, ccscc.instance DESC, ccscc.backupset DESC, ccscc.subclient DESC, ccsfs.scheduePolicy DESC, ccsfs.schedbackuptype DESC
         """
         ret = self.fetch_all(schedule_policy_sql)
+        # 可用客户端
+        client_list = [client["client_name"] for client in self.get_clients_info()]
 
         period_chz = {
             "One time": "次",
@@ -921,12 +949,13 @@ class CVApi(DataMonitor):
 
         # 客户端 应用类型
         for c in ret:
+            schedule_policy_name = c[6] if c[6] else "无"
             # 不在选择agents列表 不展示 默认都展示
             if selected_agents and c[1] not in selected_agents:
                 continue
             # 去重
             if c[0] == pre_clientname and c[1] == pre_idataagent and c[2] == pre_instance and c[3] == pre_backupset \
-                    and c[4] == pre_subclient and c[6] == pre_schedule_policy and c[9] == pre_schedule_backuptype and c[
+                    and c[4] == pre_subclient and schedule_policy_name == pre_schedule_policy and c[9] == pre_schedule_backuptype and c[
                 10] == pre_schedpattern:
                 continue
 
@@ -934,10 +963,10 @@ class CVApi(DataMonitor):
             if c[0] in selected_clients or not selected_clients:
                 # 判断 实例 或 备份集
                 type = ""
-                if "File System" in c[1] or "Virtual" in c[1]:
+                if "File System" in c[1] or "Virtual" in c[1] or "Big Data Apps" in c[1]:
                     type = c[3]
 
-                if "Oracle" in c[1] or "SQL Server" in c[1] or "MySQL" in c[1]:
+                if "Oracle" in c[1] or "SQL Server" in c[1] or "MySQL" in c[1] or "Exchange Database" in c[1]:
                     type = c[2]
 
                 # 数据库没有实例 或者 文件系统没有备份集
@@ -998,33 +1027,40 @@ class CVApi(DataMonitor):
                 schedpattern = period_chz[c[10]] if c[10] in period_chz.keys() else c[10]
                 schedbackuptype = type_chz[c[9]] if c[9] in type_chz.keys() else c[9]
 
-                schedule_policy_list.append({
-                    "clientname": c[0],
-                    "idataagent": c[1],
-                    "instance": c[2],
-                    "backupset": c[3],
-                    "subclient": c[4],
-                    "type": type,
-                    # 计划策略
-                    "scheduleId": c[5],
-                    "scheduePolicy": c[6] if c[6] else "",
-                    "scheduleName": c[7],
-                    "scheduletask": c[8],
-                    "schedbackuptype": schedbackuptype if schedbackuptype else "",
-                    "schedpattern": schedpattern if schedpattern else "",
-                    "schedinterval": schedinterval,
-                    "schedbackupday": schedbackupday,
-                    "schednextbackuptime": c[14].strftime("%Y-%m-%d %H:%M:%S") if c[14] else "",
-                })
+                if c[0] in client_list:
+                    schedule_policy_list.append({
+                        "clientname": c[0],
+                        "idataagent": c[1],
+                        "instance": c[2],
+                        "backupset": c[3],
+                        "subclient": c[4],
+                        "type": type,
+                        # 计划策略
+                        "scheduleId": c[5],
+                        "scheduePolicy": schedule_policy_name if schedule_policy_name else "",
+                        "scheduleName": c[7],
+                        "scheduletask": c[8],
+                        "schedbackuptype": schedbackuptype if schedbackuptype else "",
+                        "schedpattern": schedpattern if schedpattern else "",
+                        "schedinterval": schedinterval,
+                        "schedbackupday": schedbackupday,
+                        "schednextbackuptime": c[14].strftime("%Y-%m-%d %H:%M:%S") if c[14] else "",
+                    })
                 pre_clientname = c[0]
                 pre_idataagent = c[1]
                 pre_instance = c[2]
                 pre_backupset = c[3]
                 pre_subclient = c[4]
-                pre_schedule_policy = c[6]
+                pre_schedule_policy = schedule_policy_name
                 pre_schedule_backuptype = c[9]
                 pre_schedpattern = c[10]
-        return schedule_policy_list
+        # 排序
+        final_list = []
+        for ci in client_list:
+            for sp in schedule_policy_list:
+                if ci == sp["clientname"]:
+                    final_list.append(sp)
+        return final_list
 
     def twentyfour_hours_job_list(self):
         status_list = {"Running": "运行", "Waiting": "等待", "Pending": "阻塞", "Completed": "正常", "Success": "正常",
@@ -1159,7 +1195,7 @@ class CVApi(DataMonitor):
             pre_backupset = c[3]
             pre_subclient = c[4]
 
-        return duplicated_subclient_list
+        return duplicated_subclient_list, client_list
 
     def get_duplicated_aux_copy(self):
         auxcopy_sql = """SELECT DISTINCT [jobId], [auxCopyJobId], [status], [copiedTime]
@@ -1233,7 +1269,7 @@ if __name__ == '__main__':
     # ret, row_dict = dm.custom_all_backup_content()
     # ret = dm.get_all_backup_content()
     # ret = dm.get_all_backup_jobs()
-    ret = dm.get_all_auxcopys()
+    # ret = dm.get_all_auxcopys()
     # ret = dm.custom_concrete_job_list()
     # ret = dm.get_all_schedules()
 
