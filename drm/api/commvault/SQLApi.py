@@ -1077,19 +1077,24 @@ class CVApi(DataMonitor):
                                                         now_datadate=now_datadate)
         content = self.fetch_all(job_sql)
         job_list = []
-
+        job_run_num = 0
+        job_success_num = 0
+        job_failed_num = 0
         for i in content:
             job_status = i[9]
             if job_status in status_list:
                 job_status = status_list[job_status]
                 if job_status == '运行' or job_status == '等待' or job_status == '阻塞':
                     job_status_str = '运行中'
+                    job_run_num += 1
                 elif job_status == '正常' or job_status == '成功':
                     job_status_str = '成功'
+                    job_success_num += 1
                 elif job_status == '已完成，但有一个或多个错误' or job_status == '已完成，但有一个或多个警告':
                     job_status_str = '警告'
                 elif job_status == '失败' or job_status == '启动失败':
                     job_status_str = '失败'
+                    job_failed_num += 1
                 else:
                     job_status_str = '其他'
             else:
@@ -1111,7 +1116,7 @@ class CVApi(DataMonitor):
                 "enddate": i[12].strftime('%Y-%m-%d %H:%M:%S') if i[12] else "",
                 "totalBackupSize": i[13],
             })
-        return job_list
+        return job_list, job_run_num, job_success_num, job_failed_num
 
     def display_error_job_list(self):
         status_list = {"Running": "运行", "Waiting": "等待", "Pending": "阻塞", "Completed": "正常", "Success": "成功",

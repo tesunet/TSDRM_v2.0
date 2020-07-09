@@ -36,53 +36,36 @@ def get_dashboard(request):
             "ret": 0,
             "data": [],
         })
+    # 24小时作业显示成功，执行中，失败状态的个数
+    job_run_num = ''
+    job_success_num = ''
+    job_failed_num = ''
+    error_job_list = []
     util_manages = UtilsManage.objects.exclude(state='9').filter(id=util)
     if len(util_manages) > 0:
         util = util_manages[0]
         if util.util_type.upper() == 'COMMVAULT':
             commvault_credit, sqlserver_credit = get_credit_info(util.content)
 
-            # 24小时作业显示成功，执行中，失败状态的个数
-            job_run_num = 0
-            job_success_num = 0
-            job_failed_num = 0
             try:
                 dm = SQLApi.CVApi(sqlserver_credit)
                 #24小时作业
-                twentyfour_job_list = dm.twentyfour_hours_job_list()
-
-                for job_list in twentyfour_job_list:
-                    if job_list['jobstatus'] == "成功":
-                        job_success_num += 1
-                    elif job_list['jobstatus'] == "运行中":
-                        job_run_num += 1
-                    elif job_list['jobstatus'] == "失败":
-                        job_failed_num += 1
+                _, job_run_num, job_success_num, job_failed_num = dm.twentyfour_hours_job_list()
 
                 #异常事件
                 job_list = dm.display_error_job_list()
-                error_job_list = []
-                for num, error_job in enumerate(job_list):
-                    error_job_list.append({
-                        'jobid': error_job['jobid'],
-                        'clientname': error_job['clientname'],
-                        'idataagent': error_job['idataagent'],
-                        'jobfailedreason': error_job['jobfailedreason']
-                    })
-                    if num > 50:
-                        break
-
+                error_job_list = job_list[0:50]
             except Exception as e:
                 print(e)
                 return JsonResponse({
                     "ret": 0,
                     "data": "获取信息失败。",
                 })
-            return JsonResponse({"error_job_list": error_job_list,
-                                 "job_run_num": job_run_num,
-                                 "job_success_num": job_success_num,
-                                 "job_failed_num": job_failed_num,
-                                 })
+    return JsonResponse({"error_job_list": error_job_list,
+                         "job_run_num": job_run_num,
+                         "job_success_num": job_success_num,
+                         "job_failed_num": job_failed_num,
+                         })
 
 
 @login_required
@@ -106,7 +89,7 @@ def get_twentyfour_hours_job(request):
             "ret": 0,
             "data": [],
         })
-
+    job_list = []
     util_manages = UtilsManage.objects.exclude(state='9').filter(id=util)
     if len(util_manages) > 0:
         util = util_manages[0]
@@ -115,7 +98,7 @@ def get_twentyfour_hours_job(request):
 
             try:
                 dm = SQLApi.CVApi(sqlserver_credit)
-                job_list = dm.twentyfour_hours_job_list()
+                job_list, _, _, _ = dm.twentyfour_hours_job_list()
 
             except Exception as e:
                 print(e)
@@ -124,7 +107,7 @@ def get_twentyfour_hours_job(request):
                     "data": "获取信息失败。",
                 })
 
-            return JsonResponse({"data": job_list})
+    return JsonResponse({"data": job_list})
 
 
 @login_required
@@ -148,7 +131,7 @@ def get_display_error_job(request):
             "ret": 0,
             "data": [],
         })
-
+    job_list = []
     util_manages = UtilsManage.objects.exclude(state='9').filter(id=util)
     if len(util_manages) > 0:
         util = util_manages[0]
@@ -166,7 +149,7 @@ def get_display_error_job(request):
                     "data": "获取信息失败。",
                 })
 
-            return JsonResponse({"data": job_list})
+    return JsonResponse({"data": job_list})
 
 
 @login_required
