@@ -1062,24 +1062,25 @@ class CVApi(DataMonitor):
                     final_list.append(sp)
         return final_list
 
-    def twentyfour_hours_job_list(self):
+    def get_cv_joblist(self):
         status_list = {"Running": "运行", "Waiting": "等待", "Pending": "阻塞", "Completed": "正常", "Success": "成功",
+                       "PartialSuccess": "部分成功",
                        "Failed": "失败", "Failed to Start": "启动失败",
                        "Completed w/ one or more errors": "已完成，但有一个或多个错误",
                        "Completed w/ one or more warnings": "已完成，但有一个或多个警告"}
 
-        twentyfour_datadate = (datetime.datetime.now() - datetime.timedelta(hours=24)).strftime("%Y-%m-%d %H:%M:%S")
-        now_datadate = (datetime.datetime.now()).strftime("%Y-%m-%d %H:%M:%S")
-        # 24小时作业
         job_sql = """SELECT [jobid],[clientname],[idataagent],[instance],[backupset],[subclient],[data_sp],[backuplevel],[incrlevel],[jobstatus],[jobfailedreason],[startdate],[enddate],[totalBackupSize]
-                    FROM [commserv].[dbo].[CommCellBackupInfo] WHERE startdate >= '{twentyfour_datadate}' AND startdate <= '{now_datadate}'
-                    ORDER BY [startdate] DESC""".format(twentyfour_datadate=twentyfour_datadate,
-                                                        now_datadate=now_datadate)
+                    FROM [commserv].[dbo].[CommCellBackupInfo]
+                    ORDER BY [enddate] DESC"""
+
         content = self.fetch_all(job_sql)
         job_list = []
+        job_status_str = ''
         job_run_num = 0
         job_success_num = 0
+        job_warn_num = 0
         job_failed_num = 0
+        job_other_num = 0
         for i in content:
             job_status = i[9]
             if job_status in status_list:
@@ -1090,15 +1091,15 @@ class CVApi(DataMonitor):
                 elif job_status == '正常' or job_status == '成功':
                     job_status_str = '成功'
                     job_success_num += 1
-                elif job_status == '已完成，但有一个或多个错误' or job_status == '已完成，但有一个或多个警告':
+                elif job_status == '已完成，但有一个或多个错误' or job_status == '已完成，但有一个或多个警告' or job_status == '部分成功':
                     job_status_str = '警告'
+                    job_warn_num +=1
                 elif job_status == '失败' or job_status == '启动失败':
                     job_status_str = '失败'
                     job_failed_num += 1
-                else:
-                    job_status_str = '其他'
             else:
-                job_status_str = '其他'
+                job_status_str = job_status
+                job_other_num += 1
 
             job_list.append({
                 "jobid": i[0],
@@ -1116,18 +1117,19 @@ class CVApi(DataMonitor):
                 "enddate": i[12].strftime('%Y-%m-%d %H:%M:%S') if i[12] else "",
                 "totalBackupSize": i[13],
             })
-        return job_list, job_run_num, job_success_num, job_failed_num
+        return job_list, job_run_num, job_success_num, job_warn_num, job_failed_num
 
     def display_error_job_list(self):
         status_list = {"Running": "运行", "Waiting": "等待", "Pending": "阻塞", "Completed": "正常", "Success": "成功",
+                       "PartialSuccess": "部分成功",
                        "Failed": "失败", "Failed to Start": "启动失败",
                        "Completed w/ one or more errors": "已完成，但有一个或多个错误",
                        "Completed w/ one or more warnings": "已完成，但有一个或多个警告"}
 
         # 异常事件
         job_sql = """SELECT [jobid],[clientname],[idataagent],[instance],[backupset],[subclient],[data_sp],[backuplevel],[incrlevel],[jobstatus],[jobfailedreason],[startdate],[enddate],[totalBackupSize]
-                    FROM [commserv].[dbo].[CommCellBackupInfo] WHERE jobstatus!='Success' AND jobfailedreason <>''
-                    ORDER BY [startdate] DESC"""
+                    FROM [commserv].[dbo].[CommCellBackupInfo] WHERE jobstatus not in ('Running', 'Waiting', 'Pending', 'Completed', 'Success')
+                    ORDER BY [enddate] DESC"""
         content = self.fetch_all(job_sql)
         error_job_list = []
         for i in content:
@@ -1138,14 +1140,14 @@ class CVApi(DataMonitor):
                     job_status_str = '运行中'
                 elif job_status == '正常' or job_status == '成功':
                     job_status_str = '成功'
-                elif job_status == '已完成，但有一个或多个错误' or job_status == '已完成，但有一个或多个警告':
+                elif job_status == '已完成，但有一个或多个错误' or job_status == '已完成，但有一个或多个警告' or job_status == '部分成功':
                     job_status_str = '警告'
                 elif job_status == '失败' or job_status == '启动失败':
                     job_status_str = '失败'
                 else:
                     job_status_str = '其他'
             else:
-                job_status_str = '其他'
+                job_status_str = job_status
             error_job_list.append({
                 "jobid": i[0],
                 "clientname": i[1],

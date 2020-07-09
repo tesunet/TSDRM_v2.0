@@ -88,20 +88,19 @@
             </div>
 
         <div class="row">
-            <div class="col-md-6">
+            <div class="col-md-7">
                 <div class="panel panel-default" style="height: 300px">
                     <div class="panel-body easypiechart-panel">
                         <div class="col-md-12">
-                            <a href="/twentyfour_hours_job" target="_blank"><span class="caption-subject bold uppercase font-green"
+                            <a id="url_cv_joblist"><span class="caption-subject bold uppercase font-green"
                                   style="font-size:16px">24小时作业</span></a>
                         </div>
 
 
                         <div class="col-md-12">
-                            <div id="loading1"  class="portlet-body">
-        </div>
+                            <div id="loading1"  class="portlet-body"></div>
                             <div id="show_jobstatus_num" class="portlet-body">
-                                <div class="col-md-4" style="margin-top: 60px">
+                                <div class="col-md-3" style="margin-top: 60px">
                                     <div class="widget-thumb widget-bg-color-white text-uppercase margin-bottom-20 ">
                                         <div class="widget-thumb-wrap">
                                             <i style="color:#595959;font-size: 40px" class="widget-thumb-icon  fa fa-cogs"></i>
@@ -111,7 +110,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4" style="margin-top: 60px">
+                                <div class="col-md-3" style="margin-top: 60px">
                                     <div class="widget-thumb widget-bg-color-white text-uppercase margin-bottom-20 ">
                                         <div class="widget-thumb-wrap">
                                             <i style="color:#32c5d2;font-size: 40px" class="widget-thumb-icon  fa fa-check-square"></i>
@@ -121,7 +120,17 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4" style="margin-top: 60px">
+                                <div class="col-md-3" style="margin-top: 60px">
+                                    <div class="widget-thumb widget-bg-color-white text-uppercase margin-bottom-20 ">
+                                        <div class="widget-thumb-wrap">
+                                            <i style="color:#FFFF00;font-size: 40px" class="widget-thumb-icon  fa  fa-exclamation-triangle"></i>
+                                            <div class="widget-thumb-body" id="job_warn_num">
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3" style="margin-top: 60px">
                                     <div class="widget-thumb widget-bg-color-white text-uppercase margin-bottom-20 ">
                                         <div class="widget-thumb-wrap">
                                             <i style="color:#e7505a;font-size: 40px" class="widget-thumb-icon  fa  fa-exclamation-triangle"></i>
@@ -137,17 +146,16 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-5">
                 <div class="panel panel-default" style="height: 300px">
                     <div class="panel-body easypiechart-panel">
                         <div class="col-md-12">
-                            <a href="/display_error_job" target="_blank"><span class="caption-subject bold uppercase font-green"
-                                  style="font-size:16px">异常事件</span></a>
+                            <a id="url_display_error_job"><span class="caption-subject bold uppercase font-green"
+                                  style="font-size:16px">告警信息</span></a>
                         </div>
 
                         <div class="col-md-12">
-                            <div id="loading2"  class="portlet-body">
-    </div>
+                            <div id="loading2"  class="portlet-body"></div>
                             <div class="portlet-body" id="backup_info">
                                 <div class="scroller" style="height: 240px;">
                                     <ul class="feeds" id="locate">
@@ -721,22 +729,29 @@
                                     <input type="text" name="jobid" id="jobid" value="" hidden>
                                     <div class="form-body">
                                         <div class="form-group ">
-                                            <label class="col-md-3 control-label">客户机</label>
-                                            <div class="col-md-9" id="">
+                                            <label class="col-md-2 control-label">客户机</label>
+                                            <div class="col-md-10" id="">
                                                 <input type="text" autocomplete="off" class="form-control" value=""
                                                        name="clientname" id="clientname" readonly>
                                             </div>
                                         </div>
                                         <div class="form-group ">
-                                            <label class="col-md-3 control-label">类型</label>
-                                            <div class="col-md-9" id="">
+                                            <label class="col-md-2 control-label">类型</label>
+                                            <div class="col-md-10" id="">
                                                 <input type="text" autocomplete="off" class="form-control" value=""
                                                        name="idataagent" id="idataagent" readonly>
                                             </div>
                                         </div>
                                         <div class="form-group ">
-                                            <label class="col-md-3 control-label">告警信息</label>
-                                            <div class="col-md-9" id="">
+                                            <label class="col-md-2 control-label">告警时间</label>
+                                            <div class="col-md-10" id="">
+                                                <input type="text" autocomplete="off" class="form-control" value=""
+                                                       name="enddate" id="enddate" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="form-group ">
+                                            <label class="col-md-2 control-label">告警信息</label>
+                                            <div class="col-md-10" id="">
                                                 <textarea name="jobfailedreason" id="jobfailedreason" cols="50"
                                                           rows="10" style="resize:none;" autocomplete="off"
                                                           class="form-control" readonly></textarea>
@@ -745,13 +760,6 @@
 
                                     </div>
 
-                                    <div class="form-actions ">
-                                        <div class="modal-footer">
-                                            <button type="button" id="not_display" name="not_display"
-                                                    class="btn green">不再显示
-                                            </button>
-                                        </div>
-                                    </div>
                                 </form>
                             </div>
 

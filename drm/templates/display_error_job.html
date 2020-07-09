@@ -20,18 +20,75 @@
             <th>客户端</th>
             <th>应用</th>
             <th>实例</th>
-            <th>备份集</th>
-            <th>子客户端</th>
-            <th>备份类型</th>
-            <th>状态</th>
             <th>开始时间</th>
             <th>结束时间</th>
-
+            <th>告警信息</th>
+            <th style="width:50px;"> 操作</th>
         </tr>
         </thead>
         <tbody>
         </tbody>
     </table>
+
+    <div id="static" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
+                        <h4 class="modal-title">当前告警</h4>
+                    </div>
+                    <div class="modal-body" style="margin-bottom:40px">
+                        <div id="myTabContent1" class="tab-content">
+                            <div>
+                                <form class="bs-example form-horizontal activate-form"
+                                      id="formactivate">{% csrf_token %}
+                                    <input type="text" name="jobid" id="jobid" value="" hidden>
+                                    <div class="form-body">
+                                        <div class="form-group ">
+                                            <label class="col-md-2 control-label">客户机</label>
+                                            <div class="col-md-10" id="">
+                                                <input type="text" autocomplete="off" class="form-control" value=""
+                                                       name="clientname" id="clientname" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="form-group ">
+                                            <label class="col-md-2 control-label">类型</label>
+                                            <div class="col-md-10" id="">
+                                                <input type="text" autocomplete="off" class="form-control" value=""
+                                                       name="idataagent" id="idataagent" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="form-group ">
+                                            <label class="col-md-2 control-label">告警时间</label>
+                                            <div class="col-md-10" id="">
+                                                <input type="text" autocomplete="off" class="form-control" value=""
+                                                       name="enddate" id="enddate" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="form-group ">
+                                            <label class="col-md-2 control-label">告警信息</label>
+                                            <div class="col-md-10" id="">
+                                                <textarea name="jobfailedreason" id="jobfailedreason" cols="50"
+                                                          rows="10" style="resize:none;" autocomplete="off"
+                                                          class="form-control" readonly></textarea>
+                                            </div>
+                                        </div>
+
+                                    </div>
+
+                                </form>
+                            </div>
+
+
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+
+
 
 {% endblock %}
 {% block script %}

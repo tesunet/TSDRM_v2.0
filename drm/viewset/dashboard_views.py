@@ -41,6 +41,7 @@ def get_dashboard(request):
     job_run_num = ''
     job_success_num = ''
     job_failed_num = ''
+    job_warn_num = ''
     error_job_list = []
     util_manages = UtilsManage.objects.exclude(state='9').filter(id=util)
     if len(util_manages) > 0:
@@ -51,7 +52,7 @@ def get_dashboard(request):
             try:
                 dm = SQLApi.CVApi(sqlserver_credit)
                 #24小时作业
-                _, job_run_num, job_success_num, job_failed_num = dm.twentyfour_hours_job_list()
+                _, job_run_num, job_success_num, job_warn_num, job_failed_num = dm.get_cv_joblist()
 
                 #异常事件
                 job_list = dm.display_error_job_list()
@@ -65,19 +66,20 @@ def get_dashboard(request):
     return JsonResponse({"error_job_list": error_job_list,
                          "job_run_num": job_run_num,
                          "job_success_num": job_success_num,
+                         "job_warn_num": job_warn_num,
                          "job_failed_num": job_failed_num,
                          })
 
 
 @login_required
-def twentyfour_hours_job(request,funid):
+def cv_joblist(request,funid):
     util_manages = UtilsManage.objects.exclude(state='9')
     util = request.GET.get('util', '')
     try:
         util=int(util)
     except:
         pass
-    return render(request, "twentyfour_hours_job.html", {
+    return render(request, "cv_joblist.html", {
         'username': request.user.userinfo.fullname,
         "pagefuns": getpagefuns(funid, request=request),
         "util_manages": util_manages,
@@ -86,7 +88,7 @@ def twentyfour_hours_job(request,funid):
 
 
 @login_required
-def get_twentyfour_hours_job(request):
+def get_cv_joblist(request):
     util = request.GET.get('util', '')
     try:
         util = int(util)
@@ -104,7 +106,7 @@ def get_twentyfour_hours_job(request):
 
             try:
                 dm = SQLApi.CVApi(sqlserver_credit)
-                job_list, _, _, _ = dm.twentyfour_hours_job_list()
+                job_list, _, _, _, _ = dm.get_cv_joblist()
 
             except Exception as e:
                 print(e)
@@ -112,7 +114,6 @@ def get_twentyfour_hours_job(request):
                     "ret": 0,
                     "data": "获取信息失败。",
                 })
-
     return JsonResponse({"data": job_list})
 
 

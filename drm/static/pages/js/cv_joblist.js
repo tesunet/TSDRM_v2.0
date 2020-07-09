@@ -1,11 +1,11 @@
 $(document).ready(function () {
 
-    $('#display_error_job').dataTable({
+    $('#cv_joblist').dataTable({
         "bAutoWidth": true,
         "bSort": false,
         "iDisplayLength": 25,
         "bProcessing": true,
-        "ajax": "../get_display_error_job/?util=" + $('#util').val(),
+        "ajax": "../get_cv_joblist/?util=" + $('#util').val(),
         "columns": [
             {"data": "jobid"},
             {"data": "clientname"},
@@ -13,17 +13,9 @@ $(document).ready(function () {
             {"data": "instance"},
             {"data": "startdate"},
             {"data": "enddate"},
-            {"data": "jobfailedreason"},
-            {"data": null}
+            {"data": "jobstatus"},
         ],
 
-        "columnDefs": [{
-            "targets": -1,
-            "data": null,
-            "width": "100px",
-            "defaultContent": "<button  id='edit' title='详情' data-toggle='modal'  data-target='#static'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-edit'></i></button>"
-        }
-        ],
         "oLanguage": {
             "sLengthMenu": "每页显示 _MENU_ 条记录",
             "sZeroRecords": "抱歉， 没有找到",
@@ -41,17 +33,5 @@ $(document).ready(function () {
 
         }
     });
-
-    $('#display_error_job tbody').on('click', 'button#edit', function () {
-        var table = $('#display_error_job').DataTable();
-        var data = table.row($(this).parents('tr')).data();
-
-        $("#jobid").val(data.jobid);
-        $("#clientname").val(data.clientname);
-        $("#idataagent").val(data.idataagent);
-        $("#enddate").val(data.enddate);
-        $("#jobfailedreason").val(data.jobfailedreason);
-    });
-
 
 });

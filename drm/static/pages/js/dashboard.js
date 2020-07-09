@@ -2,6 +2,7 @@ $("ul#locate").on("click", " li", function () {
     var job_id = $(this).attr("id");
     $("input#clientname").val($("#a".replace("a", job_id)).find("input#clientname_tag").val());
     $("input#idataagent").val($("#a".replace("a", job_id)).find("input#idataagent_tag").val());
+    $("input#enddate").val($("#a".replace("a", job_id)).find("input#enddate_tag").val());
     $("textarea#jobfailedreason").text($("#a".replace("a", job_id)).find("input#jobfailedreason_tag").val());
     $("input#jobid").val(job_id);
 });
@@ -87,6 +88,12 @@ function getclientnum(){
 }
 
 function getdashboard(){
+    $("#url_cv_joblist").click(function () {
+        window.open("/cv_joblist?util="+$("#util").val());
+    });
+    $("#url_display_error_job").click(function () {
+        window.open("/display_error_job?util="+$("#util").val());
+    });
     $('#loading1').show();
     $('#loading2').show();
     $('#backup_info').hide();
@@ -110,6 +117,8 @@ function getdashboard(){
                 '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.job_run_num + '</span>')
                 $("#job_success_num").append('<span class="widget-thumb-subtitle">成功</span>\n' +
                     '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.job_success_num + '</span>')
+                $("#job_warn_num").append('<span class="widget-thumb-subtitle">警告</span>\n' +
+                    '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.job_warn_num + '</span>')
                 $("#job_failed_num").append('<span class="widget-thumb-subtitle">失败</span>\n' +
                     '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.job_failed_num + '</span>')
 
@@ -131,6 +140,7 @@ function getdashboard(){
                         '                    </a>\n' +
                         '                    <input hidden id="clientname_tag" type="text" value="' + data.error_job_list[i].clientname + '">\n' +
                         '                    <input hidden id="idataagent_tag" type="text" value="' + data.error_job_list[i].idataagent + '">\n' +
+                        '                    <input hidden id="enddate_tag" type="text" value="' + data.error_job_list[i].enddate + '">\n' +
                         '                    <input hidden id="jobfailedreason_tag" type="text" value="' + data.error_job_list[i].jobfailedreason + '">\n' +
                         '                </div>\n' +
                         '            </div>\n' +

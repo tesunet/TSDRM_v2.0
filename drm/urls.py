@@ -176,8 +176,8 @@ urlpatterns = [
     url(r'^dashboard/$', dashboard, {'funid': '89'}),
     url(r'^get_dashboard/$', get_dashboard),
     url(r'^get_frameworkstate/$', get_frameworkstate),
-    url(r'^twentyfour_hours_job/$', twentyfour_hours_job, {'funid': '92'}),
-    url(r'^get_twentyfour_hours_job/$', get_twentyfour_hours_job),
+    url(r'^cv_joblist/$', cv_joblist, {'funid': '92'}),
+    url(r'^get_cv_joblist/$', get_cv_joblist),
     url(r'^display_error_job/$', display_error_job, {'funid': '93'}),
     url(r'^get_display_error_job/$', get_display_error_job),
 
