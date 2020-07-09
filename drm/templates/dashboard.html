@@ -3,6 +3,15 @@
 
 
 {% block content %}
+    <style>
+        #loading1,#loading2 {
+            height: 240px;
+            width: 100%;
+            background-image: url(../static/upload/loading.gif);
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+    </style>
     <div   class="row" style="margin-top: -38px">
         <div class="col-md-2 col-lg-2" style="margin-top: 5px"></div>
         <div class="col-md-10 col-lg-10">
@@ -87,41 +96,41 @@
                                   style="font-size:16px">24小时作业</span></a>
                         </div>
 
-                        <div class="col-md-4" style="margin-top:60px">
-                            <!-- BEGIN WIDGET THUMB -->
-                            <div class="widget-thumb widget-bg-color-white text-uppercase margin-bottom-20 ">
-                                <div class="widget-thumb-wrap">
-                                    <i style="color:#595959;font-size: 40px" class="widget-thumb-icon  fa fa-cogs"></i>
-                                    <div class="widget-thumb-body" id="job_run_num">
+                        <div class="col-md-12">
+                            <div id="loading1"  class="portlet-body">
+        </div>
+                            <div id="show_jobstatus_num" class="portlet-body">
+                                <div class="col-md-4" style="margin-top: 60px">
+                                    <div class="widget-thumb widget-bg-color-white text-uppercase margin-bottom-20 ">
+                                        <div class="widget-thumb-wrap">
+                                            <i style="color:#595959;font-size: 40px" class="widget-thumb-icon  fa fa-cogs"></i>
+                                            <div class="widget-thumb-body" id="job_run_num">
 
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4" style="margin-top: 60px">
+                                    <div class="widget-thumb widget-bg-color-white text-uppercase margin-bottom-20 ">
+                                        <div class="widget-thumb-wrap">
+                                            <i style="color:#32c5d2;font-size: 40px" class="widget-thumb-icon  fa fa-check-square"></i>
+                                            <div class="widget-thumb-body" id="job_success_num">
+
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4" style="margin-top: 60px">
+                                    <div class="widget-thumb widget-bg-color-white text-uppercase margin-bottom-20 ">
+                                        <div class="widget-thumb-wrap">
+                                            <i style="color:#e7505a;font-size: 40px" class="widget-thumb-icon  fa  fa-exclamation-triangle"></i>
+                                            <div class="widget-thumb-body" id="job_failed_num">
+
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <!-- END WIDGET THUMB -->
-                        </div>
-                        <div class="col-md-4" style="margin-top:60px">
-                            <!-- BEGIN WIDGET THUMB -->
-                            <div class="widget-thumb widget-bg-color-white text-uppercase margin-bottom-20 ">
-                                <div class="widget-thumb-wrap">
-                                    <i style="color:#32c5d2;font-size: 40px" class="widget-thumb-icon  fa fa-check-square"></i>
-                                    <div class="widget-thumb-body" id="job_success_num">
-
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- END WIDGET THUMB -->
-                        </div>
-                        <div class="col-md-4" style="margin-top:60px">
-                        <!-- BEGIN WIDGET THUMB -->
-                            <div class="widget-thumb widget-bg-color-white text-uppercase margin-bottom-20 ">
-                                <div class="widget-thumb-wrap">
-                                    <i style="color:#e7505a;font-size: 40px" class="widget-thumb-icon  fa  fa-exclamation-triangle"></i>
-                                    <div class="widget-thumb-body" id="job_failed_num">
-
-                                    </div>
-                                </div>
-                            </div>
-                        <!-- END WIDGET THUMB -->
                         </div>
 
                     </div>
@@ -136,6 +145,8 @@
                         </div>
 
                         <div class="col-md-12">
+                            <div id="loading2"  class="portlet-body">
+    </div>
                             <div class="portlet-body" id="backup_info">
                                 <div class="scroller" style="height: 240px;">
                                     <ul class="feeds" id="locate">

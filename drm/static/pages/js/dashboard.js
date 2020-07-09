@@ -87,6 +87,10 @@ function getclientnum(){
 }
 
 function getdashboard(){
+    $('#loading1').show();
+    $('#loading2').show();
+    $('#backup_info').hide();
+    $('#show_jobstatus_num').hide();
     $.ajax({
         type: 'POST',
         dataType: 'json',
@@ -95,6 +99,10 @@ function getdashboard(){
             "util":$('#util').val(),
         },
         success: function (data) {
+            $('#loading1').hide();
+            $('#loading2').hide();
+            $('#backup_info').show();
+            $('#show_jobstatus_num').show();
             if (data.ret == 0){
                 alert(data.data)
             }else {
