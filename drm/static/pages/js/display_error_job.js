@@ -15,15 +15,23 @@ $(document).ready(function () {
             {"data": "startdate"},
             {"data": "enddate"},
             {"data": "jobfailedreason_table"},
+            {"data": "jobstatus"},
             {"data": null}
         ],
 
-        "columnDefs": [{
-            "targets": -1,
-            "data": null,
-            "width": "100px",
-            "defaultContent": "<button  id='edit' title='详情' data-toggle='modal'  data-target='#static'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-edit'></i></button>"
-        }
+        "columnDefs": [
+            {
+                "targets": -2,
+                "mRender": function (data, type, full) {
+                    return "<span class='" + full.jobstatus_label + "' disabled id='" + full.jobid + "'>" + full.jobstatus + "</span>"
+                }
+            },
+            {
+                "targets": -1,
+                "data": null,
+                "width": "30px",
+                "defaultContent": "<button  id='edit' title='详情' data-toggle='modal'  data-target='#static'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-edit'></i></button>"
+            }
         ],
         "oLanguage": {
             "sLengthMenu": "每页显示 _MENU_ 条记录",

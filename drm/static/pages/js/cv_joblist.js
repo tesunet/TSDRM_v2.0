@@ -11,7 +11,6 @@ $(document).ready(function () {
             if (data.ret == 0){
                 alert(data.data)
             }else {
-                console.log(data.data)
                 var pre = '<option selected value="" >全部</option>';
                 for (i = 0; i < data.data.length; i++) {
                     pre += '<option value="' + data.data[i].client_id + '">' + data.data[i].client_name + '</option>';
@@ -42,7 +41,7 @@ $(document).ready(function () {
             {
                 "targets": -1,
                 "mRender": function (data, type, full) {
-                    return "<input disabled id='" + full.jobid + "' name='jobstatus'  type='text' value='" + full.jobstatus + "'></input>"
+                    return "<span class='" + full.jobstatus_label + "' disabled id='" + full.jobid + "'>" + full.jobstatus + "</span>"
                 }
             },
         ],
@@ -62,8 +61,9 @@ $(document).ready(function () {
             },
             "sZeroRecords": "没有检索到数据",
 
-        }
+        },
     });
+
 
     $('#starttime').datetimepicker({
         autoclose: true,

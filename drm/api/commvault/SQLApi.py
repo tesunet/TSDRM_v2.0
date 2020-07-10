@@ -1145,16 +1145,21 @@ class CVApi(DataMonitor):
             if job_status in status_list:
                 job_status = status_list[job_status]
                 if job_status == '运行' or job_status == '等待' or job_status == '阻塞':
+                    jobstatus_label = 'label label-sm label-success'
                     job_run_num += 1
                 elif job_status == '正常' or job_status == '成功':
                     job_success_num += 1
+                    jobstatus_label = 'label label-sm label-success'
                 elif job_status == '已完成，但有一个或多个错误' or job_status == '已完成，但有一个或多个警告' or job_status == '部分成功':
                     job_warn_num += 1
+                    jobstatus_label = 'label label-sm label-warning'
                 elif job_status == '失败' or job_status == '启动失败':
+                    jobstatus_label = 'label label-sm label-danger'
                     job_failed_num += 1
             else:
                 job_status = job_status
                 job_other_num += 1
+                jobstatus_label = 'label label-sm label-default'
 
             job_list.append({
                 "jobid": i[0],
@@ -1167,6 +1172,7 @@ class CVApi(DataMonitor):
                 "backuplevel": i[7],
                 "incrlevel": i[8],
                 "jobstatus": job_status,
+                "jobstatus_label": jobstatus_label,
                 "jobfailedreason": i[10],
                 "startdate": i[11].strftime('%Y-%m-%d %H:%M:%S') if i[11] else "",
                 "enddate": i[12].strftime('%Y-%m-%d %H:%M:%S') if i[12] else "",
@@ -1217,9 +1223,14 @@ class CVApi(DataMonitor):
             job_status = i[9]
             if job_status in status_list:
                 job_status = status_list[job_status]
-
+                if job_status == '已完成，但有一个或多个错误' or job_status == '已完成，但有一个或多个警告' or job_status == '部分成功':
+                    jobstatus_label = 'label label-sm label-warning'
+                elif job_status == '失败' or job_status == '启动失败':
+                    jobstatus_label = 'label label-sm label-danger'
             else:
                 job_status = job_status
+                jobstatus_label = 'label label-sm label-default'
+
             if i[10] == None or i[10] == '':
                 jobfailedreason_table = i[10]
             else:
@@ -1236,6 +1247,7 @@ class CVApi(DataMonitor):
                 "backuplevel": i[7],
                 "incrlevel": i[8],
                 "jobstatus": job_status,
+                "jobstatus_label": jobstatus_label,
                 "jobfailedreason": i[10],
                 "jobfailedreason_table": jobfailedreason_table,
                 "startdate": i[11].strftime('%Y-%m-%d %H:%M:%S') if i[11] else "",
