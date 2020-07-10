@@ -178,6 +178,7 @@ urlpatterns = [
     url(r'^get_frameworkstate/$', get_frameworkstate),
     url(r'^cv_joblist/$', cv_joblist, {'funid': '92'}),
     url(r'^get_cv_joblist/$', get_cv_joblist),
+    url(r'^get_client_name/$', get_client_name),
     url(r'^display_error_job/$', display_error_job, {'funid': '93'}),
     url(r'^get_display_error_job/$', get_display_error_job),
 

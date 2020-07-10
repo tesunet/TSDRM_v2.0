@@ -30,6 +30,14 @@ def dashboard(request, funid):
 @login_required
 def get_dashboard(request):
     util = request.POST.get('util', '')
+    alljob_startdate = (datetime.datetime.now() - datetime.timedelta(hours=24)).strftime("%Y-%m-%d")
+    alljob_enddate = (datetime.datetime.now()).strftime("%Y-%m-%d")
+
+    errorjob_enddate = datetime.datetime.now().strftime("%Y-%m-%d")
+    errorjob_startdate = (datetime.datetime.now() - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+
+    clientid = ''
+    jobstatus = ''
     try:
         util = int(util)
     except:
@@ -38,11 +46,8 @@ def get_dashboard(request):
             "data": [],
         })
     # 24小时作业显示成功，执行中，失败状态的个数
-    job_run_num = ''
-    job_success_num = ''
-    job_failed_num = ''
-    job_warn_num = ''
     error_job_list = []
+    show_job_status_num = ''
     util_manages = UtilsManage.objects.exclude(state='9').filter(id=util)
     if len(util_manages) > 0:
         util = util_manages[0]
@@ -52,10 +57,11 @@ def get_dashboard(request):
             try:
                 dm = SQLApi.CVApi(sqlserver_credit)
                 #24小时作业
-                _, job_run_num, job_success_num, job_warn_num, job_failed_num = dm.get_cv_joblist()
+                _, show_job_status_num = dm.get_cv_joblist(startdate=alljob_startdate,
+                               enddate=alljob_enddate, clientid=clientid, jobstatus=jobstatus)
 
                 #异常事件
-                job_list = dm.display_error_job_list()
+                job_list = dm.display_error_job_list(startdate=errorjob_startdate, enddate=errorjob_enddate, jobstatus=jobstatus)
                 error_job_list = job_list[0:50]
             except Exception as e:
                 print(e)
@@ -64,38 +70,52 @@ def get_dashboard(request):
                     "data": "获取信息失败。",
                 })
     return JsonResponse({"error_job_list": error_job_list,
-                         "job_run_num": job_run_num,
-                         "job_success_num": job_success_num,
-                         "job_warn_num": job_warn_num,
-                         "job_failed_num": job_failed_num,
+                         "show_job_status_num": show_job_status_num,
                          })
 
 
 @login_required
 def cv_joblist(request,funid):
+    startdate = (datetime.datetime.now() - datetime.timedelta(hours=24)).strftime("%Y-%m-%d")
+    enddate = (datetime.datetime.now()).strftime("%Y-%m-%d")
+
     util_manages = UtilsManage.objects.exclude(state='9')
     util = request.GET.get('util', '')
     try:
-        util=int(util)
+        util = int(util)
     except:
         pass
+
     return render(request, "cv_joblist.html", {
         'username': request.user.userinfo.fullname,
         "pagefuns": getpagefuns(funid, request=request),
         "util_manages": util_manages,
         "util_id": util,
+        "startdate": startdate,
+        "enddate": enddate,
     })
 
 
 @login_required
 def get_cv_joblist(request):
     util = request.GET.get('util', '')
+    startdate = request.GET.get('startdate', '')
+    enddate = request.GET.get('enddate', '')
+    clientid = request.GET.get('clientid', '')
+    jobstatus = request.GET.get('jobstatus', '')
+
+
+    try:
+        clientid = int(clientid)
+    except:
+        clientid = ""
+
     try:
         util = int(util)
     except:
         return JsonResponse({
             "ret": 0,
-            "data": [],
+            "data": 'Commvault工具未配置。',
         })
     job_list = []
     util_manages = UtilsManage.objects.exclude(state='9').filter(id=util)
@@ -106,7 +126,7 @@ def get_cv_joblist(request):
 
             try:
                 dm = SQLApi.CVApi(sqlserver_credit)
-                job_list, _, _, _, _ = dm.get_cv_joblist()
+                job_list, _ = dm.get_cv_joblist(startdate, enddate, clientid, jobstatus)
 
             except Exception as e:
                 print(e)
@@ -118,11 +138,45 @@ def get_cv_joblist(request):
 
 
 @login_required
+def get_client_name(request):
+    utils = request.POST.get('utils', '')
+
+    try:
+        utils = int(utils)
+        utils_manage = UtilsManage.objects.get(id=utils)
+    except:
+        return JsonResponse({
+            "ret": 0,
+            "data": "Commvault工具未配置。",
+        })
+    else:
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
+        try:
+            dm = SQLApi.CVApi(sqlserver_credit)
+            clientname_list = dm.get_clients_name()
+
+        except Exception as e:
+            print(e)
+            return JsonResponse({
+                "ret": 0,
+                "data": "获取客户端基础信息失败。",
+            })
+        else:
+            return JsonResponse({
+                "ret": 1,
+                "data": clientname_list,
+            })
+
+
+@login_required
 def display_error_job(request,funid):
+    enddate = datetime.datetime.now().strftime("%Y-%m-%d")
+    startdate = (datetime.datetime.now() - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+
     util_manages = UtilsManage.objects.exclude(state='9')
     util = request.GET.get('util', '')
     try:
-        util=int(util)
+        util = int(util)
     except:
         pass
     return render(request, "display_error_job.html", {
@@ -130,12 +184,19 @@ def display_error_job(request,funid):
         "pagefuns": getpagefuns(funid, request=request),
         "util_manages": util_manages,
         "util_id": util,
+        "startdate": startdate,
+        "enddate": enddate,
     })
 
 
 @login_required
 def get_display_error_job(request):
     util = request.GET.get('util', '')
+    startdate = request.GET.get('startdate', '')
+    enddate = request.GET.get('enddate', '')
+    jobstatus = request.GET.get('jobstatus', '')
+
+
     try:
         util = int(util)
     except:
@@ -152,7 +213,7 @@ def get_display_error_job(request):
 
             try:
                 dm = SQLApi.CVApi(sqlserver_credit)
-                job_list = dm.display_error_job_list()
+                job_list = dm.display_error_job_list(startdate=startdate, enddate=enddate, jobstatus=jobstatus)
 
             except Exception as e:
                 print(e)

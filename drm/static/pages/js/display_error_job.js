@@ -5,7 +5,8 @@ $(document).ready(function () {
         "bSort": false,
         "iDisplayLength": 25,
         "bProcessing": true,
-        "ajax": "../get_display_error_job/?util=" + $('#util').val(),
+        "ajax": "../get_display_error_job/?util=" + $('#util').val()  + "&startdate=" + $('#starttime').val() +
+            "&enddate=" + $('#endtime').val() + "&jobstatus=" + $('#jobstatus').val(),
         "columns": [
             {"data": "jobid"},
             {"data": "clientname"},
@@ -13,7 +14,7 @@ $(document).ready(function () {
             {"data": "instance"},
             {"data": "startdate"},
             {"data": "enddate"},
-            {"data": "jobfailedreason"},
+            {"data": "jobfailedreason_table"},
             {"data": null}
         ],
 
@@ -53,5 +54,19 @@ $(document).ready(function () {
         $("#jobfailedreason").val(data.jobfailedreason);
     });
 
+    $('#starttime').datetimepicker({
+        autoclose: true,
+        minView: "month",
+        format: 'yyyy-mm-dd',
+    });
+    $('#endtime').datetimepicker({
+        autoclose: true,
+        minView: "month",
+        format: 'yyyy-mm-dd',
+    });
+    $('#cx').click(function () {
+        var table = $('#display_error_job').DataTable();
+        table.ajax.url("../get_display_error_job?util=" + $('#util').val() + "&startdate=" + $('#starttime').val() + "&enddate=" + $('#endtime').val() + "&jobstatus=" + $('#jobstatus').val()).load();
+    })
 
 });

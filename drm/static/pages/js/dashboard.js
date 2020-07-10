@@ -106,6 +106,7 @@ function getdashboard(){
             "util":$('#util').val(),
         },
         success: function (data) {
+            console.log(data)
             $('#loading1').hide();
             $('#loading2').hide();
             $('#backup_info').show();
@@ -114,13 +115,13 @@ function getdashboard(){
                 alert(data.data)
             }else {
                 $("#job_run_num").append('<span class="widget-thumb-subtitle">运行中</span>\n' +
-                '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.job_run_num + '</span>')
+                '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.show_job_status_num['job_run_num'] + '</span>')
                 $("#job_success_num").append('<span class="widget-thumb-subtitle">成功</span>\n' +
-                    '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.job_success_num + '</span>')
+                    '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.show_job_status_num['job_success_num'] + '</span>')
                 $("#job_warn_num").append('<span class="widget-thumb-subtitle">警告</span>\n' +
-                    '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.job_warn_num + '</span>')
+                    '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.show_job_status_num['job_warn_num'] + '</span>')
                 $("#job_failed_num").append('<span class="widget-thumb-subtitle">失败</span>\n' +
-                    '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.job_failed_num + '</span>')
+                    '<span  class="widget-thumb-body-stat" data-counter="counterup" data-value="7,644">' + data.show_job_status_num['job_failed_num'] + '</span>')
 
                 for (i = 0; i < data.error_job_list.length; i++) {
                     $("#locate").append('<li id="' + data.error_job_list[i].jobid + '">\n' +
@@ -134,9 +135,12 @@ function getdashboard(){
                         '            <div class="cont-col2">\n' +
                         '                <div class="desc">\n' +
                         '                    <a href="#" data-toggle="modal" data-target="#static">\n' +
-                        '                        <font style="vertical-align: inherit;">\n' +
-                        '                            <font style="vertical-align: inherit;">' + data.error_job_list[i].jobfailedreason + '</font>\n' +
-                        '                        </font>\n' +
+                        '                        <span>' + '[' + data.error_job_list[i].enddate + ']' +'</span>\n' +
+                        '                        <span>' +
+                        '                            <font style="vertical-align: inherit;">\n' +
+                        '                                <font style="vertical-align: inherit;">' + data.error_job_list[i].jobfailedreason + '</font>\n' +
+                        '                            </font>\n' +
+                        '                        </span>\n' +
                         '                    </a>\n' +
                         '                    <input hidden id="clientname_tag" type="text" value="' + data.error_job_list[i].clientname + '">\n' +
                         '                    <input hidden id="idataagent_tag" type="text" value="' + data.error_job_list[i].idataagent + '">\n' +

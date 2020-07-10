@@ -1,11 +1,34 @@
 $(document).ready(function () {
 
+     $.ajax({
+        type: 'POST',
+        dataType: 'json',
+        url: '../get_client_name/',
+        data: {
+            "utils":$('#util').val(),
+        },
+        success: function (data) {
+            if (data.ret == 0){
+                alert(data.data)
+            }else {
+                console.log(data.data)
+                var pre = '<option selected value="" >全部</option>';
+                for (i = 0; i < data.data.length; i++) {
+                    pre += '<option value="' + data.data[i].client_id + '">' + data.data[i].client_name + '</option>';
+                }
+                $("#clientid").append(pre)
+            }
+
+        }
+    });
+
     $('#cv_joblist').dataTable({
         "bAutoWidth": true,
         "bSort": false,
         "iDisplayLength": 25,
         "bProcessing": true,
-        "ajax": "../get_cv_joblist/?util=" + $('#util').val(),
+        "ajax": "../get_cv_joblist/?util=" + $('#util').val() + "&startdate=" + $('#starttime').val() +
+            "&enddate=" + $('#endtime').val() + "&clientid=" + $('#clientid').val() + "&jobstatus=" + $('#jobstatus').val(),
         "columns": [
             {"data": "jobid"},
             {"data": "clientname"},
@@ -14,6 +37,14 @@ $(document).ready(function () {
             {"data": "startdate"},
             {"data": "enddate"},
             {"data": "jobstatus"},
+        ],
+        "columnDefs": [
+            {
+                "targets": -1,
+                "mRender": function (data, type, full) {
+                    return "<input disabled id='" + full.jobid + "' name='jobstatus'  type='text' value='" + full.jobstatus + "'></input>"
+                }
+            },
         ],
 
         "oLanguage": {
@@ -33,5 +64,22 @@ $(document).ready(function () {
 
         }
     });
+
+    $('#starttime').datetimepicker({
+        autoclose: true,
+        minView: "month",
+        format: 'yyyy-mm-dd',
+    });
+    $('#endtime').datetimepicker({
+        autoclose: true,
+        minView: "month",
+        format: 'yyyy-mm-dd',
+    });
+
+
+    $('#cx').click(function () {
+        var table = $('#cv_joblist').DataTable();
+        table.ajax.url("../get_cv_joblist?util=" + $('#util').val() + "&startdate=" + $('#starttime').val() + "&enddate=" + $('#endtime').val() + "&clientid=" + $('#clientid').val() + "&jobstatus=" + $('#jobstatus').val()).load();
+    })
 
 });
