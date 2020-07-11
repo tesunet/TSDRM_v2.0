@@ -80,10 +80,138 @@ function getclientnum(){
                     $("#warning_client_num").css("color", "red");
                 }
 
-                //$("tbody").append(content_el);
-                $("#loading").hide();
             }
         }
+    });
+}
+
+function getsla(){
+    $("#url_sla").click(function () {
+        window.open("/sla?util="+$("#util").val());
+    });
+    $.ajax({
+        type: 'POST',
+        dataType: 'json',
+        url: '../get_cv_sla/',
+        data: {
+
+            'utils_manage_id': $("#util").val(),
+        },
+        success: function (data) {
+                if (data.ret == 0) {
+                    alert(data.data)
+                } else {
+                    var backup_sla = data.data;
+
+                    var policynum = 0;
+                    var statenum = 0;
+                    var rponum = 0;
+                    var percentnum = 0;
+                    var healthnum = 0;
+                    var curclientname="";
+                    var curclientsla="";
+                    for (var i = 0; i < backup_sla.length; i++) {
+                        var cur_policy = false
+                        var cur_state = false
+                        var cur_rpo = false
+                        var cur_percent = false
+
+
+
+                        if (backup_sla[i]["policy"] == "未配置") {
+                            cur_policy = true
+                        }
+                        if (["运行", "正常", "等待", "QueuedCompleted", "Queued", "成功","部分完成", "PartialSuccess", "阻塞", "已完成，但有一个或多个错误", "已完成，但有一个或多个警告"].indexOf(backup_sla[i]["bk_status"]) == -1) {
+                           cur_state = true
+                        }
+                        if (backup_sla[i]["rposec"] == 0 || 604800 && backup_sla[i]["rposec"] > 2592000) {
+                            cur_rpo = true
+                        }
+                        if (backup_sla[i]["percent"] < 50) {
+                            cur_percent = true
+                        }
+
+
+                        if(curclientname!=backup_sla[i]["clientname"]) {
+                            if(curclientname!="") {
+                                if (curclientsla == "policy") {
+                                    policynum++;
+                                } else if (curclientsla == "state") {
+                                    statenum++;
+                                } else if (curclientsla == "rpo") {
+                                    rponum++;
+                                } else if (curclientsla == "percent") {
+                                    percentnum++;
+                                } else {
+                                    healthnum++;
+                                }
+                            }
+                            curclientsla = ""
+                            curclientname = backup_sla[i]["clientname"]
+                            if (cur_policy) {
+                                curclientsla="policy"
+                            }
+                            else if (cur_state){
+                                curclientsla="state"
+                            }
+                            else if (cur_rpo) {
+                                curclientsla="rpo"
+                            }
+                            else if (cur_percent) {
+                                curclientsla="percent"
+                            }
+                            else {
+                                curclientsla="health"
+                            }
+                        }else{
+                            if (cur_policy) {
+                                curclientsla="policy"
+                            }
+                            else if (cur_state){
+                                if(curclientsla!="policy"){
+                                    curclientsla = "state"
+                                }
+                            }
+                            else if (cur_rpo) {
+                                if(curclientsla!="policy"&&curclientsla!="state") {
+                                    curclientsla = "rpo"
+                                }
+                            }
+                            else if (cur_percent) {
+                                if(curclientsla!="policy"&&curclientsla!="state"&&curclientsla!="rpo") {
+                                    curclientsla = "percent"
+                                }
+                            }
+                        }
+                    }
+                    if(curclientname!="") {
+                        if (curclientsla == "policy") {
+                            policynum++;
+                        } else if (curclientsla == "state") {
+                            statenum++;
+                        } else if (curclientsla == "rpo") {
+                            rponum++;
+                        } else if (curclientsla == "percent") {
+                            percentnum++;
+                        } else {
+                            healthnum++;
+                        }
+                    }
+                    var score=0;
+                    try{
+                        score = healthnum/(policynum+statenum+rponum+percentnum+healthnum) *100
+                        score = score.toFixed(0)
+                    }catch (e) {
+
+                    }
+                    $("#sla_score").text(score)
+                    if (score < 60) {
+                        $("#sla_score").css("color", "red");
+                    }else if (score < 80) {
+                        $("#sla_score").css("color", "sandybrown");
+                    }
+                }
+            }
     });
 }
 
@@ -162,10 +290,12 @@ function getdashboard(){
 $(document).ready(function () {
     getframeworkstate();
     getclientnum();
+    getsla();
     getdashboard();
     $("#util").change(function () {
         getframeworkstate();
         getclientnum();
+        getsla();
         getdashboard();
     });
 

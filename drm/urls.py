@@ -196,5 +196,9 @@ urlpatterns = [
     url(r'^get_storage_policy/$', get_storage_policy),
     url(r'^get_backup_status/$', get_backup_status),
 
+    # 健康度
+    url(r'^sla/$', sla, {'funid': '94'}),
+    url(r'^get_cv_sla/$', get_cv_sla),
+
 
 ]

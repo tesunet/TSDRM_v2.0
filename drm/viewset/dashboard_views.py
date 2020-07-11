@@ -481,3 +481,20 @@ def client_list(request, funid):
         "util_manages": util_manages,
         "util_id":util,
     })
+
+@login_required
+def sla(request, funid):
+    util = request.GET.get("util", "")
+    util_manages = UtilsManage.objects.exclude(state='9')
+    try:
+        util=int(util)
+    except:
+        pass
+
+
+    return render(request, "sla.html", {
+        'username': request.user.userinfo.fullname,
+        "pagefuns": getpagefuns(funid, request=request),
+        "util_manages": util_manages,
+        "util_id":util,
+    })

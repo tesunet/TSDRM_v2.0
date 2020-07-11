@@ -1,4 +1,5 @@
 import datetime
+from datetime import timedelta
 import copy
 # from TSDRM import settings
 # from faconstor.CVApi_bak import *
@@ -605,7 +606,7 @@ class CVApi(DataMonitor):
             "Running": "运行", "Waiting": "等待", "Pending": "阻塞", "Suspend": "终止", "Completed": "正常",
             "Failed": "失败", "Failed to Start": "启动失败", "Killed": "杀掉",
             "Completed w/ one or more errors": "已完成，但有一个或多个错误",
-            "Completed w/ one or more warnings": "已完成，但有一个或多个警告", "Success": "成功"
+            "Completed w/ one or more warnings": "已完成，但有一个或多个警告", "Success": "成功","PartialSuccess":"部分完成"
         }
 
         backup_status_sql = """SELECT clientname, idataagent, instance, backupset, subclient, startdate, jobstatus, jobid
@@ -884,7 +885,7 @@ class CVApi(DataMonitor):
         schedule_policy_sql = """SELECT ccscc.clientname, ccscc.idataagent, ccscc.instance, ccscc.backupset, ccscc.subclient, ccsfs.scheduleId, ccsfs.scheduePolicy, ccsfs.scheduleName, ccsfs.scheduletask, ccsfs.schedbackuptype, ccsfs.schedpattern,
         ccsfs.schedinterval,ccsfs.schedbackupday,ccsfs.schednextbackuptime,ccsfs.schednextbackuptime
         FROM (SELECT clientname, idataagent, instance, backupset, subclient FROM commserv.dbo.CommCellSubClientConfig WHERE backupset!='Indexing BackupSet' AND subclient !='(command line)') AS ccscc
-        LEFT JOIN commserv.dbo.CommCellBkScheduleForSubclients AS ccsfs ON ccsfs.clientname=ccscc.clientname AND ccsfs.idaagent=ccscc.idataagent AND ccsfs.backupset=ccscc.backupset AND ccsfs.subclient=ccscc.subclient
+        LEFT JOIN commserv.dbo.CommCellBkScheduleForSubclients AS ccsfs ON ccsfs.clientname=ccscc.clientname AND ccsfs.instance=ccscc.instance AND ccsfs.idaagent=ccscc.idataagent AND ccsfs.backupset=ccscc.backupset AND ccsfs.subclient=ccscc.subclient
         ORDER BY ccscc.clientname DESC, ccscc.idataagent DESC, ccscc.instance DESC, ccscc.backupset DESC, ccscc.subclient DESC, ccsfs.scheduePolicy DESC, ccsfs.schedbackuptype DESC
         """
         ret = self.fetch_all(schedule_policy_sql)
@@ -1060,6 +1061,149 @@ class CVApi(DataMonitor):
             for sp in schedule_policy_list:
                 if ci == sp["clientname"]:
                     final_list.append(sp)
+        return final_list
+
+    def get_sla(self, selected_clients=[], selected_agents=[]):
+        """
+        获取备份状态： 备份状态、辅助拷贝状态
+            selected_clients 指定客户端列表
+            selected_agents 指定应用列表
+        """
+        status_list = {
+            "Running": "运行", "Waiting": "等待", "Pending": "阻塞", "Suspend": "终止", "Completed": "正常",
+            "Failed": "失败", "Failed to Start": "启动失败", "Killed": "杀掉",
+            "Completed w/ one or more errors": "已完成，但有一个或多个错误",
+            "Completed w/ one or more warnings": "已完成，但有一个或多个警告", "Success": "成功","PartialSuccess":"部分完成"
+        }
+
+        backup_status_sql = """SELECT clientname, idataagent, instance, backupset, subclient, startdate, jobstatus, jobid
+        FROM commserv.dbo.CommCellBackupInfo
+        ORDER BY startdate DESC
+        """
+
+        schedule_policy_sql = """SELECT clientname,idaagent,instance,backupset,subclient, count(*) count from commserv.dbo.CommCellBkScheduleForSubclients
+        group by clientname,instance,idaagent,backupset,subclient
+        """
+
+        rpo_sql = """SELECT clientname, idataagent, instance, backupset, subclient, max(startdate) startdate
+        FROM commserv.dbo.CommCellBackupInfo where jobstatus in ('Success','Completed') group by clientname, idataagent, instance, backupset, subclient 
+                """
+
+        backup_status = self.fetch_all(backup_status_sql)
+        duplicated_subclients, client_list = self.get_duplicated_subclients()
+        schedule_policy = self.fetch_all(schedule_policy_sql)
+        rpo_date=self.fetch_all(rpo_sql)
+
+        backup_status_list = []
+        for ds in duplicated_subclients:
+            # 在指定客户端列表内
+            if ds["clientname"] in selected_clients or not selected_clients:  # selected_clients为空
+                # 添加一条空的
+                # 判断 实例 或 备份集
+                type = ""
+                # 备份内容
+                if "File System" in ds['idataagent'] or "Virtual" in ds['idataagent'] or "Big Data Apps" in ds[
+                    'idataagent']:
+                    type = ds['backupset']
+                if "Oracle" in ds['idataagent'] or "SQL Server" in ds['idataagent'] or "MySQL" in ds[
+                    'idataagent'] or "Exchange Database" in ds['idataagent']:
+                    type = ds['instance']
+
+                # 数据库没有实例 或者 文件系统没有备份集
+                if not type:
+                    continue
+                mystatus = {
+                    "clientname": ds["clientname"],
+                    "idataagent": ds["idataagent"],
+                    "instance": ds["instance"],
+                    "backupset": ds["backupset"],
+                    "subclient": ds["subclient"],
+                    "startdate": "无",
+                    "bk_status": "无",
+                    "type": type,
+                    "policy":"未配置",
+                    "rpo":"",
+                    "rposec": 0,
+                    "percent":0
+                }
+
+                timenow = datetime.datetime.now() - timedelta(days=30)
+                countall = 0
+                countsuccess = 0
+                percent = 0
+                #最近一次是否成功、近30天备份成功率
+                for bs in backup_status:
+                    isfrist = True
+                    if bs[0] == ds["clientname"] and bs[1] == ds["idataagent"] and bs[2] == ds["instance"] and bs[3] == ds[
+                        "backupset"] and bs[4] == ds["subclient"]:
+                        bk_status = bs[6]
+                        try:
+                            bk_status = status_list[bk_status]
+                        except:
+                            pass
+                        if isfrist:
+                            mystatus["startdate"]= bs[5]
+                            mystatus["bk_status"]= bk_status if bk_status else "无"
+                            isfrist = False
+                        if bs[5]>timenow:
+                            if bs[6]!="Running" and bs[6]!="Waiting" and bs[6]!="Pending" and bs[6]!="Suspend":
+                                countall = countall+1
+                            if bs[6]=="Completed" or bs[6]=="Completed w/ one or more errors" or bs[6]=="Completed w/ one or more warnings" or bs[6]=="Success" or bs[6]=="PartialSuccess":
+                                countsuccess=countsuccess+1
+                        else:
+                            break
+                try:
+                    percent=round(countsuccess/countall*100,2)
+                except:
+                    pass
+                mystatus["percent"] = percent
+
+                #是否有计划策略
+                for sp in schedule_policy:
+                    if sp[0] == ds["clientname"] and sp[1] == ds["idataagent"] and sp[2] == ds["instance"] and sp[3] == ds["backupset"] and sp[4] == ds["subclient"]:
+
+                        count = sp[5]
+                        if count>0:
+                            mystatus["policy"] ="已配置"
+                        break
+                #rpo
+                for rd in rpo_date:
+                    if rd[0] == ds["clientname"] and rd[1] == ds["idataagent"] and rd[2] == ds["instance"] and rd[3] == ds["backupset"] and rd[4] == ds["subclient"]:
+                        try:
+                            totalsec=(datetime.datetime.now()-rd[5]).total_seconds()
+                            totalsec = int(totalsec)
+                            sec = 0
+                            min = 0
+                            hour=0
+                            day=0
+                            min,sec = divmod(totalsec, 60)
+                            if min>=60:
+                                hour, min = divmod(min, 60)
+                                if hour>=24:
+                                    day, hour = divmod(hour, 24)
+                            strrpo =""
+                            if day>0:
+                                strrpo += str(day) + "天"
+                            if hour>0 and day<=30:
+                                strrpo += str(hour) + "小时"
+                            if min>0  and day<1:
+                                strrpo += str(min) + "分"
+                            if sec > 0 and day < 1:
+                                strrpo += str(sec) + "秒"
+
+                            mystatus["rpo"] = strrpo
+                            mystatus["rposec"] = totalsec
+                        except Exception as e:
+                            print(e)
+                        break
+                backup_status_list.append(mystatus)
+
+        # 排序
+        final_list = []
+        for ci in client_list:
+            for bs in backup_status_list:
+                if ci == bs["clientname"]:
+                    final_list.append(bs)
         return final_list
 
     def get_clients_name(self):

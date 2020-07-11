@@ -78,8 +78,8 @@
                             </div>
                             <div class="details">
                                 <div class="number">
-                                    <span {% if net_status == "中断" %}style="color: red"{% endif %}
-                                          data-counter="counterup" data-value="0" >{{ net_status }} </span></div>
+                                    <a id="url_sla"><span style="color:white" data-counter="counterup" data-value="0" id="sla_score">loading...</span></a>
+                                </div>
                                 <div class="desc"> 健康度</div>
                             </div>
                         </div>

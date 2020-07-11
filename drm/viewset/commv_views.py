@@ -319,6 +319,47 @@ def get_client_info(request):
             })
 
 
+@login_required
+def get_cv_sla(request):
+    whole_list = []
+    utils_manage_id = request.POST.get('utils_manage_id', '')
+
+    try:
+        utils_manage_id = int(utils_manage_id)
+        utils_manage = UtilsManage.objects.get(id=utils_manage_id)
+    except:
+        return JsonResponse({
+            "ret": 0,
+            "data": "Commvault工具未配置。",
+        })
+    else:
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
+        try:
+            dm = SQLApi.CVApi(sqlserver_credit)
+            whole_list = dm.get_sla()
+
+            for num, wl in enumerate(whole_list):
+                clientname_rowspan = get_rowspan(whole_list, clientname=wl['clientname'])
+                idataagent_rowspan = get_rowspan(whole_list, clientname=wl['clientname'], idataagent=wl['idataagent'])
+                type_rowspan = get_rowspan(whole_list, clientname=wl['clientname'], idataagent=wl['idataagent'],
+                                           type=wl['type'])
+
+                whole_list[num]['clientname_rowspan'] = clientname_rowspan
+                whole_list[num]['idataagent_rowspan'] = idataagent_rowspan
+                whole_list[num]['type_rowspan'] = type_rowspan
+
+            dm.close()
+        except Exception as e:
+            return JsonResponse({
+                "ret": 0,
+                "data": "获取健康度信息失败。",
+            })
+        return JsonResponse({
+            "ret": 1,
+            "data": whole_list,
+        })
+
+
 ######################
 # 自主恢复
 ######################
