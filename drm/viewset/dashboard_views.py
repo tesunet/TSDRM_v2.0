@@ -30,11 +30,8 @@ def dashboard(request, funid):
 @login_required
 def get_dashboard(request):
     util = request.POST.get('util', '')
-    alljob_startdate = (datetime.datetime.now() - datetime.timedelta(hours=24)).strftime("%Y-%m-%d")
-    alljob_enddate = (datetime.datetime.now()).strftime("%Y-%m-%d")
-
-    errorjob_enddate = datetime.datetime.now().strftime("%Y-%m-%d")
-    errorjob_startdate = (datetime.datetime.now() - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+    startdate = (datetime.datetime.now() - datetime.timedelta(hours=24)).strftime("%Y-%m-%d")
+    enddate = (datetime.datetime.now()).strftime("%Y-%m-%d")
 
     clientid = ''
     jobstatus = ''
@@ -57,11 +54,11 @@ def get_dashboard(request):
             try:
                 dm = SQLApi.CVApi(sqlserver_credit)
                 #24小时作业
-                _, show_job_status_num = dm.get_cv_joblist(startdate=alljob_startdate,
-                               enddate=alljob_enddate, clientid=clientid, jobstatus=jobstatus)
+                _, show_job_status_num = dm.get_cv_joblist(startdate=startdate,
+                               enddate=enddate, clientid=clientid, jobstatus=jobstatus)
 
                 #异常事件
-                job_list = dm.display_error_job_list(startdate=errorjob_startdate, enddate=errorjob_enddate, jobstatus=jobstatus)
+                job_list = dm.display_error_job_list(startdate=startdate, enddate=enddate, jobstatus=jobstatus)
                 error_job_list = job_list[0:50]
             except Exception as e:
                 print(e)
@@ -170,8 +167,8 @@ def get_client_name(request):
 
 @login_required
 def display_error_job(request,funid):
+    startdate = (datetime.datetime.now() - datetime.timedelta(hours=24)).strftime("%Y-%m-%d")
     enddate = datetime.datetime.now().strftime("%Y-%m-%d")
-    startdate = (datetime.datetime.now() - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
 
     util_manages = UtilsManage.objects.exclude(state='9')
     util = request.GET.get('util', '')

@@ -29,7 +29,7 @@ $(document).ready(function () {
             {
                 "targets": -1,
                 "data": null,
-                "width": "30px",
+                "width": "40px",
                 "defaultContent": "<button  id='edit' title='详情' data-toggle='modal'  data-target='#static'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-edit'></i></button>"
             }
         ],
