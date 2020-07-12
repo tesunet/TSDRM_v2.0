@@ -58,7 +58,7 @@ def get_dashboard(request):
                                enddate=enddate, clientid=clientid, jobstatus=jobstatus)
 
                 #异常事件
-                job_list = dm.display_error_job_list(startdate=startdate, enddate=enddate, jobstatus=jobstatus)
+                job_list = dm.display_error_job_list(startdate=startdate, enddate=enddate, clientid=clientid)
                 error_job_list = job_list[0:50]
             except Exception as e:
                 print(e)
@@ -191,8 +191,12 @@ def get_display_error_job(request):
     util = request.GET.get('util', '')
     startdate = request.GET.get('startdate', '')
     enddate = request.GET.get('enddate', '')
-    jobstatus = request.GET.get('jobstatus', '')
+    clientid = request.GET.get('clientid', '')
 
+    try:
+        clientid = int(clientid)
+    except:
+        clientid = ""
 
     try:
         util = int(util)
@@ -210,7 +214,7 @@ def get_display_error_job(request):
 
             try:
                 dm = SQLApi.CVApi(sqlserver_credit)
-                job_list = dm.display_error_job_list(startdate=startdate, enddate=enddate, jobstatus=jobstatus)
+                job_list = dm.display_error_job_list(startdate=startdate, enddate=enddate, clientid=clientid)
 
             except Exception as e:
                 print(e)

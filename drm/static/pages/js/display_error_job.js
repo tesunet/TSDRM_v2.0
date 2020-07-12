@@ -1,12 +1,34 @@
 $(document).ready(function () {
 
+    $.ajax({
+        type: 'POST',
+        dataType: 'json',
+        url: '../get_client_name/',
+        data: {
+            "utils":$('#util').val(),
+        },
+        success: function (data) {
+            if (data.ret == 0){
+                alert(data.data)
+            }else {
+                var pre = '<option selected value="" >全部</option>';
+                for (i = 0; i < data.data.length; i++) {
+                    pre += '<option value="' + data.data[i].client_id + '">' + data.data[i].client_name + '</option>';
+                }
+                $("#clientid").append(pre)
+            }
+
+        }
+    });
+
+
     $('#display_error_job').dataTable({
         "bAutoWidth": true,
         "bSort": false,
         "iDisplayLength": 25,
         "bProcessing": true,
         "ajax": "../get_display_error_job/?util=" + $('#util').val()  + "&startdate=" + $('#starttime').val() +
-            "&enddate=" + $('#endtime').val() + "&jobstatus=" + $('#jobstatus').val(),
+            "&enddate=" + $('#endtime').val() + "&clientid=" + $('#clientid').val(),
         "columns": [
             {"data": "jobid"},
             {"data": "clientname"},
@@ -14,8 +36,7 @@ $(document).ready(function () {
             {"data": "instance"},
             {"data": "startdate"},
             {"data": "enddate"},
-            {"data": "jobfailedreason_table"},
-            {"data": "jobstatus"},
+            {"data": "jobfailedreason"},
             {"data": null}
         ],
 
@@ -23,7 +44,8 @@ $(document).ready(function () {
             {
                 "targets": -2,
                 "mRender": function (data, type, full) {
-                    return "<span class='" + full.jobstatus_label + "' disabled id='" + full.jobid + "'>" + full.jobstatus + "</span>"
+                    var jobfailedreason = full.jobfailedreason.slice(0,25) + '...'
+                    return "<span id='" + full.jobid + "'>" + jobfailedreason + "</span>"
                 }
             },
             {
@@ -74,7 +96,7 @@ $(document).ready(function () {
     });
     $('#cx').click(function () {
         var table = $('#display_error_job').DataTable();
-        table.ajax.url("../get_display_error_job?util=" + $('#util').val() + "&startdate=" + $('#starttime').val() + "&enddate=" + $('#endtime').val() + "&jobstatus=" + $('#jobstatus').val()).load();
+        table.ajax.url("../get_display_error_job?util=" + $('#util').val() + "&startdate=" + $('#starttime').val() + "&enddate=" + $('#endtime').val() + "&clientid=" + $('#clientid').val()).load();
     })
 
 });

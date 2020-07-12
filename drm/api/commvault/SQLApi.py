@@ -1331,7 +1331,7 @@ class CVApi(DataMonitor):
 
         return job_list, show_job_status_num
 
-    def display_error_job_list(self, startdate, enddate, jobstatus):
+    def display_error_job_list(self, startdate, enddate, clientid):
         status_list = {"Running": "运行", "Waiting": "等待", "Pending": "阻塞", "Completed": "正常", "Success": "成功",
                        "PartialSuccess": "部分成功",
                        "Failed": "失败", "Failed to Start": "启动失败",
@@ -1339,36 +1339,17 @@ class CVApi(DataMonitor):
                        "Completed w/ one or more warnings": "已完成，但有一个或多个警告"}
         jobstatus_label = ""
         #告警信息
-        if jobstatus == "":
-
-            jobstatus_list = ('Running', 'Waiting', 'Pending', 'Completed', 'Success')
+        if clientid:
+            clientname_sql = """SELECT [Client] FROM [commserv].[dbo].[CommCellClientConfig] WHERE ClientId={CliendId} AND ClientStatus='installed'""".format(CliendId=clientid)
+            content = self.fetch_all(clientname_sql)
+            clientname = content[0][0]
             job_sql = """SELECT [jobid],[clientname],[idataagent],[instance],[backupset],[subclient],[data_sp],[backuplevel],[incrlevel],[jobstatus],[jobfailedreason],[startdate],[enddate],[totalBackupSize]
-                        FROM [commserv].[dbo].[CommCellBackupInfo] WHERE enddate >= '{startdate}' AND enddate <= '{enddate}' AND  jobstatus not in {jobstatus_list}
-                    ORDER BY [startdate] DESC""".format(startdate=startdate, enddate=enddate, jobstatus_list=jobstatus_list)
+                        FROM [commserv].[dbo].[CommCellBackupInfo] WHERE jobfailedreason <>'' AND enddate >= '{startdate}' AND enddate <= '{enddate}' AND  clientname = '{clientname}'
+                    ORDER BY [startdate] DESC""".format(startdate=startdate, enddate=enddate, clientname=clientname)
         else:
-            if jobstatus == "others":
-                jobstatus_list = ('Running', 'Waiting', 'Pending', 'Completed', 'Success', 'PartialSuccess',
-                                  'Completed w/ one or more errors', 'Completed w/ one or more warnings', 'Failed', 'Failed to Start')
-                job_sql = """SELECT [jobid],[clientname],[idataagent],[instance],[backupset],[subclient],[data_sp],[backuplevel],[incrlevel],[jobstatus],[jobfailedreason],[startdate],[enddate],[totalBackupSize]
-                                        FROM [commserv].[dbo].[CommCellBackupInfo] WHERE enddate >= '{startdate}' AND enddate <= '{enddate}' AND jobstatus not in {jobstatus}
-                                    ORDER BY [startdate] DESC""".format(startdate=startdate, enddate=enddate, jobstatus=jobstatus_list)
-            elif jobstatus == "run" or jobstatus == "success":
-                jobstatus_list = ('Running', 'Waiting', 'Pending', 'Completed', 'Success')
-                job_sql = """SELECT [jobid],[clientname],[idataagent],[instance],[backupset],[subclient],[data_sp],[backuplevel],[incrlevel],[jobstatus],[jobfailedreason],[startdate],[enddate],[totalBackupSize]
-                                    FROM (
-                                    SELECT [jobid],[clientname],[idataagent],[instance],[backupset],[subclient],[data_sp],[backuplevel],[incrlevel],[jobstatus],[jobfailedreason],[startdate],[enddate],[totalBackupSize]
-                                    FROM [commserv].[dbo].[CommCellBackupInfo] WHERE enddate >= '{startdate}' and enddate <= '{enddate}' and jobstatus not in {jobstatus})AS a 
-                                    WHERE enddate >= '{startdate}' and enddate <= '{enddate}' and jobstatus in {jobstatus}
-                                    ORDER BY [startdate] DESC""".format(startdate=startdate, enddate=enddate, jobstatus=jobstatus_list)
-            else:
-                if jobstatus == "warn":
-                    jobstatus_list = ('PartialSuccess', 'Completed w/ one or more errors', 'Completed w/ one or more warnings')
-                elif jobstatus == "failed":
-                    jobstatus_list = ('Failed', 'Failed to Start')
-                job_sql = """SELECT [jobid],[clientname],[idataagent],[instance],[backupset],[subclient],[data_sp],[backuplevel],[incrlevel],[jobstatus],[jobfailedreason],[startdate],[enddate],[totalBackupSize]
-                                        FROM [commserv].[dbo].[CommCellBackupInfo] WHERE enddate >= '{startdate}' AND enddate <= '{enddate}' AND jobstatus in {jobstatus_list}
-                                    ORDER BY [startdate] DESC""".format(startdate=startdate, enddate=enddate,
-                                                                       jobstatus_list=jobstatus_list)
+            job_sql = """SELECT [jobid],[clientname],[idataagent],[instance],[backupset],[subclient],[data_sp],[backuplevel],[incrlevel],[jobstatus],[jobfailedreason],[startdate],[enddate],[totalBackupSize]
+                        FROM [commserv].[dbo].[CommCellBackupInfo] WHERE jobfailedreason <>'' AND enddate >= '{startdate}' AND enddate <= '{enddate}'
+                    ORDER BY [startdate] DESC""".format(startdate=startdate, enddate=enddate)
 
         content = self.fetch_all(job_sql)
         error_job_list = []
@@ -1384,11 +1365,6 @@ class CVApi(DataMonitor):
                 job_status = job_status
                 jobstatus_label = 'label label-sm label-default'
 
-            if i[10] == None or i[10] == '':
-                jobfailedreason_table = i[10]
-            else:
-                jobfailedreason_table = i[10][0:25] + '...'
-
             error_job_list.append({
                 "jobid": i[0],
                 "clientname": i[1],
@@ -1402,7 +1378,6 @@ class CVApi(DataMonitor):
                 "jobstatus": job_status,
                 "jobstatus_label": jobstatus_label,
                 "jobfailedreason": i[10],
-                "jobfailedreason_table": jobfailedreason_table,
                 "startdate": i[11].strftime('%Y-%m-%d %H:%M:%S') if i[11] else "",
                 "enddate": i[12].strftime('%Y-%m-%d %H:%M:%S') if i[12] else "",
                 "totalBackupSize": i[13],
