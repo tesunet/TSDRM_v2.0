@@ -82,6 +82,7 @@ class Target(models.Model):
     info = models.TextField("客户端相关信息", blank=True, null=True)
     state = models.CharField("状态", blank=True, null=True, max_length=20)
     os = models.CharField("系统", blank=True, null=True, max_length=50)
+    utils = models.ForeignKey("UtilsManage", null=True, verbose_name="关联工具")
 
 
 class Origin(models.Model):
@@ -105,6 +106,10 @@ class Origin(models.Model):
     db_open = models.IntegerField(
         "是否恢复完成后打开数据库：1：默认打开数据库；2：不打开数据库", null=True, default=1, choices=db_open_choices)
     utils = models.ForeignKey("UtilsManage", null=True, verbose_name="关联工具")
+    log_restore = models.IntegerField("是否回滚日志", null=True, default=1, choices=(
+        (1, "是"),
+        (2, "否")
+    ))
 
 
 class HostsManage(models.Model):
