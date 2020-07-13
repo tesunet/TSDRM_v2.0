@@ -104,6 +104,7 @@ class Origin(models.Model):
     )
     db_open = models.IntegerField(
         "是否恢复完成后打开数据库：1：默认打开数据库；2：不打开数据库", null=True, default=1, choices=db_open_choices)
+    utils = models.ForeignKey("UtilsManage", null=True, verbose_name="关联工具")
 
 
 class HostsManage(models.Model):
