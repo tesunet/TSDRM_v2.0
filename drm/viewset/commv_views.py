@@ -5,7 +5,6 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse
 
-
 from ..tasks import *
 from TSDRM import settings
 from drm.api.commvault import SQLApi
@@ -13,6 +12,7 @@ from drm.api.commvault.RestApi import *
 from .public_func import *
 from .basic_views import getpagefuns
 from .config_views import get_credit_info
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 ######################
@@ -43,15 +43,19 @@ def get_rowspan(whole_list, **kwargs):
                 row_span += 1
     if all([clientname, idataagent, type, subclient]) and not any([scheduePolicy, schedbackuptype]):
         for tl in whole_list:
-            if tl['clientname'] == clientname and tl['idataagent'] == idataagent and tl['type'] == type and tl['subclient'] == subclient:
+            if tl['clientname'] == clientname and tl['idataagent'] == idataagent and tl['type'] == type and tl[
+                'subclient'] == subclient:
                 row_span += 1
     if all([clientname, idataagent, type, subclient, scheduePolicy]) and not schedbackuptype:
         for tl in whole_list:
-            if tl['clientname'] == clientname and tl['idataagent'] == idataagent and tl['type'] == type and tl['subclient'] == subclient and tl['scheduePolicy'] == scheduePolicy:
+            if tl['clientname'] == clientname and tl['idataagent'] == idataagent and tl['type'] == type and tl[
+                'subclient'] == subclient and tl['scheduePolicy'] == scheduePolicy:
                 row_span += 1
     if all([clientname, idataagent, type, subclient, scheduePolicy, schedbackuptype]):
         for tl in whole_list:
-            if tl['clientname'] == clientname and tl['idataagent'] == idataagent and tl['type'] == type and tl['subclient'] == subclient and tl['scheduePolicy'] == scheduePolicy and tl['schedbackuptype'] == schedbackuptype:
+            if tl['clientname'] == clientname and tl['idataagent'] == idataagent and tl['type'] == type and tl[
+                'subclient'] == subclient and tl['scheduePolicy'] == scheduePolicy and tl[
+                'schedbackuptype'] == schedbackuptype:
                 row_span += 1
     return row_span
 
@@ -162,7 +166,6 @@ def get_storage_policy(request):
         _, sqlserver_credit = get_credit_info(utils_manage.content)
         try:
 
-
             dm = SQLApi.CVApi(sqlserver_credit)
             whole_list = dm.get_storage_policy()
 
@@ -222,13 +225,13 @@ def get_schedule_policy(request):
                                            type=wl['type'])
                 # 子客户端，计划策略，备份类型
                 subclient_rowspan = get_rowspan(whole_list, clientname=wl['clientname'],
-                                                      idataagent=wl['idataagent'],
-                                                      type=wl['type'], subclient=wl['subclient'])
+                                                idataagent=wl['idataagent'],
+                                                type=wl['type'], subclient=wl['subclient'])
                 if wl['scheduePolicy']:
                     scheduePolicy_rowspan = get_rowspan(whole_list, clientname=wl['clientname'],
-                                                          idataagent=wl['idataagent'],
-                                                          type=wl['type'], subclient=wl['subclient'],
-                                                          scheduePolicy=wl['scheduePolicy'])
+                                                        idataagent=wl['idataagent'],
+                                                        type=wl['type'], subclient=wl['subclient'],
+                                                        scheduePolicy=wl['scheduePolicy'])
                 else:
                     scheduePolicy_rowspan = 1
                 if wl['schedbackuptype'] and wl['scheduePolicy']:
@@ -423,7 +426,8 @@ def dooraclerecovery(request):
                         pass
             if not instance:
                 return HttpResponse("恢复任务启动失败, 数据库实例不存在。")
-            oraRestoreOperator = {"restoreTime": restoreTime, "browseJobId": None, "data_path": data_path, "copy_priority": copy_priority}
+            oraRestoreOperator = {"restoreTime": restoreTime, "browseJobId": None, "data_path": data_path,
+                                  "copy_priority": copy_priority}
 
             cvToken = CV_RestApi_Token()
             cvToken.login(settings.CVApi_credit)
@@ -573,81 +577,69 @@ def serverconfigsave(request):
 ######################
 # 客户端管理
 ######################
+@login_required
 def target(request, funid):
-    if request.user.is_authenticated():
-        #############################################
-        # clientid, clientname, agent, instance, os #
-        #############################################
-        dm = SQLApi.CVApi(settings.sql_credit)
+    # 工具
+    utils_manage = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
+    data = []
 
-        oracle_data = dm.get_instance_from_oracle()
+    try:
+        pool = ThreadPoolExecutor(max_workers=10)
 
-        # 获取包含oracle模块所有客户端
-        installed_client = dm.get_all_install_clients()
-        dm.close()
-        oracle_data_list = []
-        pre_od_name = ""
-        for od in oracle_data:
-            if "Oracle" in od["agent"]:
-                if od["clientname"] == pre_od_name:
-                    continue
-                client_id = od["clientid"]
-                client_os = ""
-                for ic in installed_client:
-                    if client_id == ic["client_id"]:
-                        client_os = ic["os"]
+        all_tasks = [pool.submit(get_oracle_client, (um)) for um in utils_manage]
+        for future in as_completed(all_tasks):
+            if future.result():
+                data.append(future.result())
+    except:
+        pass
 
-                oracle_data_list.append({
-                    "clientid": od["clientid"],
-                    "clientname": od["clientname"],
-                    "agent": od["agent"],
-                    "instance": od["instance"],
-                    "os": client_os
-                })
-                # 去重
-                pre_od_name = od["clientname"]
-        return render(request, 'target.html',
-                      {'username': request.user.userinfo.fullname,
-                       "oracle_data": json.dumps(oracle_data_list),
-                       "pagefuns": getpagefuns(funid, request=request)})
-    else:
-        return HttpResponseRedirect("/login")
+    return render(request, 'target.html',
+                  {'username': request.user.userinfo.fullname, 'utils_manage': utils_manage,
+                   "data": json.dumps(data),
+                   "pagefuns": getpagefuns(funid, request=request)})
 
 
+@login_required
 def target_data(request):
-    if request.user.is_authenticated():
-        all_target = Target.objects.exclude(state="9")
-        all_target_list = []
-        for target in all_target:
-            target_info = json.loads(target.info)
-            all_target_list.append({
-                "id": target.id,
-                "client_id": target.client_id,
-                "client_name": target.client_name,
-                "os": target.os,
-                "agent": target_info["agent"],
-                "instance": target_info["instance"]
-            })
-        return JsonResponse({"data": all_target_list})
-    else:
-        return HttpResponseRedirect("/login")
+    all_target = Target.objects.exclude(state="9").select_related('utils')
+    all_target_list = []
+    for target in all_target:
+        target_info = json.loads(target.info)
+        all_target_list.append({
+            "id": target.id,
+            "client_id": target.client_id,
+            "client_name": target.client_name,
+            "os": target.os,
+            "agent": target_info["agent"],
+            "instance": target_info["instance"],
+            "utils_id": target.utils_id,
+            "utils_name": target.utils.name if target.utils else ''
+        })
+    return JsonResponse({"data": all_target_list})
 
 
+@login_required
 def target_save(request):
-    if request.user.is_authenticated():
-        target_id = request.POST.get("target_id", "")
-        client_id = request.POST.get("client_id", "")
-        client_name = request.POST.get("client_name", "").strip()
-        agent = request.POST.get("agent", "").strip()
-        instance = request.POST.get("instance", "").strip()
-        os = request.POST.get("os", "").strip()
+    target_id = request.POST.get("target_id", "")
+    client_id = request.POST.get("client_id", "")
+    client_name = request.POST.get("client_name", "").strip()
+    agent = request.POST.get("agent", "").strip()
+    instance = request.POST.get("instance", "").strip()
+    os = request.POST.get("os", "").strip()
+    utils_manage = request.POST.get("utils_manage", "").strip()
+    ret = 0
+    info = ""
+    try:
+        target_id = int(target_id)
+    except:
         ret = 0
-        info = ""
+        info = "网络异常。"
+    else:
         try:
-            target_id = int(target_id)
+            utils_manage = int(utils_manage)
         except:
             ret = 0
-            info = "网络异常"
+            info = "工具未选择。"
         else:
             try:
                 client_id = int(client_id)
@@ -657,8 +649,7 @@ def target_save(request):
             else:
                 if target_id == 0:
                     # 判断是否存在
-                    check_target = Target.objects.exclude(
-                        state="9").filter(client_id=client_id)
+                    check_target = Target.objects.exclude(state="9").filter(client_id=client_id)
                     if check_target.exists():
                         ret = 0
                         info = "该客户端已选为目标客户端，请勿重复添加。"
@@ -668,6 +659,7 @@ def target_save(request):
                             cur_target.client_id = client_id
                             cur_target.client_name = client_name
                             cur_target.os = os
+                            cur_target.utils_id = utils_manage
                             cur_target.info = json.dumps({
                                 "agent": agent,
                                 "instance": instance
@@ -696,6 +688,7 @@ def target_save(request):
                                 cur_target.client_id = client_id
                                 cur_target.client_name = client_name
                                 cur_target.os = os
+                                cur_target.utils_id = utils_manage
                                 cur_target.info = json.dumps({
                                     "agent": agent,
                                     "instance": instance
@@ -708,135 +701,146 @@ def target_save(request):
                                 ret = 1
                                 info = "修改成功"
 
+    return JsonResponse({
+        "ret": ret,
+        "info": info
+    })
+
+
+@login_required
+def target_del(request):
+    target_id = request.POST.get("target_id", "")
+
+    try:
+        cur_target = Target.objects.get(id=int(target_id))
+    except:
         return JsonResponse({
-            "ret": ret,
-            "info": info
+            "ret": 0,
+            "info": "当前网络异常"
         })
     else:
-        return HttpResponseRedirect("/login")
-
-
-def target_del(request):
-    if request.user.is_authenticated():
-        target_id = request.POST.get("target_id", "")
-
         try:
-            cur_target = Target.objects.get(id=int(target_id))
+            cur_target.state = "9"
+            cur_target.save()
         except:
             return JsonResponse({
                 "ret": 0,
-                "info": "当前网络异常"
+                "info": "服务器网络异常。"
             })
         else:
-            try:
-                cur_target.state = "9"
-                cur_target.save()
-            except:
-                return JsonResponse({
-                    "ret": 0,
-                    "info": "服务器网络异常。"
-                })
-            else:
-                return JsonResponse({
-                    "ret": 1,
-                    "info": "删除成功。"
-                })
-    else:
-        return HttpResponseRedirect("/login")
-
-
-def origin(request, funid):
-    if request.user.is_authenticated():
-        #############################################
-        # clientid, clientname, agent, instance, os #
-        #############################################
-        dm = SQLApi.CVApi(settings.sql_credit)
-
-        oracle_data = dm.get_instance_from_oracle()
-
-        # 获取包含oracle模块所有客户端
-        installed_client = dm.get_all_install_clients()
-        dm.close()
-        oracle_data_list = []
-        pre_od_name = ""
-        for od in oracle_data:
-            if "Oracle" in od["agent"]:
-                if od["clientname"] == pre_od_name:
-                    continue
-                client_id = od["clientid"]
-                client_os = ""
-                for ic in installed_client:
-                    if client_id == ic["client_id"]:
-                        client_os = ic["os"]
-
-                oracle_data_list.append({
-                    "clientid": od["clientid"],
-                    "clientname": od["clientname"],
-                    "agent": od["agent"],
-                    "instance": od["instance"],
-                    "os": client_os
-                })
-                # 去重
-                pre_od_name = od["clientname"]
-
-        # 所有关联终端
-        all_target = Target.objects.exclude(state="9")
-        return render(request, 'origin.html',
-                      {'username': request.user.userinfo.fullname,
-                       "oracle_data": json.dumps(oracle_data_list),
-                       "all_target": all_target,
-                       "pagefuns": getpagefuns(funid, request=request)})
-    else:
-        return HttpResponseRedirect("/login")
-
-
-def origin_data(request):
-    if request.user.is_authenticated():
-        all_origin = Origin.objects.exclude(state="9").select_related("target")
-        all_origin_list = []
-        for origin in all_origin:
-            origin_info = json.loads(origin.info)
-            all_origin_list.append({
-                "id": origin.id,
-                "client_id": origin.client_id,
-                "client_name": origin.client_name,
-                "os": origin.os,
-                "agent": origin_info["agent"],
-                "instance": origin_info["instance"],
-                "target_client": origin.target.id,
-                "target_client_name": origin.target.client_name,
-                "copy_priority": origin.copy_priority,
-                "db_open": origin.db_open,
-                "data_path": origin.data_path,
+            return JsonResponse({
+                "ret": 1,
+                "info": "删除成功。"
             })
 
-        return JsonResponse({"data": all_origin_list})
-    else:
-        return HttpResponseRedirect("/login")
+
+@login_required
+def origin(request, funid):
+    # 工具
+    utils_manage = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
+    data = []
+
+    try:
+        pool = ThreadPoolExecutor(max_workers=10)
+
+        all_tasks = [pool.submit(get_oracle_client, (um)) for um in utils_manage]
+        for future in as_completed(all_tasks):
+            if future.result():
+                data.append(future.result())
+    except:
+        pass
+
+    # 所有关联终端
+    all_target = Target.objects.exclude(state="9").values()
+
+    u_targets = []
+
+    for um in utils_manage:
+        target_list = []
+        for target in all_target:
+            if target['utils_id'] == um.id:
+                target_list.append({
+                    'target_id': target['id'],
+                    'target_name': target['client_name']
+                })
+        u_targets.append({
+            'utils_manage': um.id,
+            'target_list': target_list
+        })
+
+    # 恢复资源
+    # [{
+    #     'utils_manage': '',
+    #     'target_list': [{
+    #         'target_id': '',
+    #         'target_name': ''
+    #     }]
+    # }]
+
+    return render(request, 'origin.html',
+                  {'username': request.user.userinfo.fullname, 'utils_manage': utils_manage,
+                   "data": json.dumps(data), "all_target": all_target, 'u_targets': u_targets,
+                   "pagefuns": getpagefuns(funid, request=request)})
 
 
+@login_required
+def origin_data(request):
+    all_origin = Origin.objects.exclude(state="9").select_related("target")
+    all_origin_list = []
+    for origin in all_origin:
+        origin_info = json.loads(origin.info)
+        all_origin_list.append({
+            "id": origin.id,
+            "client_id": origin.client_id,
+            "client_name": origin.client_name,
+            "os": origin.os,
+            "agent": origin_info["agent"],
+            "instance": origin_info["instance"],
+            "target_client": origin.target.id,
+            "target_client_name": origin.target.client_name,
+            "copy_priority": origin.copy_priority,
+            "db_open": origin.db_open,
+            "data_path": origin.data_path,
+            "log_restore": origin.log_restore,
+
+            "utils_id": origin.utils_id,
+            "utils_name": origin.utils.name if origin.utils else ''
+        })
+
+    return JsonResponse({"data": all_origin_list})
+
+
+@login_required
 def origin_save(request):
-    if request.user.is_authenticated():
-        origin_id = request.POST.get("origin_id", "")
-        client_id = request.POST.get("client_id", "")
-        client_name = request.POST.get("client_name", "").strip()
-        agent = request.POST.get("agent", "").strip()
-        instance = request.POST.get("instance", "").strip()
-        client_os = request.POST.get("os", "")
-        target_client = request.POST.get("target_client", "")
+    origin_id = request.POST.get("origin_id", "")
+    client_id = request.POST.get("client_id", "")
+    client_name = request.POST.get("client_name", "").strip()
+    agent = request.POST.get("agent", "").strip()
+    instance = request.POST.get("instance", "").strip()
+    client_os = request.POST.get("os", "")
+    target_client = request.POST.get("target_client", "")
 
-        copy_priority = request.POST.get("copy_priority", "")
-        db_open = request.POST.get("db_open", "")
-        data_path = request.POST.get("data_path", "")
+    copy_priority = request.POST.get("copy_priority", "")
+    db_open = request.POST.get("db_open", "")
+    data_path = request.POST.get("data_path", "")
+    log_restore = request.POST.get("log_restore", "")
+
+    utils_manage = request.POST.get("utils_manage", "").strip()
+    ret = 0
+    info = ""
+    try:
+        copy_priority = int(copy_priority)
+        db_open = int(db_open)
+        origin_id = int(origin_id)
+    except:
         ret = 0
-        info = ""
+        info = "网络异常"
+    else:
         try:
-            copy_priority = int(copy_priority)
-            db_open = int(db_open)
-            origin_id = int(origin_id)
+            utils_manage = int(utils_manage)
         except:
             ret = 0
-            info = "网络异常"
+            info = "工具未选择。"
         else:
             try:
                 client_id = int(client_id)
@@ -871,6 +875,15 @@ def origin_save(request):
                                 cur_origin.copy_priority = copy_priority
                                 cur_origin.db_open = db_open
                                 cur_origin.data_path = data_path
+
+                                cur_origin.utils_id = utils_manage
+
+                                try:
+                                    log_restore = int(log_restore)
+                                except:
+                                    pass
+                                else:
+                                    cur_origin.log_restore = log_restore
                                 cur_origin.save()
                             except Exception as e:
                                 print(e)
@@ -898,6 +911,15 @@ def origin_save(request):
                                     cur_origin.db_open = db_open
                                     cur_origin.data_path = data_path
                                     cur_origin.target_id = target_id
+
+                                    cur_origin.utils_id = utils_manage
+
+                                    try:
+                                        log_restore = int(log_restore)
+                                    except:
+                                        pass
+                                    else:
+                                        cur_origin.log_restore = log_restore
                                     cur_origin.save()
                                 except:
                                     ret = 0
@@ -906,37 +928,33 @@ def origin_save(request):
                                     ret = 1
                                     info = "修改成功"
 
+    return JsonResponse({
+        "ret": ret,
+        "info": info
+    })
+
+
+@login_required
+def origin_del(request):
+    origin_id = request.POST.get("origin_id", "")
+    try:
+        cur_origin = Origin.objects.get(id=int(origin_id))
+    except:
         return JsonResponse({
-            "ret": ret,
-            "info": info
+            "ret": 0,
+            "info": "当前网络异常"
         })
     else:
-        return HttpResponseRedirect("/login")
-
-
-def origin_del(request):
-    if request.user.is_authenticated():
-        origin_id = request.POST.get("origin_id", "")
         try:
-            cur_origin = Origin.objects.get(id=int(origin_id))
+            cur_origin.state = "9"
+            cur_origin.save()
         except:
             return JsonResponse({
                 "ret": 0,
-                "info": "当前网络异常"
+                "info": "服务器网络异常。"
             })
         else:
-            try:
-                cur_origin.state = "9"
-                cur_origin.save()
-            except:
-                return JsonResponse({
-                    "ret": 0,
-                    "info": "服务器网络异常。"
-                })
-            else:
-                return JsonResponse({
-                    "ret": 1,
-                    "info": "删除成功。"
-                })
-    else:
-        return HttpResponseRedirect("/login")
+            return JsonResponse({
+                "ret": 1,
+                "info": "删除成功。"
+            })

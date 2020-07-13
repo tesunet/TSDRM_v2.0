@@ -1301,7 +1301,7 @@ def get_process_run_facts(request):
             client_name = ""
             all_steps = cur_process.step_set.exclude(state="9")
             for step in all_steps:
-                all_scripts = step.script_set.exclude(state="9")
+                all_scripts = step.scriptinstance_set.exclude(state="9")
                 for script in all_scripts:
                     if script.origin:
                         client_name = script.origin.client_name

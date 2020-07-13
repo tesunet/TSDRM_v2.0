@@ -27,6 +27,7 @@
             <th> 实例</th>
             <th> 平台</th>
             <th> 关联终端</th>
+            <th> 工具</th>
             <th style="width:50px;"> 操作</th>
         </tr>
         </thead>
@@ -45,8 +46,21 @@
                     <form class="bs-example form-horizontal activate-form">{% csrf_token %}
                         <div class="form-body">
                             <div class="form-group">
+                                <label class="col-md-2 control-label"><span style="color:red; ">*</span>工具</label>
+                                <div class="col-md-10">
+                                    <input type="text" id="utils_manage_info" name="utils_manage_info" value="{{ data }}" hidden>
+                                    <select name="utils_manage" id="utils_manage" class="form-control">
+                                        {% for um in utils_manage %}
+                                        <option value="{{ um.id }}">{{ um.name }} ({{ um.code }})</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
                                 <label class="col-md-2 control-label"><span style="color:red; ">*</span>源客户端</label>
                                 <div class="col-md-10">
+                                    <input type="text" id="selected_client_info" name="selected_client_info" hidden>
                                     <select name="origin" id="origin" class="form-control">
 
                                     </select>
@@ -81,10 +95,9 @@
                                 <div class="form-group">
                                     <label class="col-md-2 control-label"><span style="color:red; ">*</span>恢复资源</label>
                                     <div class="col-md-10">
+                                        <input type="text" id="u_targets" name="u_targets" value="{{ u_targets }}" hidden>
                                         <select name="target" id="target" class="form-control">
-                                            {% for target in all_target %}
-                                                <option value="{{ target.id }}">{{ target.client_name }}</option>
-                                            {% endfor %}
+
                                         </select>
                                         <div class="form-control-focus"></div>
                                     </div>
@@ -109,6 +122,19 @@
                                             style="color:red; "></span>是否开启数据库</label>
                                     <div class="col-md-10">
                                         <select name="db_open" id="db_open" class="form-control">
+                                            <option value="1">是</option>
+                                            <option value="2">否</option>
+                                        </select>
+                                        <div class="form-control-focus"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-body">
+                                <div class="form-group">
+                                    <label class="col-md-2 control-label"><span
+                                            style="color:red; "></span>是否回滚日志</label>
+                                    <div class="col-md-10">
+                                        <select name="log_restore" id="log_restore" class="form-control">
                                             <option value="1">是</option>
                                             <option value="2">否</option>
                                         </select>
@@ -144,11 +170,14 @@
             },
         });
     </script>
-    <link href="/static/assets/global/plugins/bootstrap-fileinput/bootstrap-fileinput.css" rel="stylesheet" type="text/css"/>
+    <link href="/static/assets/global/plugins/bootstrap-fileinput/bootstrap-fileinput.css" rel="stylesheet"
+          type="text/css"/>
     <link href="/static/assets/global/plugins/datatables/datatables.min.css" rel="stylesheet" type="text/css"/>
-    <link href="/static/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.css" rel="stylesheet" type="text/css"/>
-    <script src="/static/assets/global/plugins/bootstrap-fileinput/bootstrap-fileinput.js" type="text/javascript"></script>
+    <link href="/static/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.css" rel="stylesheet"
+          type="text/css"/>
+    <script src="/static/assets/global/plugins/bootstrap-fileinput/bootstrap-fileinput.js"
+            type="text/javascript"></script>
     <script src="/static/assets/global/plugins/datatables/datatables.min.js" type="text/javascript"></script>
-    <script src="/static/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js" type="text/javascript"></script>
-
+    <script src="/static/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js"
+            type="text/javascript"></script>
 {% endblock %}

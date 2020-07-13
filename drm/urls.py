@@ -73,10 +73,9 @@ urlpatterns = [
 
     # 预案管理
     url(r'^script/$', script, {'funid': '32'}),
-    url(r'^scriptdata/$', scriptdata),
     url(r'^scriptdel/$', scriptdel),
     url(r'^scriptsave/$', scriptsave),
-    url(r'^scriptexport/$', scriptexport),
+    url(r'^script_move/$', script_move),
 
     url(r'^processconfig/$', processconfig, {'funid': '31'}),
     url(r'^processscriptsave/$', processscriptsave),
@@ -95,6 +94,8 @@ urlpatterns = [
     url(r'^verify_items_save/$', verify_items_save),
     url(r'^get_verify_items_data/$', get_verify_items_data),
     url(r'^remove_verify_item/$', remove_verify_item),
+    url(r'^display_params/$', display_params),
+    url(r'^load_hosts_params/$', load_hosts_params),
 
     # Oracle恢复
     url(r'^oracle_restore/(?P<process_id>\d+)$', oracle_restore),
@@ -197,7 +198,7 @@ urlpatterns = [
     url(r'^get_backup_status/$', get_backup_status),
 
     # 健康度
-    url(r'^sla/$', sla, {'funid': '92'}),
+    url(r'^sla/$', sla, {'funid': '94'}),
     url(r'^get_cv_sla/$', get_cv_sla),
 
     # 磁盘空间

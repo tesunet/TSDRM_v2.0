@@ -4,6 +4,157 @@ from ..models import *
 from django.db import connection
 from django.db.models import Q
 import re
+from django.http import HttpResponseRedirect, Http404, HttpResponse, JsonResponse
+from lxml import etree
+import base64
+from ..api.commvault import SQLApi
+
+
+def get_credit_info(content):
+    commvault_credit = {
+        'webaddr': '',
+        'port': '',
+        'hostusername': '',
+        'hostpasswd': '',
+        'username': '',
+        'passwd': '',
+    }
+    sqlserver_credit = {
+        'SQLServerHost': '',
+        'SQLServerUser': '',
+        'SQLServerPasswd': '',
+        'SQLServerDataBase': '',
+    }
+    try:
+        doc = etree.XML(content)
+
+        # Commvault账户信息
+        try:
+            commvault_credit['webaddr'] = doc.xpath('//webaddr/text()')[0]
+        except:
+            pass
+        try:
+            commvault_credit['port'] = doc.xpath('//port/text()')[0]
+        except:
+            pass
+        try:
+            commvault_credit['hostusername'] = doc.xpath('//hostusername/text()')[0]
+        except:
+            pass
+        try:
+            commvault_credit['hostpasswd'] = base64.b64decode(doc.xpath('//hostpasswd/text()')[0]).decode()
+        except:
+            pass
+        try:
+            commvault_credit['username'] = doc.xpath('//username/text()')[0]
+        except:
+            pass
+        try:
+            commvault_credit['passwd'] = base64.b64decode(doc.xpath('//passwd/text()')[0]).decode()
+        except:
+            pass
+
+        # SQL Server账户信息
+        try:
+            sqlserver_credit['SQLServerHost'] = doc.xpath('//SQLServerHost/text()')[0]
+        except:
+            pass
+        try:
+            sqlserver_credit['SQLServerUser'] = doc.xpath('//SQLServerUser/text()')[0]
+        except:
+            pass
+        try:
+            sqlserver_credit['SQLServerPasswd'] = base64.b64decode(
+                doc.xpath('//SQLServerPasswd/text()')[0]).decode()
+        except:
+            pass
+        try:
+            sqlserver_credit['SQLServerDataBase'] = doc.xpath('//SQLServerDataBase/text()')[0]
+        except:
+            pass
+
+    except Exception as e:
+        print(e)
+    return commvault_credit, sqlserver_credit
+
+
+def get_oracle_client(um):
+    # 解析出账户信息
+    _, sqlserver_credit = get_credit_info(um.content)
+
+    #############################################
+    # clientid, clientname, agent, instance, os #
+    #############################################
+    dm = SQLApi.CVApi(sqlserver_credit)
+
+    oracle_data = dm.get_instance_from_oracle()
+
+    # 获取包含oracle模块所有客户端
+    installed_client = dm.get_all_install_clients()
+    dm.close()
+    oracle_client_list = []
+    pre_od_name = ""
+    for od in oracle_data:
+        if "Oracle" in od["agent"]:
+            if od["clientname"] == pre_od_name:
+                continue
+            client_id = od["clientid"]
+            client_os = ""
+            for ic in installed_client:
+                if client_id == ic["client_id"]:
+                    client_os = ic["os"]
+
+            oracle_client_list.append({
+                "clientid": od["clientid"],
+                "clientname": od["clientname"],
+                "agent": od["agent"],
+                "instance": od["instance"],
+                "os": client_os
+            })
+            # 去重
+            pre_od_name = od["clientname"]
+    return {
+        'utils_manage': um.id,
+        'oracle_client': oracle_client_list
+    }
+
+
+def get_params(config):
+    """
+    <root>
+        <param param_name="1" variable_name="2" param_value="3"/>
+        <param param_name="3" variable_name="4" param_value="5"/>
+        <param param_name="5" variable_name="6" param_value="7"/>
+    </root>
+    """
+    param_list = []
+    pre_config = "<root></root>"
+    if config:
+        config = etree.XML(config)
+    else:
+        config = etree.XML(pre_config)
+    param_nodes = config.xpath("//param")
+    for pn in param_nodes:
+        param_list.append({
+            "param_name": pn.attrib.get("param_name", ""),
+            "variable_name": pn.attrib.get("variable_name", ""),
+            "param_value": pn.attrib.get("param_value", ""),
+        })
+    return param_list
+
+
+def get_variable_name(content, param_type):
+    variable_list = []
+    com = ""
+    if param_type == "HOST":
+        com = re.compile("\(\((.*?)\)\)")
+    if param_type == "PROCESS":
+        com = re.compile("\{\{(.*?)\}\}")
+    if param_type == "SCRIPT":
+        com = re.compile("\[\[(.*?)\]\]")
+    if com:
+        variable_list = com.findall(content)
+    return variable_list
 
 
 def file_iterator(file_name, chunk_size=512):
@@ -294,7 +445,7 @@ def get_step_tree(parent, selectid):
         node["id"] = child.id
         node["children"] = get_step_tree(child, selectid)
 
-        scripts = child.script_set.exclude(state="9").order_by("sort")
+        scripts = child.scriptinstance_set.exclude(state="9").order_by("sort")
         script_string = ""
         for script in scripts:
             id_code_plus = str(script.id) + "+" + str(script.name) + "&"
@@ -303,8 +454,7 @@ def get_step_tree(parent, selectid):
         verify_items_string = ""
         verify_items = child.verifyitems_set.exclude(state="9")
         for verify_item in verify_items:
-            id_name_plus = str(verify_item.id) + "+" + \
-                           str(verify_item.name) + "&"
+            id_name_plus = str(verify_item.id) + "+" + str(verify_item.name) + "&"
             verify_items_string += id_name_plus
 
         group_name = ""
@@ -313,7 +463,7 @@ def get_step_tree(parent, selectid):
             try:
                 group_id = int(group_id)
             except:
-                group_id = ""
+                raise Http404()
 
             group_name = Group.objects.filter(id=group_id)[0].name
         all_groups = Group.objects.exclude(state="9")
