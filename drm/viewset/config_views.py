@@ -659,71 +659,99 @@ def script_move(request):
 ######################
 # 预案配置
 ######################
+@login_required
 def process_design(request, funid):
-    if request.user.is_authenticated():
-        return render(request, "processdesign.html",
-                      {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request)})
+    return render(request, "processdesign.html",
+                  {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request)})
 
 
+@login_required
 def process_data(request):
-    if request.user.is_authenticated():
-        result = []
-        all_process = Process.objects.exclude(state="9").filter(
-            type="cv_oracle").order_by("sort").values()
-        if (len(all_process) > 0):
-            for process in all_process:
-                result.append({
-                    "process_id": process["id"],
-                    "process_code": process["code"],
-                    "process_name": process["name"],
-                    "process_remark": process["remark"],
-                    "process_sign": process["sign"],
-                    "process_rto": process["rto"],
-                    "process_rpo": process["rpo"],
-                    "process_sort": process["sort"],
-                    "process_color": process["color"],
+    result = []
+    all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).order_by("sort").values()
+    for process in all_process:
+        param_list = []
+        try:
+            config = etree.XML(process['config'])
+
+            param_el = config.xpath("//param")
+            for v_param in param_el:
+                param_list.append({
+                    "param_name": v_param.attrib.get("param_name", ""),
+                    "variable_name": v_param.attrib.get("variable_name", ""),
+                    "param_value": v_param.attrib.get("param_value", ""),
                 })
-        return JsonResponse({"data": result})
+        except Exception as e:
+            print(e)
+        result.append({
+            "process_id": process["id"],
+            "process_code": process["code"],
+            "process_name": process["name"],
+            "process_remark": process["remark"],
+            "process_sign": process["sign"],
+            "process_rto": process["rto"],
+            "process_rpo": process["rpo"],
+            "process_sort": process["sort"],
+            "process_color": process["color"],
+            "type": process["type"],
+            "variable_param_list": param_list,
+        })
+    return JsonResponse({"data": result})
 
 
+@login_required
 def process_save(request):
-    if request.user.is_authenticated():
-        if 'id' in request.POST:
-            result = {}
-            id = request.POST.get('id', '')
-            code = request.POST.get('code', '')
-            name = request.POST.get('name', '')
-            remark = request.POST.get('remark', '')
-            sign = request.POST.get('sign', '')
-            rto = request.POST.get('rto', '')
-            rpo = request.POST.get('rpo', '')
-            sort = request.POST.get('sort', '')
-            color = request.POST.get('color', '')
-            try:
-                id = int(id)
-            except:
-                raise Http404()
-            if code.strip() == '':
-                result["res"] = '预案编码不能为空。'
+    if 'id' in request.POST:
+        result = {}
+        id = request.POST.get('id', '')
+        code = request.POST.get('code', '')
+        name = request.POST.get('name', '')
+        remark = request.POST.get('remark', '')
+        sign = request.POST.get('sign', '')
+        rto = request.POST.get('rto', '')
+        rpo = request.POST.get('rpo', '')
+        sort = request.POST.get('sort', '')
+        color = request.POST.get('color', '')
+        type = request.POST.get('type', '')
+        config = request.POST.get("config", "")
+
+        try:
+            id = int(id)
+        except:
+            raise Http404()
+        if code.strip() == '':
+            result["res"] = '预案编码不能为空。'
+        else:
+            if name.strip() == '':
+                result["res"] = '预案名称不能为空。'
             else:
-                if name.strip() == '':
-                    result["res"] = '预案名称不能为空。'
+                if type.strip() == '':
+                    result["res"] = '预案类型不能为空。'
                 else:
                     if sign.strip() == '':
                         result["res"] = '是否签到不能为空。'
                     else:
-                        # if color.strip() == "":
-                        #     result["res"] = '项目图标配色不能为空。'
-                        # else:
+                        # 流程参数
+                        root = etree.Element("root")
+
+                        if config:
+                            config = json.loads(config)
+                            # 动态参数
+                            for c_config in config:
+                                param_node = etree.SubElement(root, "param")
+                                param_node.attrib["param_name"] = c_config["param_name"].strip()
+                                param_node.attrib["variable_name"] = c_config["variable_name"].strip()
+                                param_node.attrib["param_value"] = c_config["param_value"].strip()
+                        config = etree.tounicode(root)
+
                         if id == 0:
                             all_process = Process.objects.filter(code=code).exclude(
-                                state="9").filter(type="cv_oracle")
+                                state="9").exclude(Q(type=None) | Q(type=""))
                             if (len(all_process) > 0):
                                 result["res"] = '预案编码:' + code + '已存在。'
                             else:
                                 processsave = Process()
-                                processsave.url = '/cv_oracle'
-                                processsave.type = 'cv_oracle'
+                                processsave.url = '/falconstor'
                                 processsave.code = code
                                 processsave.name = name
                                 processsave.remark = remark
@@ -732,6 +760,8 @@ def process_save(request):
                                 processsave.rpo = rpo if rpo else None
                                 processsave.sort = sort if sort else None
                                 processsave.color = color
+                                processsave.type = type
+                                processsave.config = config
                                 processsave.save()
                                 result["res"] = "保存成功。"
                                 result["data"] = processsave.id
@@ -751,29 +781,31 @@ def process_save(request):
                                     processsave.rpo = rpo if rpo else None
                                     processsave.sort = sort if sort else None
                                     processsave.color = color
+                                    processsave.type = type
+                                    processsave.config = config
                                     processsave.save()
                                     result["res"] = "保存成功。"
                                     result["data"] = processsave.id
                                 except:
                                     result["res"] = "修改失败。"
-        return HttpResponse(json.dumps(result))
+    return HttpResponse(json.dumps(result))
 
 
+@login_required
 def process_del(request):
-    if request.user.is_authenticated():
-        if 'id' in request.POST:
-            id = request.POST.get('id', '')
-            try:
-                id = int(id)
-            except:
-                raise Http404()
-            process = Process.objects.get(id=id)
-            process.state = "9"
-            process.save()
+    if 'id' in request.POST:
+        id = request.POST.get('id', '')
+        try:
+            id = int(id)
+        except:
+            raise Http404()
+        process = Process.objects.get(id=id)
+        process.state = "9"
+        process.save()
 
-            return HttpResponse(1)
-        else:
-            return HttpResponse(0)
+        return HttpResponse(1)
+    else:
+        return HttpResponse(0)
 
 
 ######################

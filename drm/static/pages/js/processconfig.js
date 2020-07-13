@@ -757,14 +757,14 @@ $('#scriptsave').click(function () {
             type: "SCRIPT"
         })
     })
-    $('#host_div').find('input').each(function () {
-        config.push({
-            param_name: $(this).parent().prev().text(),
-            variable_name: $(this).attr("id"),
-            param_value: $(this).val(),
-            type: "HOST"
-        })
-    })
+    // $('#host_div').find('input').each(function () {
+    //     config.push({
+    //         param_name: $(this).parent().prev().text(),
+    //         variable_name: $(this).attr("id"),
+    //         param_value: $(this).val(),
+    //         type: "HOST"
+    //     })
+    // })
     $.ajax({
         type: "POST",
         dataType: 'json',
