@@ -257,3 +257,15 @@ class ProcessSchedule(models.Model):
     )
     schedule_type = models.IntegerField(choices=schedule_type_choices, default=1, null=True)
 
+
+class DiskSpaceWeeklyData(models.Model):
+    """
+    每周获取的磁盘空间信息
+    """
+    utils = models.ForeignKey(UtilsManage, null=True, verbose_name="工具")
+    media_id = models.IntegerField("MediaID", null=True, default=0)
+    capacity_avaible = models.BigIntegerField("可用容量", null=True, default=0)
+    space_reserved = models.BigIntegerField("保留空间", null=True, default=0)
+    total_space = models.BigIntegerField("总容量", null=True, default=0)
+    extract_time = models.DateTimeField("取数时间", null=True)
+    point_tag = models.CharField("用以判断同一记录", null=True, default="", max_length=128)
