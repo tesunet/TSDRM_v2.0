@@ -6,7 +6,7 @@ $(document).ready(function () {
             type: "POST",
             url: "../get_ma_disk_space/",
             data: {
-                utils_id: $("#utils_manage").val(),
+                util: $("#utils_manage").val(),
             },
             success: function (data) {
                 var capacity_available_percent = 0,
@@ -110,7 +110,7 @@ $(document).ready(function () {
         });
     }
 
-    chart = new Highcharts.Chart({
+    var chart = new Highcharts.Chart({
         chart: {
             renderTo: 'disk_space_hc',
             style: {
@@ -199,7 +199,6 @@ $(document).ready(function () {
 
 
     $('#weekly_total_space').click(function () {
-        console.log(1)
         $.ajax({
             type: "POST",
             url: "../get_disk_space_daily/",

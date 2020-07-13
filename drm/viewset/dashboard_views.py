@@ -11,8 +11,10 @@ from drm.api.commvault.RestApi import *
 from django.contrib.auth.decorators import login_required
 import pythoncom
 from ping3 import ping
-pythoncom.CoInitialize ()
+
+pythoncom.CoInitialize()
 import wmi
+
 
 ######################
 # 仪表盘
@@ -21,11 +23,22 @@ import wmi
 def dashboard(request, funid):
     util_manages = UtilsManage.objects.exclude(state='9')
 
+    # 监控页面url 磁盘空间 url
+    funs = Fun.objects.all()
+    disk_space = "/"
+    client_list = "/"
+    for fun in funs:
+        if "disk_space" in fun.url:
+            disk_space = fun.url
+        if "client_list" in fun.url:
+            client_list = fun.url
+
     return render(request, "dashboard.html", {
         'username': request.user.userinfo.fullname,
         "pagefuns": getpagefuns(funid, request=request),
-        "util_manages":util_manages,
+        "util_manages": util_manages, "disk_space": disk_space, "client_list": client_list
     })
+
 
 @login_required
 def get_dashboard(request):
@@ -53,11 +66,11 @@ def get_dashboard(request):
 
             try:
                 dm = SQLApi.CVApi(sqlserver_credit)
-                #24小时作业
+                # 24小时作业
                 _, show_job_status_num = dm.get_cv_joblist(startdate=startdate,
-                               enddate=enddate, clientid=clientid, jobstatus=jobstatus)
+                                                           enddate=enddate, clientid=clientid, jobstatus=jobstatus)
 
-                #异常事件
+                # 异常事件
                 job_list = dm.display_error_job_list(startdate=startdate, enddate=enddate, clientid=clientid)
                 error_job_list = job_list[0:50]
             except Exception as e:
@@ -72,7 +85,7 @@ def get_dashboard(request):
 
 
 @login_required
-def cv_joblist(request,funid):
+def cv_joblist(request, funid):
     startdate = (datetime.datetime.now() - datetime.timedelta(hours=24)).strftime("%Y-%m-%d")
     enddate = (datetime.datetime.now()).strftime("%Y-%m-%d")
 
@@ -100,7 +113,6 @@ def get_cv_joblist(request):
     enddate = request.GET.get('enddate', '')
     clientid = request.GET.get('clientid', '')
     jobstatus = request.GET.get('jobstatus', '')
-
 
     try:
         clientid = int(clientid)
@@ -166,7 +178,7 @@ def get_client_name(request):
 
 
 @login_required
-def display_error_job(request,funid):
+def display_error_job(request, funid):
     startdate = (datetime.datetime.now() - datetime.timedelta(hours=24)).strftime("%Y-%m-%d")
     enddate = datetime.datetime.now().strftime("%Y-%m-%d")
 
@@ -227,16 +239,61 @@ def get_display_error_job(request):
 
 
 @login_required
+def get_top5_app_capacity(request):
+    util = request.POST.get('util', '')
+    top5_app_list = []
+    try:
+        util = int(util)
+        utils_manage = UtilsManage.objects.get(id=util)
+    except:
+        return JsonResponse({
+            "ret": 0,
+            "data": "Commvault工具未配置。",
+        })
+    else:
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
+
+        try:
+            dm = SQLApi.CVApi(sqlserver_credit)
+            ret = dm.get_backup_content()
+        except:
+            pass
+        else:
+            # 客户端相同的应用程序大小相加
+            client_name = ""
+            for r in ret:
+                if r["clientname"] == client_name:
+                    continue
+                app_capacity = 0
+                client_name = r["clientname"]
+
+                for ir in ret:
+                    if client_name == ir["clientname"]:
+                        app_capacity += ir["numbytesuncomp"]
+                top5_app_list.append({
+                    "client_name": client_name,
+                    "app_capacity": round(app_capacity / 1024 / 1024, 2)
+                })
+
+                # str(round(int(pfu[0].AllocatedBaseSize)/1024,2))+'GB'
+                client_name = r["clientname"]
+    top5_app_list.sort(key=lambda e: e['app_capacity'], reverse=True)
+    return JsonResponse({
+        "data": str(top5_app_list)
+    })
+
+
+@login_required
 def get_frameworkstate(request):
     util = request.POST.get('util', '')
     try:
         util = int(util)
     except:
         raise Http404()
-    state=0
+    state = 0
     util_manages = UtilsManage.objects.exclude(state='9').filter(id=util)
-    if len(util_manages)>0:
-        util=util_manages[0]
+    if len(util_manages) > 0:
+        util = util_manages[0]
         if util.util_type.upper() == 'COMMVAULT':
             commvault_credit, sqlserver_credit = get_credit_info(util.content)
             # 先判断网络
@@ -244,31 +301,32 @@ def get_frameworkstate(request):
             if netresult is not None:
                 # 网络正常时取接口信息
                 cvToken = CV_RestApi_Token()
-                commvault_credit["token"]=""
+                commvault_credit["token"] = ""
                 commvault_credit["lastlogin"] = 0
                 cvToken.login(commvault_credit)
                 if not cvToken.isLogin:
-                    state=1
+                    state = 1
                 # 网络正常时取数据库信息
                 dm = SQLApi.CVApi(sqlserver_credit)
                 if dm.isconnected() is not None:
-                    #数据库正常时取ma信息
+                    # 数据库正常时取ma信息
                     ma_info = dm.get_ma_info()
                     for ma in ma_info:
                         netresult = ping(ma["InterfaceName"])
                         if netresult is None:
-                            state=1
+                            state = 1
                     for ma in ma_info:
                         if ma["Offline"] == 0:
                             break
                         else:
-                            state=2
+                            state = 2
             else:
                 state = 2
     return JsonResponse({
         "ret": 1,
         "data": state,
     })
+
 
 ######################
 # 灾备基础框架
@@ -278,17 +336,17 @@ def framework(request, funid):
     util = request.GET.get("util", "")
     util_manages = UtilsManage.objects.exclude(state='9')
     try:
-        util=int(util)
+        util = int(util)
     except:
         pass
-
 
     return render(request, "framework.html", {
         'username': request.user.userinfo.fullname,
         "pagefuns": getpagefuns(funid, request=request),
         "util_manages": util_manages,
-        "util_id":util,
+        "util_id": util,
     })
+
 
 @login_required
 def get_framework(request):
@@ -297,10 +355,10 @@ def get_framework(request):
         util = int(util)
     except:
         raise Http404()
-    frameworkdata={}
+    frameworkdata = {}
     util_manages = UtilsManage.objects.exclude(state='9').filter(id=util)
-    if len(util_manages)>0:
-        util=util_manages[0]
+    if len(util_manages) > 0:
+        util = util_manages[0]
         if util.util_type.upper() == 'COMMVAULT':
             commvault_credit, sqlserver_credit = get_credit_info(util.content)
 
@@ -316,9 +374,9 @@ def get_framework(request):
                 'dbname': '无法获取',
                 'dbconnect': '无法获取',
             }
-            mas=[]
+            mas = []
 
-            #先判断网络
+            # 先判断网络
             netresult = ping(commvault_credit["webaddr"])
             if netresult is not None:
                 commserve["net"] = "正常"
@@ -348,24 +406,25 @@ def get_framework(request):
                         else:
                             ma["Offline"] = "离线"
                         try:
-                            ma["TotalSpaceMB"] = round(ma["TotalSpaceMB"]/1024/1024,2)
+                            ma["TotalSpaceMB"] = round(ma["TotalSpaceMB"] / 1024 / 1024, 2)
                         except:
                             pass
                         try:
-                            ma["TotalFreeSpaceMB"] = round(ma["TotalFreeSpaceMB"]/1024/1024,2)
+                            ma["TotalFreeSpaceMB"] = round(ma["TotalFreeSpaceMB"] / 1024 / 1024, 2)
                         except:
                             pass
                         try:
-                            ma["Percent"] = round((ma["TotalSpaceMB"] - ma["TotalFreeSpaceMB"])/ma["TotalSpaceMB"]*100,2)
+                            ma["Percent"] = round(
+                                (ma["TotalSpaceMB"] - ma["TotalFreeSpaceMB"]) / ma["TotalSpaceMB"] * 100, 2)
                         except:
                             ma["Percent"] = 0
                         try:
-                            ma["SpaceReserved"] = round(ma["SpaceReserved"]/1024/1024,2)
+                            ma["SpaceReserved"] = round(ma["SpaceReserved"] / 1024 / 1024, 2)
                         except:
                             pass
                         ma["CapacityAvailable"] = ma["TotalFreeSpaceMB"]
                         try:
-                            ma["CapacityAvailable"] = ma["TotalFreeSpaceMB"]-ma["SpaceReserved"]
+                            ma["CapacityAvailable"] = ma["TotalFreeSpaceMB"] - ma["SpaceReserved"]
                         except:
                             pass
                         mas.append(ma)
@@ -377,7 +436,7 @@ def get_framework(request):
                 commserve["apiport"] = commvault_credit["port"]
                 # 网络正常时取接口信息
                 cvToken = CV_RestApi_Token()
-                commvault_credit["token"]=""
+                commvault_credit["token"] = ""
                 commvault_credit["lastlogin"] = 0
                 cvToken.login(commvault_credit)
                 if cvToken.isLogin:
@@ -403,10 +462,10 @@ def get_csinfo(request):
         util = int(util)
     except:
         raise Http404()
-    frameworkdata={}
+    frameworkdata = {}
     util_manages = UtilsManage.objects.exclude(state='9').filter(id=util)
-    if len(util_manages)>0:
-        util=util_manages[0]
+    if len(util_manages) > 0:
+        util = util_manages[0]
         if util.util_type.upper() == 'COMMVAULT':
             commvault_credit, sqlserver_credit = get_credit_info(util.content)
 
@@ -427,18 +486,20 @@ def get_csinfo(request):
                 pfu = conn.Win32_PageFileUsage()
                 processor = conn.Win32_Processor()
                 dd = conn.Win32_DiskDrive()
-                commserve["memtotal"] = str(round(int(cs[0].TotalPhysicalMemory) / 1024 / 1024/1024,2))+'GB'
-                commserve["memutilization"] = str(round((int(cs[0].TotalPhysicalMemory) / 1024 -int(ops[0].FreePhysicalMemory) )/(int(cs[0].TotalPhysicalMemory) / 1024 )*100,2))+'%'
-                commserve["swaptotal"] = str(round(int(pfu[0].AllocatedBaseSize)/1024,2))+'GB'
-                commserve["swaputilization"] = str(round(pfu[0].CurrentUsage/pfu[0].AllocatedBaseSize*100,2))+'%'
-                cpuloadpercentage=""
+                commserve["memtotal"] = str(round(int(cs[0].TotalPhysicalMemory) / 1024 / 1024 / 1024, 2)) + 'GB'
+                commserve["memutilization"] = str(round(
+                    (int(cs[0].TotalPhysicalMemory) / 1024 - int(ops[0].FreePhysicalMemory)) / (
+                                int(cs[0].TotalPhysicalMemory) / 1024) * 100, 2)) + '%'
+                commserve["swaptotal"] = str(round(int(pfu[0].AllocatedBaseSize) / 1024, 2)) + 'GB'
+                commserve["swaputilization"] = str(round(pfu[0].CurrentUsage / pfu[0].AllocatedBaseSize * 100, 2)) + '%'
+                cpuloadpercentage = ""
                 for cpu in processor:
-                    cpuloadpercentage+=str(cpu.DeviceID) + ':' + str(cpu.LoadPercentage) + '% '
+                    cpuloadpercentage += str(cpu.DeviceID) + ':' + str(cpu.LoadPercentage) + '% '
                 commserve["cpuloadpercentage"] = cpuloadpercentage
 
                 tmplist = []
-                diskTotal=0
-                freeSpace=0
+                diskTotal = 0
+                freeSpace = 0
                 percent = 0
                 for physical_disk in dd:
                     for partition in physical_disk.associators("Win32_DiskDriveToDiskPartition"):
@@ -446,7 +507,7 @@ def get_csinfo(request):
                             tmpdict = {}
                             tmpdict["Caption"] = logical_disk.Caption
                             tmpdict["DiskTotal"] = int(logical_disk.Size) / 1024 / 1024 / 1024
-                            diskTotal +=int(logical_disk.Size) / 1024 / 1024 / 1024
+                            diskTotal += int(logical_disk.Size) / 1024 / 1024 / 1024
                             tmpdict["FreeSpace"] = int(logical_disk.FreeSpace) / 1024 / 1024 / 1024
                             freeSpace += int(logical_disk.FreeSpace) / 1024 / 1024 / 1024
                             tmpdict["Percent"] = int(
@@ -454,10 +515,10 @@ def get_csinfo(request):
                                     logical_disk.Size))
                             tmplist.append(tmpdict)
                 try:
-                    percent = (diskTotal-freeSpace)/diskTotal*100
+                    percent = (diskTotal - freeSpace) / diskTotal * 100
                 except:
                     pass
-                commserve["disktotal"]= str(round(diskTotal,2))+'GB'
+                commserve["disktotal"] = str(round(diskTotal, 2)) + 'GB'
                 commserve["diskutilization"] = str(round(percent, 2)) + '%'
             except Exception as e:
                 pass
@@ -469,38 +530,38 @@ def get_csinfo(request):
         "data": frameworkdata,
     })
 
+
 @login_required
 def client_list(request, funid):
     util = request.GET.get("util", "")
     util_manages = UtilsManage.objects.exclude(state='9')
     try:
-        util=int(util)
+        util = int(util)
     except:
         pass
-
 
     return render(request, "client_list.html", {
         'username': request.user.userinfo.fullname,
         "pagefuns": getpagefuns(funid, request=request),
         "util_manages": util_manages,
-        "util_id":util,
+        "util_id": util,
     })
+
 
 @login_required
 def sla(request, funid):
     util = request.GET.get("util", "")
     util_manages = UtilsManage.objects.exclude(state='9')
     try:
-        util=int(util)
+        util = int(util)
     except:
         pass
-
 
     return render(request, "sla.html", {
         'username': request.user.userinfo.fullname,
         "pagefuns": getpagefuns(funid, request=request),
         "util_manages": util_manages,
-        "util_id":util,
+        "util_id": util,
     })
 
 
@@ -690,7 +751,7 @@ def get_ma_disk_space(request):
     status = 1
     data = []
     info = ''
-    utils_id = request.POST.get('utils_id', '')
+    utils_id = request.POST.get('util', '')
 
     try:
         utils_id = int(utils_id)
@@ -721,7 +782,9 @@ def get_ma_disk_space(request):
             data = {
                 "capacity_available_percent": capacity_available_percent,
                 "space_reserved_percent": space_reserved_percent,
-                "used_space_percent": used_space_percent
+                "used_space_percent": used_space_percent,
+                "total_space": round(total_space / 1024 / 1024, 2),
+                "used_space": round((total_space - space_reserved - capacity_available) / 1024 / 1024, 2),
             }
         except:
             pass
@@ -730,4 +793,3 @@ def get_ma_disk_space(request):
         "info": info,
         "data": data
     })
-

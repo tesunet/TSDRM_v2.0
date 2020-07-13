@@ -182,7 +182,7 @@ urlpatterns = [
     url(r'^get_client_name/$', get_client_name),
     url(r'^display_error_job/$', display_error_job, {'funid': '93'}),
     url(r'^get_display_error_job/$', get_display_error_job),
-
+    url(r'^get_top5_app_capacity/$', get_top5_app_capacity),
 
     #灾备基础框架
     url(r'^framework/$', framework, {'funid': '90'}),

@@ -1245,7 +1245,7 @@ def get_process_run_facts(request):
         cv_oracle_process_list = []
 
         all_process = Process.objects.exclude(state="9").order_by("sort").filter(type="cv_oracle"). \
-            prefetch_related("processrun_set", "step_set", "step_set__script_set", "step_set__script_set__origin")
+            prefetch_related("processrun_set", "step_set", "step_set__scriptinstance_set", "step_set__scriptinstance_set__origin")
 
         for cur_process in all_process:
             # 今日演练(状态)  0/1/2

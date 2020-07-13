@@ -1,10 +1,10 @@
-﻿ {% extends "base1.html" %}
+﻿{% extends "base1.html" %}
 
 
 
 {% block content %}
     <style>
-        #loading1,#loading2 {
+        #loading1, #loading2 {
             height: 240px;
             width: 100%;
             background-image: url(../static/upload/loading.gif);
@@ -12,11 +12,11 @@
             background-position: center;
         }
     </style>
-    <div   class="row" style="margin-top: -38px">
+    <div class="row" style="margin-top: -38px">
         <div class="col-md-2 col-lg-2" style="margin-top: 5px"></div>
         <div class="col-md-10 col-lg-10">
 
-            <select  class="form-control" id="util" name="util" style="width:250px; float:right;">
+            <select class="form-control" id="util" name="util" style="width:250px; float:right;">
                 {% for util in util_manages %}
                     <option value="{{ util.id }}">{{ util.name }} </option>
                 {% endfor %}
@@ -24,68 +24,72 @@
         </div>
     </div>
     <div style="height:15px"></div>
-    <div  class="portlet-body">
+    <div class="portlet-body">
         <div class="container-fluid">
-                <div class="row">
+            <div class="row">
 
-                    <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
-                        <div class="dashboard-stat blue" style="padding-bottom: 15px">
-                            <div class="visual">
-                                <i class="fa fa-comments"></i>
+                <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
+                    <div class="dashboard-stat blue" style="padding-bottom: 15px">
+                        <div class="visual">
+                            <i class="fa fa-comments"></i>
+                        </div>
+                        <div class="details">
+                            <div class="number">
+                                <a id="url_util"><span id="frameworkstate" data-counter="counterup" data-value="0"
+                                                       style="color: white"> loading...</span></a>
                             </div>
-                            <div class="details">
-                                <div class="number">
-                                    <a id="url_util" ><span id="frameworkstate" data-counter="counterup" data-value="0" style="color: white"> loading...</span></a>
-                                </div>
-                                <div class="desc"> 灾备基础框架</div>
-                            </div>
+                            <div class="desc"> 灾备基础框架</div>
                         </div>
                     </div>
-                    <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
-                        <div class="dashboard-stat green" style="padding-bottom: 15px">
-                            <div class="visual">
-                                <i class="fa fa-shopping-cart"></i>
+                </div>
+                <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
+                    <div class="dashboard-stat green" style="padding-bottom: 15px">
+                        <div class="visual">
+                            <i class="fa fa-shopping-cart"></i>
+                        </div>
+                        <div class="details">
+                            {#                                <div class="number">#}
+                            {#                                    <span {% if warning_client_num != 0 %}style="color: red"{% endif %}#}
+                            {#                                          data-counter="counterup" data-value="0">{{ warning_client_num }}</span>#}
+                            {#                                </div>#}
+                            <div class="number">
+                                <a id="url_wnclient"><span style="color:white" data-counter="counterup" data-value="0"
+                                                           id="warning_client_num">loading...</span></a>
                             </div>
-                            <div class="details">
-{#                                <div class="number">#}
-{#                                    <span {% if warning_client_num != 0 %}style="color: red"{% endif %}#}
-{#                                          data-counter="counterup" data-value="0">{{ warning_client_num }}</span>#}
-{#                                </div>#}
-                                <div class="number">
-                                    <a id="url_wnclient"><span style="color:white" data-counter="counterup" data-value="0" id="warning_client_num">loading...</span></a>
-                                </div>
-                                <div class="desc"> 报警客户端</div>
-                            </div>
+                            <div class="desc"> 报警客户端</div>
                         </div>
                     </div>
-                    <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
-                        <div class="dashboard-stat purple" style="padding-bottom: 15px">
-                            <div class="visual">
-                                <i class="fa fa-globe"></i>
+                </div>
+                <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
+                    <div class="dashboard-stat purple" style="padding-bottom: 15px">
+                        <div class="visual">
+                            <i class="fa fa-globe"></i>
+                        </div>
+                        <div class="details">
+                            <div class="number">
+                                <a id="url_allclient"><span style="color:white" data-counter="counterup" data-value="0"
+                                                            id="all_client_num">loading...</span></a>
                             </div>
-                            <div class="details">
-                                <div class="number">
-                                    <a id="url_allclient"><span style="color:white" data-counter="counterup" data-value="0" id="all_client_num">loading...</span></a>
-                                </div>
-                                <div class="desc"> 总客户端</div>
-                            </div>
+                            <div class="desc"> 总客户端</div>
                         </div>
                     </div>
-                    <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
-                        <div class="dashboard-stat blue-soft" style="padding-bottom: 15px">
-                            <div class="visual">
-                                <i class="fa fa-bar-chart-o"></i>
+                </div>
+                <div class="col-lg-3 col-md-3 col-sm-6 col-xs-12">
+                    <div class="dashboard-stat blue-soft" style="padding-bottom: 15px">
+                        <div class="visual">
+                            <i class="fa fa-bar-chart-o"></i>
+                        </div>
+                        <div class="details">
+                            <div class="number">
+                                <a id="url_sla"><span style="color:white" data-counter="counterup" data-value="0"
+                                                      id="sla_score">loading...</span></a>
                             </div>
-                            <div class="details">
-                                <div class="number">
-                                    <a id="url_sla"><span style="color:white" data-counter="counterup" data-value="0" id="sla_score">loading...</span></a>
-                                </div>
-                                <div class="desc"> 健康度</div>
-                            </div>
+                            <div class="desc"> 健康度</div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
         <div class="row">
             <div class="col-md-7">
@@ -93,17 +97,18 @@
                     <div class="panel-body easypiechart-panel">
                         <div class="col-md-12">
                             <a id="url_cv_joblist"><span class="caption-subject bold uppercase font-green"
-                                  style="font-size:16px">24小时作业</span></a>
+                                                         style="font-size:16px">24小时作业</span></a>
                         </div>
 
 
                         <div class="col-md-12">
-                            <div id="loading1"  class="portlet-body"></div>
+                            <div id="loading1" class="portlet-body"></div>
                             <div id="show_jobstatus_num" class="portlet-body" style="margin-top: 60px">
                                 <div class="col-md-3">
                                     <div class="widget-thumb widget-bg-color-white text-uppercase margin-bottom-20 ">
                                         <div class="widget-thumb-wrap">
-                                            <i style="color:#595959;font-size: 40px" class="widget-thumb-icon  fa fa-cogs"></i>
+                                            <i style="color:#595959;font-size: 40px"
+                                               class="widget-thumb-icon  fa fa-cogs"></i>
                                             <div class="widget-thumb-body" id="job_run_num">
 
                                             </div>
@@ -113,7 +118,8 @@
                                 <div class="col-md-3">
                                     <div class="widget-thumb widget-bg-color-white text-uppercase margin-bottom-20 ">
                                         <div class="widget-thumb-wrap">
-                                            <i style="color:#32c5d2;font-size: 40px" class="widget-thumb-icon  fa fa-check-square"></i>
+                                            <i style="color:#32c5d2;font-size: 40px"
+                                               class="widget-thumb-icon  fa fa-check-square"></i>
                                             <div class="widget-thumb-body" id="job_success_num">
 
                                             </div>
@@ -123,7 +129,8 @@
                                 <div class="col-md-3">
                                     <div class="widget-thumb widget-bg-color-white text-uppercase margin-bottom-20 ">
                                         <div class="widget-thumb-wrap">
-                                            <i style="color:#FFD700;font-size: 40px" class="widget-thumb-icon  fa fa-warning"></i>
+                                            <i style="color:#FFD700;font-size: 40px"
+                                               class="widget-thumb-icon  fa fa-warning"></i>
                                             <div class="widget-thumb-body" id="job_warn_num">
 
                                             </div>
@@ -133,7 +140,8 @@
                                 <div class="col-md-3">
                                     <div class="widget-thumb widget-bg-color-white text-uppercase margin-bottom-20 ">
                                         <div class="widget-thumb-wrap">
-                                            <i style="color:#e7505a;font-size: 40px" class="widget-thumb-icon  fa fa-exclamation-circle"></i>
+                                            <i style="color:#e7505a;font-size: 40px"
+                                               class="widget-thumb-icon  fa fa-exclamation-circle"></i>
                                             <div class="widget-thumb-body" id="job_failed_num">
 
                                             </div>
@@ -151,11 +159,11 @@
                     <div class="panel-body easypiechart-panel">
                         <div class="col-md-12">
                             <a id="url_display_error_job"><span class="caption-subject bold uppercase font-green"
-                                  style="font-size:16px">告警信息</span></a>
+                                                                style="font-size:16px">告警信息</span></a>
                         </div>
 
                         <div class="col-md-12" style="margin-top: 10px">
-                            <div id="loading2"  class="portlet-body"></div>
+                            <div id="loading2" class="portlet-body"></div>
                             <div class="portlet-body" id="backup_info">
                                 <div class="scroller" style="height: 240px;">
                                     <ul class="feeds" id="locate">
@@ -173,103 +181,49 @@
                 <div class="panel panel-default">
                     <div class="panel-body easypiechart-panel">
                         <div class="col-md-12">
-                            <span class="caption-subject bold uppercase font-green"
-                                  style="font-size:16px">备份空间使用情况</span>
+                            <div class="col-md-4"><span class="caption-subject bold uppercase font-green"
+                                                        style="font-size:16px"><a href="{{ disk_space }}">备份空间使用情况</a></span></div>
+                            <div class="col-md-4"><span class="caption-subject bold uppercase font-green"
+                                                        style="font-size:16px"><a href="{{ client_list }}">TOP 5</a></span></div>
+                            <div class="col-md-4"><span class="caption-subject bold uppercase font-green"
+                                                        style="font-size:16px">虚拟化空间</span></div>
                         </div>
-                        <div class="col-md-4" align="center" style="padding-top: 20px;">
+                        <div class="col-md-4" align="center" style="padding-top: 20px;" id="ma_disk_space">
                             <div style="float:left;padding-left: 50px">
-                                <input readonly class="knob" data-width="130"
-                                       data-fgcolor="#3598DC" data-min="-100"
-                                       data-displayprevious=true value="45">
+                                <input readonly class="knob" data-width="200"
+                                       data-fgcolor="#3598DC" data-min="0"
+                                       data-displayprevious=true value="100">
                             </div>
-                            <div  style="float:left;padding-left: 40px;padding-top: 20px">
-                                 <h4>磁盘空间</h4>
-                                <h4 class="" >45 TB/100 TB </h4>
+                            <div style="float:left;padding-left: 40px;padding-top: 20px">
+                                <h4>磁盘空间</h4>
+                                <h4 class="">45 TB/100 TB </h4>
 
                             </div>
-                            <div  style="clear:left;" align="left">
-                                <table style="width: 400px!important;"  class="table table-hover table-light" >
-                                        <thead>
-                                            <tr>
-                                                <th > 磁盘库 </th>
-                                                <th> 所有空间 </th>
-                                                <th> 已用空间 </th>
-                                                <th> 全备份日期 </th>
-                                            </tr>
-                                        </thead>
-                                        <tr>
+                        </div>
+                        <div class="col-md-4" align="center" style="padding-top: 20px">
+                            <table class="table table-hover table-light table-striped">
+                                <thead>
+                                <tr>
+                                    <th> 客户端</th>
+                                    <th> 应用程序大小</th>
+                                </tr>
+                                </thead>
+                                <tbody id="tb_top5">
 
-                                            <td> disk_lib_2  </td>
-                                            <td> 400 GB  </td>
-                                            <td> 182.1 GB  </td>
-                                            <td> 2019-08-07  </td>
-                                        </tr>
-
-                                    </table>
-                            </div>
+                                </tbody>
+                            </table>
                         </div>
                         <div class="col-md-4" align="center" style="padding-top: 20px">
 
                             <div style="float:left;padding-left: 50px">
-                                <input readonly class="knob" data-width="130"
-                                       data-fgcolor="#4C87B9" data-min="-100"
-                                       data-displayprevious=true value="45">
-                            </div>
-                            <div  style="float:left;padding-left: 40px;padding-top: 20px">
-                                <h4>DDB空间</h4>
-                                <h4 class="" >45 TB/100 TB </h4>
-
-                            </div>
-                            <div  style="clear:left;" align="left">
-                                <table style="width: 400px!important;"  class="table table-hover table-light" >
-                                        <thead>
-                                            <tr>
-                                                <th > 去重引擎名称 </th>
-                                                <th> 所有空间 </th>
-                                                <th> 已用空间 </th>
-                                            </tr>
-                                        </thead>
-                                        <tr>
-
-                                            <td> SP-GDB_38  </td>
-                                            <td> 200 GB  </td>
-                                            <td> 51.38 GB  </td>
-                                        </tr>
-
-                                    </table>
-                            </div>
-                        </div>
-                        <div class="col-md-4" align="center" style="padding-top: 20px">
-
-                            <div style="float:left;padding-left: 50px">
-                                <input readonly class="knob" data-width="130"
+                                <input readonly class="knob" data-width="200"
                                        data-fgcolor="#32C5D2" data-min="-100"
-                                       data-displayprevious=true value="45">
+                                       data-displayprevious=true value="50">
                             </div>
-                            <div  style="float:left;padding-left: 40px;padding-top: 20px">
-                                 <h4>Indexcache空间</h4>
-                                <h4 class="" >45 TB/100 TB </h4>
+                            <div style="float:left;padding-left: 40px;padding-top: 20px">
+                                <h4>虚拟化空间</h4>
+                                <h4 class="">45 TB/100 TB </h4>
 
-                            </div>
-                            <div  style="clear:left;" align="left">
-                                <table style="width: 400px!important;"  class="table table-hover table-light" >
-                                        <thead>
-                                            <tr>
-                                                <th > MA </th>
-                                                <th> 所有空间 </th>
-                                                <th> 索引大小 </th>
-                                                <th> 可用空间 </th>
-                                            </tr>
-                                        </thead>
-                                        <tr>
-
-                                            <td> cv-server  </td>
-                                            <td> 200 GB  </td>
-                                            <td> O.97GB  </td>
-                                            <td> 148.61GB  </td>
-                                        </tr>
-
-                                    </table>
                             </div>
                         </div>
                     </div>
