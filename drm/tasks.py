@@ -9,6 +9,36 @@ from TSDRM import settings
 import json
 from drm.api.commvault import SQLApi
 import subprocess
+import uuid
+
+
+def get_disk_space_crond():
+    """
+    一周获取一次Commvault磁盘信息
+        工具ID MediaID 可用容量、保留空间、总容量、取数时间
+
+    """
+    from .viewset.config_views import get_credit_info
+    commvaul_utils = UtilsManage.objects.exclude(state="9").filter(util_type="Commvault")
+    point_tag = uuid.uuid1()
+    for cu in commvaul_utils:
+        _, sqlserver_credit = get_credit_info(cu.content)
+        dm = SQLApi.CVApi(sqlserver_credit)
+        disk_space = dm.get_library_space_info()
+
+        for ds in disk_space:
+            disk_space_save_data = dict()
+            disk_space_save_data["utils_id"] = cu.id
+            disk_space_save_data["media_id"] = int(ds["MediaID"]) if ds["MediaID"] else 0
+            disk_space_save_data["capacity_avaible"] = int(ds["CapacityAvailable"]) if ds["CapacityAvailable"] else 0
+            disk_space_save_data["space_reserved"] = int(ds["SpaceReserved"]) if ds["SpaceReserved"] else 0
+            disk_space_save_data["total_space"] = int(ds["TotalSpaceMB"]) if ds["TotalSpaceMB"] else 0
+            disk_space_save_data["extract_time"] = datetime.datetime.now()
+            disk_space_save_data["point_tag"] = point_tag
+            try:
+                DiskSpaceWeeklyData.objects.create(**disk_space_save_data)
+            except Exception as e:
+                print(e)
 
 
 @shared_task
@@ -64,7 +94,8 @@ def force_exec_script(processrunid):
                         linux_temp_script_name = "tmp_script_{scriptrun_id}.sh".format(**{"scriptrun_id": script.id})
                         linux_temp_script_file = linux_temp_script_path + "/" + linux_temp_script_name
 
-                        tmp_cmd = r"cat > {0} << \EOH".format(linux_temp_script_file) + "\n" + script.script.script_text + "\nEOH"
+                        tmp_cmd = r"cat > {0} << \EOH".format(
+                            linux_temp_script_file) + "\n" + script.script.script_text + "\nEOH"
                         tmp_obj = remote.ServerByPara(tmp_cmd, ip, username, password, system_tag)
                         tmp_result = tmp_obj.run("")
 
@@ -258,7 +289,8 @@ def runstep(steprun, if_repeat=False):
                         linux_temp_script_name = "tmp_script_{scriptrun_id}.sh".format(**{"scriptrun_id": script.id})
                         linux_temp_script_file = linux_temp_script_path + "/" + linux_temp_script_name
 
-                        tmp_cmd = r"cat > {0} << \EOH".format(linux_temp_script_file) + "\n" + script.script.script_text + "\nEOH"
+                        tmp_cmd = r"cat > {0} << \EOH".format(
+                            linux_temp_script_file) + "\n" + script.script.script_text + "\nEOH"
                         tmp_obj = remote.ServerByPara(tmp_cmd, ip, username, password, system_tag)
                         tmp_result = tmp_obj.run("")
 

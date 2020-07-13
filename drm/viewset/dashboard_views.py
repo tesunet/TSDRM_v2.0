@@ -502,3 +502,232 @@ def sla(request, funid):
         "util_manages": util_manages,
         "util_id":util,
     })
+
+
+@login_required
+def disk_space(request, funid):
+    utils_manage = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
+    return render(request, 'disk_space.html', {
+        'username': request.user.userinfo.fullname, 'utils_manage': utils_manage,
+        "pagefuns": getpagefuns(funid, request=request)
+    })
+
+
+@login_required
+def get_disk_space(request):
+    # MA rowspan 总记录数
+    # 库 rowspan 相同库记录数
+    status = 1
+    data = []
+    info = ''
+    utils_manage_id = request.POST.get('utils_manage_id', '')
+
+    try:
+        utils_manage_id = int(utils_manage_id)
+        utils_manage = UtilsManage.objects.get(id=utils_manage_id)
+    except:
+        status = 0
+        info = 'Commvault工具未配置。'
+    else:
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
+        try:
+            dm = SQLApi.CVApi(sqlserver_credit)
+            data = dm.get_library_space_info()
+            dm.close()
+
+            # 遍历所有记录 总记录数
+            def get_rowspan(total_list, **kwargs):
+                row_span = 0
+                display_name = kwargs.get('DisplayName', '')
+                library_name = kwargs.get('LibraryName', '')
+                if all([display_name, library_name]):
+                    for tl in total_list:
+                        if tl['DisplayName'] == display_name and tl['LibraryName'] == library_name:
+                            row_span += 1
+                if display_name and not library_name:
+                    for tl in total_list:
+                        if tl['DisplayName'] == display_name:
+                            row_span += 1
+                return row_span
+
+            for num, lsi in enumerate(data):
+                display_name_rowspan = get_rowspan(data, DisplayName=lsi['DisplayName'])
+                library_name_rowspan = get_rowspan(data, DisplayName=lsi['DisplayName'], LibraryName=lsi['LibraryName'])
+
+                # 时间
+                try:
+                    data[num]["LastBackupTime"] = "{:%Y-%m-%d %H:%M:%S}".format(data[num]["LastBackupTime"])
+                except Exception as e:
+                    data[num]["LastBackupTime"] = ""
+                # 是否可用
+                if data[num]["Offline"] == 0:
+                    data[num]["Offline"] = '<i class="fa fa-plug" style="color:green; height:20px;width:14px;"></i>'
+                else:
+                    data[num]["Offline"] = '<i class="fa fa-plug" style="color:red; height:20px;width:14px;"></i>'
+
+                data[num]['display_name_rowspan'] = display_name_rowspan
+                data[num]['library_name_rowspan'] = library_name_rowspan
+
+        except Exception as e:
+            print(e)
+            status = 0
+            info = '获取磁盘容量信息失败: {e}。'.format(e=e)
+    return JsonResponse({
+        "status": status,
+        "info": info,
+        "data": data
+    })
+
+
+@login_required
+def get_disk_space_daily(request):
+    disk_list = []
+
+    media_id = request.POST.get("media_id", "")
+    utils_id = request.POST.get("utils_id", "")
+
+    try:
+        media_id = int(media_id)
+    except:
+        pass
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    if media_id:
+        disk_space_weekly_data = DiskSpaceWeeklyData.objects.filter(utils_id=utils_id, media_id=media_id).values()
+        capacity_available_list = []
+        space_reserved_list = []
+        total_space_list = []
+
+        if disk_space_weekly_data:
+            for num, dswd in enumerate(disk_space_weekly_data):
+                if num > 20:
+                    break
+
+                capacity_available_list.append(round(dswd["capacity_avaible"] / 1024, 2))
+                space_reserved_list.append(round(dswd["space_reserved"] / 1024, 2))
+                total_space_list.append(round(dswd["total_space"] / 1024, 2))
+
+            disk_list.append({
+                "name": "可用容量",
+                "color": "#3598dc",
+                "capacity_list": capacity_available_list
+            })
+            disk_list.append({
+                "name": "保留空间容量",
+                "color": "#e7505a",
+                "capacity_list": space_reserved_list
+            })
+            disk_list.append({
+                "name": "总容量",
+                "color": "#32c5d2",
+                "capacity_list": total_space_list
+            })
+    else:
+        # 总
+        disk_space_weekly_data = DiskSpaceWeeklyData.objects.filter(utils_id=utils_id).values(
+            "utils_id", "capacity_avaible", "space_reserved", "total_space", "point_tag"
+        )
+        capacity_available_list = []
+        space_reserved_list = []
+        total_space_list = []
+        if disk_space_weekly_data:
+            pre_point_tag = ""
+            num = 0
+            for dswd in disk_space_weekly_data:
+                if num > 20:
+                    break
+                # util_id 与 相同记录的 数据相加
+                if dswd["point_tag"] == pre_point_tag:
+                    continue
+                num += 1
+
+                cur_disk_space_weekly_data = [i for i in disk_space_weekly_data if
+                                              i["utils_id"] == utils_id and i["point_tag"] == dswd["point_tag"]]
+
+                sum_capacity_avaible = 0
+                sum_space_reserved = 0
+                sum_total_space = 0
+                for cdswd in cur_disk_space_weekly_data:
+                    sum_capacity_avaible += cdswd["capacity_avaible"]
+                    sum_space_reserved += cdswd["space_reserved"]
+                    sum_total_space += cdswd["total_space"]
+
+                capacity_available_list.append(round(sum_capacity_avaible / 1024, 2))
+                space_reserved_list.append(round(sum_space_reserved / 1024, 2))
+                total_space_list.append(round(sum_total_space / 1024, 2))
+
+                pre_point_tag = dswd["point_tag"]
+            disk_list.append({
+                "name": "可用容量",
+                "color": "#3598dc",
+                "capacity_list": capacity_available_list
+            })
+            disk_list.append({
+                "name": "保留空间容量",
+                "color": "#e7505a",
+                "capacity_list": space_reserved_list
+            })
+            disk_list.append({
+                "name": "总容量",
+                "color": "#32c5d2",
+                "capacity_list": total_space_list
+            })
+
+    return JsonResponse({
+        "data": disk_list,
+    })
+
+
+@login_required
+def get_ma_disk_space(request):
+    """
+    获取总容量
+    :param request:
+    :return:
+    """
+    status = 1
+    data = []
+    info = ''
+    utils_id = request.POST.get('utils_id', '')
+
+    try:
+        utils_id = int(utils_id)
+        utils_manage = UtilsManage.objects.get(id=utils_id)
+    except:
+        status = 0
+        info = 'Commvault工具未配置。'
+    else:
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
+        try:
+            dm = SQLApi.CVApi(sqlserver_credit)
+            ret = dm.get_library_space_info()
+            dm.close()
+            capacity_available = 0
+            space_reserved = 0
+            total_space = 0
+            for r in ret:
+                if type(r["CapacityAvailable"]) == int:
+                    capacity_available += r["CapacityAvailable"]
+                if type(r["SpaceReserved"]) == int:
+                    space_reserved += r["SpaceReserved"]
+                if type(r["TotalSpaceMB"]) == int:
+                    total_space += r["TotalSpaceMB"]
+
+            capacity_available_percent = round((capacity_available / total_space) * 100, 2)
+            space_reserved_percent = round((space_reserved / total_space) * 100, 2)
+            used_space_percent = round((100 - capacity_available_percent - space_reserved_percent), 2)
+            data = {
+                "capacity_available_percent": capacity_available_percent,
+                "space_reserved_percent": space_reserved_percent,
+                "used_space_percent": used_space_percent
+            }
+        except:
+            pass
+    return JsonResponse({
+        "status": status,
+        "info": info,
+        "data": data
+    })
+

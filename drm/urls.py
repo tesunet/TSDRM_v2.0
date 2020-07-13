@@ -197,8 +197,12 @@ urlpatterns = [
     url(r'^get_backup_status/$', get_backup_status),
 
     # 健康度
-    url(r'^sla/$', sla, {'funid': '94'}),
+    url(r'^sla/$', sla, {'funid': '92'}),
     url(r'^get_cv_sla/$', get_cv_sla),
 
-
+    # 磁盘空间
+    url(r'^disk_space/$', disk_space, {'funid': '82'}),
+    url(r'^get_disk_space/$', get_disk_space),
+    url(r'^get_disk_space_daily/$', get_disk_space_daily),
+    url(r'^get_ma_disk_space/$', get_ma_disk_space),
 ]

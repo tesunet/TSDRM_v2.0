@@ -9,12 +9,13 @@
             background-position: center;
         }
     </style>
-    <div   class="row" style="margin-top: -38px">
+    <div class="row" style="margin-top: -38px">
         <div class="col-md-2 col-lg-2" style="margin-top: 5px"></div>
         <div class="col-md-10 col-lg-10">
-            <select  class="form-control" id="utils_manage" name="utils_manage" style="width:250px; float:right;">
+            <select class="form-control" id="utils_manage" name="utils_manage" style="width:250px; float:right;">
                 {% for util in util_manages %}
-                    <option value="{{ util.id }}"   {% if util_id == util.id %} selected {% endif %} >{{ util.name }} </option>
+                    <option value="{{ util.id }}"   {% if util_id == util.id %}
+                            selected {% endif %} >{{ util.name }} </option>
                 {% endfor %}
             </select>
         </div>
@@ -23,7 +24,7 @@
     <div class="portlet-body">
         <div class="portlet light portlet-fit  calendar">
             <div class="portlet-body">
-                 <ul id="navtabs" class="nav nav-tabs">
+                <ul id="navtabs" class="nav nav-tabs">
                     <li class="active">
                         <a href="#tab_1_1" id='tabcheck1' data-toggle="tab"> 基础信息 </a>
                     </li>
@@ -38,6 +39,9 @@
                     </li>
                     <li>
                         <a href="#tab_1_5" id='tabcheck5' data-toggle="tab"> 存储策略 </a>
+                    </li>
+                    <li>
+                        <a href="#tab_1_6" id='tabcheck6' data-toggle="tab"> 磁盘空间 </a>
                     </li>
                 </ul>
                 <div class="tab-content">
@@ -148,6 +152,44 @@
                             <div id="loading5" hidden></div>
                         </div>
                     </div>
+                    <div class="tab-pane fade " id="tab_1_6">
+                        <div class="portlet light portlet-fit">
+                            <div class="portlet-body">
+                                <div class="col-md-12" style="margin-bottom: 30px">
+                                    <div style="text-align:center">
+                                        <div id="disk_space_container"  class="chart" >
+
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <a href="#" class="btn default green-stripe" style="float: right; width: 60px" id="weekly_total_space" title="图表" data-toggle="modal" data-target="#static01"><i class="fa fa-bar-chart"></i></a>
+                                    </div>
+                                </div>
+                                <div class="table-scrollable" style="overflow-x:scroll;">
+                                    <table class="table table-hover" style="min-width:1200px;" id="disk_space">
+                                        <thead>
+                                        <tr>
+                                            <th></th>
+                                            <th> MA</th>
+                                            <th> 库</th>
+                                            <th> 装载路径</th>
+                                            <th> 可用容量</th>
+                                            <th> 保留空间</th>
+                                            <th> 总容量</th>
+                                            <th> 最新备份时间</th>
+                                            <th> 状态</th>
+                                            <th> 操作</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+
+                                        </tbody>
+                                    </table>
+                                    <div id="loading" hidden></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -227,20 +269,45 @@
             </div>
         </div>
     </div>
+    <div id="static01" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="panel-body">
+                    <div id="disk_space_hc" style="width: 860px"></div>
+                </div>
+                <div class="form-actions">
+                    <div class="modal-footer">
+                        <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 {% endblock %}
 {% block script %}
     <script>
     </script>
-    <link href="/static/assets/global/plugins/jquery-multi-select/css/multi-select.css" rel="stylesheet" type="text/css"/>
-    <link href="/static/assets/global/plugins/jstree/dist/themes/default/style.min.css" rel="stylesheet" type="text/css"/>
+    <link href="/static/assets/global/plugins/jquery-multi-select/css/multi-select.css" rel="stylesheet"
+          type="text/css"/>
+    <link href="/static/assets/global/plugins/jstree/dist/themes/default/style.min.css" rel="stylesheet"
+          type="text/css"/>
     <link href="/static/assets/global/plugins/select2/css/select2.min.css" rel="stylesheet" type="text/css"/>
     <link href="/static/assets/global/plugins/select2/css/select2-bootstrap.min.css" rel="stylesheet" type="text/css"/>
     <script src="/static/assets/global/scripts/app.min.js" type="text/javascript"></script>
     <script src="/static/assets/global/plugins/jstree/dist/jstree.min.js" type="text/javascript"></script>
-    <script src="/static/assets/global/plugins/jquery-multi-select/js/jquery.multi-select.js" type="text/javascript"></script>
-    <script src="/static/assets/global/plugins/jquery-multi-select/js/jquery.quicksearch.js" type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/jquery-multi-select/js/jquery.multi-select.js"
+            type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/jquery-multi-select/js/jquery.quicksearch.js"
+            type="text/javascript"></script>
     <script src="/static/assets/global/plugins/select2/js/select2.full.min.js" type="text/javascript"></script>
     <script src="/static/pages/js/components-select2.min.js" type="text/javascript"></script>
-
-
+    <script src="/static/assets/global/plugins/amcharts/amcharts/amcharts.js" type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/amcharts/amcharts/pie.js" type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/amcharts/amcharts/themes/light.js" type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/amcharts/amcharts/serial.js" type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/highcharts/js/highcharts.js" type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/highcharts/js/highcharts-3d.js" type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/highcharts/js/highcharts-more.js" type="text/javascript"></script>
 {% endblock %}
