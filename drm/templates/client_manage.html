@@ -5,133 +5,118 @@
         <div class="row">
             <div id="tree_client" class="col-md-4 tree-demo"></div>
             <div class="col-md-8">
-                <div id="form_div" class="portlet light bordered" {{ table.right_info_hidden }}>
-                    {% if errors %}
-                        {% for error in errors %}
-                            <div ID="error" class="alert alert-danger ">{{ error }}</div>
-                            <span> {% endfor %}</span>
-                    {% endif %}
+                <div id="form_div" class="portlet light bordered" hidden>
                     <div class="portlet-title">
                         <div class="caption font-green-sharp">
                             <label id="title" class="caption-subject bold uppercase">{{ table.name }}</label>
                         </div>
                     </div>
                     <div class="portlet-body form">
-                        <form action="#" class="form-horizontal" method="post">{% csrf_token %}
-                            <input type="text" hidden id="id" name="id" value="{{ table.id }}">
-                            <input type="text" hidden id="pid" name="pid" value="{{ table.pid }}">
-                            <input type="text" hidden id="my_type" name="my_type" value="{{ table.my_type }}">
-                            <div id="interface" {{ table.interface_hidden }}>
+                        <form class="bs-example form-horizontal activate-form">{% csrf_token %}
+                            <input type="text" hidden id="id" name="id" value="">
+                            <input type="text" hidden id="pid" name="pid" value="">
+                            <input type="text" hidden id="my_type" name="my_type" value="">
+                            <div id="client" hidden>
                                 <div class="form-body">
-                                    <div class="form-group" style="margin-top:-20px">
-                                        <label class="col-md-2 control-label">所属节点</label>
-                                        <div class="col-md-10">
-                                            <input readonly type="text" class="form-control" id="pname" name="pname"
-                                                   placeholder="所属节点" value="{{ table.pname }}">
-                                            <div class="form-control-focus"></div>
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="col-md-2 control-label"><span
-                                                style="color:red; ">*</span>接口编号</label>
-                                        <div class="col-md-10">
-                                            <input id="code" type="text" name="code" class="form-control"
-                                                   value="{{ table.code }}">
-                                            <div class="form-control-focus"></div>
-
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="col-md-2 control-label"><span
-                                                style="color:red; ">*</span>接口名称</label>
-                                        <div class="col-md-10">
-                                            <input id="name" type="text" name="name" class="form-control "
-                                                   value="{{ table.name }}">
-                                            <div class="form-control-focus"></div>
-
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="col-md-2 control-label"><span
-                                                style="color:red; ">*</span>接口类型</label>
-                                        <div class="col-md-10">
-                                            <select class="form-control" id="interface_type" name="interface_type">
-                                                {% for it in table.interface_type_list %}
-                                                    <option value="{{ it.value }}" {{ it.selected }}>{{ it.value }}</option>
-                                                {% endfor %}
-                                            </select>
-                                            <div class="form-control-focus"></div>
-                                        </div>
-                                    </div>
-                                    <div class="form-group" id="script_text_div" {{ table.interface_divs.script_text_div }}>
-                                        <label class="col-md-2 control-label"><span
-                                                style="color:red; ">*</span>脚本内容
-                                            <i title="{% verbatim %}流程参数: {{}} 脚本参数: [[]] 主机参数: (()) {% endverbatim %}"
-                                               class="fa fa-question-circle"></i></label>
-                                        <div class="col-md-10">
-                                    <textarea name="script_text" id="script_text" class="form-control"
-                                              rows="8">{{ table.script_text }}</textarea>
-                                            <div class="form-control-focus"></div>
-
-                                        </div>
-                                    </div>
-                                    <div class="form-group ">
-                                        <label class="col-md-2 control-label">脚本参数</label>
-                                        <div class="col-md-10">
-                                            <div id="context-menu2">
-                                                <ul class="dropdown-menu" role="menu">
-                                                    <li><a tabindex="-1" data-toggle="modal"
-                                                           data-target="#static01">新增</a></li>
-                                                    <li><a tabindex="-1" data-toggle="modal"
-                                                           data-target="#static01">修改</a></li>
-                                                    <li><a tabindex="-1">删除</a></li>
-                                                </ul>
+                                    <ul id="navtabs" class="nav nav-tabs">
+                                        <li class="active">
+                                            <a href="#tab_1_1" id='tabcheck1' data-toggle="tab"> 基础信息 </a>
+                                        </li>
+                                        <li style="pointer-events:none;">
+                                            <a style="color: #cbd5dd" href="#tab_1_2"  id='tabcheck2' data-toggle="tab"> Commvault保护 </a>
+                                        </li>
+                                         <li style="pointer-events:none;">
+                                            <a style="color: #cbd5dd" id='tabcheck3' data-toggle="tab"> 数据库复制 </a>
+                                        </li>
+                                         <li style="pointer-events:none;">
+                                            <a style="color: #cbd5dd"href="#tab_1_4" id='tabcheck4' data-toggle="tab"> 多副本保护 </a>
+                                        </li>
+                                    </ul>
+                                    <div class="tab-content">
+                                        <div class="tab-pane fade active in" id="tab_1_1">
+                                            <div class="form-group">
+                                                <label class="col-md-2 control-label">所属节点</label>
+                                                <div class="col-md-10">
+                                                    <input readonly type="text" class="form-control" id="pname" name="pname"
+                                                           placeholder="所属节点" value="">
+                                                    <div class="form-control-focus"></div>
+                                                </div>
                                             </div>
-                                            <button hidden id="param_edit" tabindex="-1" data-toggle="modal"
-                                                    data-target="#static01"></button>
-                                            <select id="param_se" size="7" class="form-control"
-                                                    style="overflow-y:auto;">
-                                                {% for p in table.insert_params %}
-                                                    <option value="{{ p.variable_name }}">{{ p.param_name }}: {{ p.param_value }}</option>
-                                                {% endfor %}
-                                            </select>
-                                            <input type="text" id="insert_params" name="insert_params"
-                                                   value="{{ table.insert_params_json }}" hidden>
-                                        </div>
-                                    </div>
-                                    <div class="form-group"
-                                         id="success_text_div" {{ table.interface_divs.success_text_div }}>
-                                        <label class="col-md-2 control-label"><span
-                                                style="color:red; "></span>SUCCESSTEXT</label>
-                                        <div class="col-md-10">
-                                            <input id="success_text" type="text" name="success_text"
-                                                   class="form-control" value="{{ table.success_text }}">
-                                            <div class="form-control-focus"></div>
-                                        </div>
-                                    </div>
-                                    <div class="form-group ">
-                                        <label class="col-md-2 control-label" for="form_control_1">接口说明</label>
-                                        <div class="col-md-10">
-                                            <textarea class="form-control" placeholder="最大限制2500个汉字" rows="4"
-                                                      id="remark" name="remark">{{ table.remark }}</textarea>
-                                            <div class="form-control-focus"></div>
-                                        </div>
-                                    </div>
+                                            <div class="form-group">
+                                                <label class="col-md-2 control-label"><span style="color:red; ">*</span>主机IP</label>
+                                                <div class="col-md-10">
+                                                    <input id="host_ip" type="text" name="host_ip" class="form-control " placeholder="">
+                                                    <div class="form-control-focus"></div>
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="col-md-2 control-label"><span style="color:red; ">*</span>主机名称</label>
+                                                <div class="col-md-10">
+                                                    <input id="host_name" type="text" name="host_name" class="form-control "
+                                                           placeholder="">
+                                                    <div class="form-control-focus"></div>
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="col-md-2 control-label"><span style="color:red; ">*</span>系统</label>
+                                                <div class="col-md-10">
+                                                    <select class="form-control" id="os" name="os">
+                                                        <option value="Linux">Linux</option>
+                                                        <option value="Windows">Windows</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="col-md-2 control-label"><span style="color:red; ">*</span>用户名</label>
+                                                <div class="col-md-10">
+                                                    <input id="username" type="text" name="username" class="form-control "
+                                                           placeholder="">
+                                                    <div class="form-control-focus"></div>
+                                                </div>
+                                            </div>
+                                            <div class="form-group">
+                                                <label class="col-md-2 control-label"><span style="color:red; ">*</span>密码</label>
+                                                <div class="col-md-10">
+                                                    <input id="password" type="password" name="password" class="form-control "
+                                                           placeholder="">
+                                                    <div class="form-control-focus"></div>
+                                                </div>
+                                            </div>
+                                            <div class="form-group ">
+                                                <label class="col-md-2 control-label">主机参数</label>
+                                                <div class="col-md-10">
+                                                    <div id="context-menu2">
+                                                        <ul class="dropdown-menu" role="menu">
+                                                            <li><a tabindex="-1" data-toggle="modal" data-target="#static01">新增</a></li>
+                                                            <li><a tabindex="-1" data-toggle="modal" data-target="#static01">修改</a></li>
+                                                            <li><a tabindex="-1">删除</a></li>
+                                                        </ul>
+                                                    </div>
+                                                    <button hidden id="param_edit" tabindex="-1" data-toggle="modal"
+                                                            data-target="#static01"></button>
+                                                    <select id="param_se" size="7" class="form-control" style="overflow-y:auto;">
 
-                                </div>
-                                <div class="form-actions noborder" style="margin-top:-30px;text-align:center">
-                                    <button type="submit" id="interface_save" name="interface_save" class="btn blue">
-                                        保存
-                                    </button>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                         <div class="tab-pane fade active in" id="tab_1_2">
+                                         </div>
+                                        <div class="form-actions noborder" style="margin-top:-30px;text-align:center">
+                                            <button type="button" id="interface_save" name="interface_save" class="btn blue">
+                                                保存
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div id="node" {{ table.node_hidden }}>
+                            <div id="node" hidden >
                                 <div class="form-body">
                                     <div class="form-group" style="margin-top:-20px">
                                         <label class="col-md-2 control-label">所属节点</label>
                                         <div class="col-md-10">
                                             <input readonly type="text" class="form-control" id="node_pname"
-                                                   name="node_pname" placeholder="所属节点" value="{{ table.node_pname }}">
+                                                   name="node_pname" placeholder="所属节点" value="">
                                             <div class="form-control-focus"></div>
                                         </div>
                                     </div>
@@ -139,7 +124,7 @@
                                         <label class="col-md-2 control-label" for="form_control_1">名称</label>
                                         <div class="col-md-10">
                                             <input type="text" class="form-control" id="node_name" name="node_name"
-                                                   placeholder="组织名称" value="{{ table.node_name }}">
+                                                   placeholder="节点名称" value="">
                                             <div class="form-control-focus"></div>
                                         </div>
                                     </div>
@@ -148,7 +133,7 @@
                                         <div class="col-md-10">
                                             <textarea class="form-control" placeholder="最大限制2500个汉字" rows="4"
                                                       id="node_remark"
-                                                      name="node_remark">{{ table.node_remark }}</textarea>
+                                                      name="node_remark"></textarea>
                                             <div class="form-control-focus"></div>
 
                                         </div>
@@ -157,7 +142,7 @@
 
                                 </div>
                                 <div class="form-actions noborder" style="margin-top:-30px;text-align:center">
-                                    <button type="submit" id="node_save" name="node_save" class="btn blue">保存</button>
+                                    <button type="button" id="node_save" name="node_save" class="btn blue">保存</button>
                                 </div>
                             </div>
 
@@ -259,9 +244,6 @@
     </div>
 {% endblock %}
 {% block script %}
-    <script>
-        var treeData = {{tree_data|safe}};
-    </script>
     <link href="/static/assets/global/plugins/bootstrap-fileinput/bootstrap-fileinput.css" rel="stylesheet" type="text/css"/>
     <link href="/static/assets/global/plugins/datatables/datatables.min.css" rel="stylesheet" type="text/css"/>
     <link href="/static/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.css" rel="stylesheet" type="text/css"/>

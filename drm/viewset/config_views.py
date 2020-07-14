@@ -1620,15 +1620,163 @@ def load_hosts_params(request):
 
 
 ######################
-# 主机配置
+# 客户端管理
 ######################
-def hosts_manage(request, funid):
+@login_required
+def client_manage(request, funid):
     if request.user.is_authenticated():
-        return render(request, 'hosts_manage.html',
+        return render(request, 'client_manage.html',
                       {'username': request.user.userinfo.fullname,
                        "pagefuns": getpagefuns(funid, request=request)})
     else:
         return HttpResponseRedirect("/login")
+
+def get_client_node(parent, select_id):
+    nodes = []
+    children = parent.children.order_by("sort").exclude(state="9")
+    for child in children:
+        node = dict()
+        node["text"] = child.host_name
+        node["id"] = child.id
+        node["type"] = child.nodetype
+        node["data"] = {
+            "name": child.host_name,
+            "remark": child.remark,
+            "pname": parent.name
+        }
+
+        node["children"] = get_client_node(child, select_id)
+        if child.id in [1,2,3]:
+            node["state"] = {"opened": True}
+        if child.id==2:
+            node["text"] = "<img src = '/static/pages/images/s.png' height='24px'> " + node["text"]
+        if child.id==3:
+            node["text"] = "<img src = '/static/pages/images/d.png' height='24px'> " + node["text"]
+        try:
+            if int(select_id) == child.id:
+                node["state"] = {"selected": True}
+        except:
+            pass
+        nodes.append(node)
+    return nodes
+
+
+@login_required
+def get_client_tree(request):
+    select_id = request.POST.get('id', '')
+    tree_data = []
+    root_nodes = HostsManage.objects.order_by("sort").exclude(state="9").filter(pnode=None).filter(nodetype="NODE")
+
+    for root_node in root_nodes:
+        root = dict()
+        root["text"] = root_node.host_name
+        root["id"] = root_node.id
+        root["type"] = root_node.nodetype
+        root["data"] = {
+            "name": root_node.host_name,
+            "remark": root_node.remark,
+            "pname": "无"
+        }
+        if root_node.id==1:
+            root["text"] = "<img src = '/static/pages/images/c.png' height='24px'> " + root["text"]
+        try:
+            if int(select_id) == root_node.id:
+                root["state"] = {"opened": True, "selected": True}
+            else:
+                root["state"] = {"opened": True}
+        except:
+            root["state"] = {"opened": True}
+        root["children"] = get_client_node(root_node, select_id)
+        tree_data.append(root)
+    return JsonResponse({
+        "ret": 1,
+        "data": tree_data
+    })
+
+
+@login_required
+def clientdel(request):
+    if 'id' in request.POST:
+        id = request.POST.get('id', '')
+        try:
+            id = int(id)
+        except:
+            return HttpResponse(0)
+        client = HostsManage.objects.get(id=id)
+        client.state = "9"
+        client.save()
+
+        return HttpResponse(1)
+    else:
+        return HttpResponse(0)
+
+
+@login_required
+def client_move(request):
+    id = request.POST.get('id', '')
+    parent = request.POST.get('parent', '')
+    old_parent = request.POST.get('old_parent', '')
+    position = request.POST.get('position', '')
+    old_position = request.POST.get('old_position', '')
+    try:
+        id = int(id)  # 节点 id
+        parent = int(parent)  # 目标位置父节点 pnode_id
+        position = int(position)  # 目标位置
+        old_parent = int(old_parent)  # 起点位置父节点 pnode_id
+        old_position = int(old_position)  # 起点位置
+    except:
+        return HttpResponse("0")
+    # sort = position + 1 sort从1开始
+
+    # 起始节点下方 所有节点  sort -= 1
+    old_client_parent = HostsManage.objects.get(id=old_parent)
+    old_sort = old_position + 1
+    old_clients = HostsManage.objects.exclude(state="9").filter(pnode=old_client_parent).filter(sort__gt=old_sort)
+
+    # 目标节点下方(包括该节点) 所有节点 sort += 1
+    client_parent = HostsManage.objects.get(id=parent)
+    sort = position + 1
+    clients = HostsManage.objects.exclude(state=9).exclude(id=id).filter(pnode=client_parent).filter(sort__gte=sort)
+
+    my_client = HostsManage.objects.get(id=id)
+
+    # 判断目标父节点是否为接口，若为接口无法挪动
+    if client_parent.nodetype == "CLIENT":
+        return HttpResponse("客户端")
+    else:
+        # 目标父节点下所有节点 除了自身 接口名称都不得相同 否则重名
+        client_same = HostsManage.objects.exclude(state="9").exclude(id=id).filter(pnode=client_parent).filter(
+            host_name=my_client.host_name)
+
+        if client_same:
+            return HttpResponse("重名")
+        else:
+            for old_client in old_clients:
+                try:
+                    old_client.sort -= 1
+                    old_client.save()
+                except:
+                    pass
+            for client in clients:
+                try:
+                    client.sort += 1
+                    client.save()
+                except:
+                    pass
+
+            # 该节点位置变动
+            try:
+                my_client.pnode = client_parent
+                my_client.sort = sort
+                my_client.save()
+            except:
+                pass
+
+            # 起始 结束 点不在同一节点下 写入父节点名称与ID ?
+            if parent != old_parent:
+                return HttpResponse(client_parent.host_name + "^" + str(client_parent.id))
+            else:
+                return HttpResponse("0")
 
 
 def host_save(request):

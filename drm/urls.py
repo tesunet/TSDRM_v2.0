@@ -65,12 +65,6 @@ urlpatterns = [
     url(r'^origin_save/$', origin_save),
     url(r'^origin_del/$', origin_del),
 
-    # 主机管理
-    url(r'^hosts_manage/$', hosts_manage, {'funid': '68'}),
-    url(r'^host_save/$', host_save),
-    url(r'^hosts_manage_data/$', hosts_manage_data),
-    url(r'^hosts_manage_del/$', hosts_manage_del),
-
     # 预案管理
     url(r'^script/$', script, {'funid': '32'}),
     url(r'^scriptdel/$', scriptdel),
@@ -206,4 +200,16 @@ urlpatterns = [
     url(r'^get_disk_space/$', get_disk_space),
     url(r'^get_disk_space_daily/$', get_disk_space_daily),
     url(r'^get_ma_disk_space/$', get_ma_disk_space),
+
+    # 客户端管理
+    url(r'^client_manage/$', client_manage, {'funid': '69'}),
+    url(r'^get_client_tree/$', get_client_tree),
+    url(r'^clientdel/$', clientdel),
+    url(r'^client_move/$', client_move),
+
+    url(r'^host_save/$', host_save),
+    url(r'^hosts_manage_data/$', hosts_manage_data),
+
+
+
 ]

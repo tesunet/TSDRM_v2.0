@@ -124,6 +124,7 @@ class HostsManage(models.Model):
     pnode = models.ForeignKey('self', null=True, related_name='children', verbose_name='父节点')
     nodetype = models.CharField("节点类型", blank=True, null=True, max_length=20)
     sort = models.IntegerField("排序", blank=True, null=True)
+    remark = models.TextField("节点/客户端说明", null=True, default="")
 
 
 class Script(models.Model):
