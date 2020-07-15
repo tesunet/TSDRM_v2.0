@@ -4,7 +4,7 @@
 
 {% block content %}
     <style>
-        #loading1, #loading2 {
+        #loading1, #loading2, #loading3, #loading4 {
             height: 240px;
             width: 100%;
             background-image: url(../static/upload/loading.gif);
@@ -189,29 +189,35 @@
                                                         style="font-size:16px">虚拟化空间</span></div>
                         </div>
                         <div class="col-md-4" align="center" style="padding-top: 20px;" id="ma_disk_space">
-                            <div style="float:left;padding-left: 50px">
-                                <input readonly class="knob" data-width="200"
-                                       data-fgcolor="#3598DC" data-min="0"
-                                       data-displayprevious=true value="100">
-                            </div>
-                            <div style="float:left;padding-left: 40px;padding-top: 20px">
-                                <h4>磁盘空间</h4>
-                                <h4 class="">45 TB/100 TB </h4>
+                            <div id="loading3" class="portlet-body"></div>
+                            <div id="disk_space_div">
+                                <div style="float:left;padding-left: 50px">
+                                    <input readonly class="knob" data-width="200"
+                                        data-fgcolor="#3598DC" data-min="0"
+                                        data-displayprevious=true value="100">
+                                </div>
+                                <div style="float:left;padding-left: 40px;padding-top: 20px">
+                                    <h4>磁盘空间</h4>
+                                    <h4 class="">45 TB/100 TB </h4>
 
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-4" align="center" style="padding-top: 20px">
-                            <table class="table table-hover table-light table-striped">
-                                <thead>
-                                <tr>
-                                    <th> 客户端</th>
-                                    <th> 应用程序大小</th>
-                                </tr>
-                                </thead>
-                                <tbody id="tb_top5">
-
-                                </tbody>
-                            </table>
+                            <div id="loading4" class="portlet-body"></div>
+                            <div id="app_space_div">
+                                <table class="table table-hover table-advance table-light">
+                                    <thead>
+                                    <tr>
+                                        <th> 客户端</th>
+                                        <th> 应用程序大小</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="tb_top5">
+    
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                         <div class="col-md-4" align="center" style="padding-top: 20px">
 
