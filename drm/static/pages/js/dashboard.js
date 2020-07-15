@@ -524,7 +524,7 @@ $(document).ready(function () {
                 }
                 $('#tb_top5').append('<tr>\n' +
                     '    <td> ' + top5_data[i].client_name + '</td>\n' +
-                    '    <td> ' + top5_data[i].app_capacity + ' GB </td>\n' +
+                    '    <td> ' + top5_data[i].app_capacity + ' TB </td>\n' +
                     '</tr>')
             }
         }

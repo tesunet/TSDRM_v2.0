@@ -272,7 +272,7 @@ def get_top5_app_capacity(request):
                         app_capacity += ir["numbytesuncomp"]
                 top5_app_list.append({
                     "client_name": client_name,
-                    "app_capacity": round(app_capacity / 1024 / 1024, 2)
+                    "app_capacity": round(app_capacity / 1024 / 1024 / 1024, 2)
                 })
 
                 # str(round(int(pfu[0].AllocatedBaseSize)/1024,2))+'GB'
