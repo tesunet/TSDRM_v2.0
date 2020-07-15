@@ -363,6 +363,47 @@ def get_cv_sla(request):
         })
 
 
+def get_instance_list(um):
+    # 解析出账户信息
+    _, sqlserver_credit = get_credit_info(um.content)
+
+    #############################################
+    # clientid, clientname, agent, instance, os #
+    #############################################
+    dm = SQLApi.CVApi(sqlserver_credit)
+
+    oracle_data = dm.get_instance_from_oracle()
+
+    # 获取包含oracle模块所有客户端
+    installed_client = dm.get_all_install_clients()
+    dm.close()
+    oracle_client_list = []
+    pre_od_name = ""
+    for od in oracle_data:
+        if "Oracle" in od["agent"]:
+            if od["clientname"] == pre_od_name:
+                continue
+            client_id = od["clientid"]
+            client_os = ""
+            for ic in installed_client:
+                if client_id == ic["client_id"]:
+                    client_os = ic["os"]
+
+            oracle_client_list.append({
+                "clientid": od["clientid"],
+                "clientname": od["clientname"],
+                "agent": od["agent"],
+                "instance": od["instance"],
+                "os": client_os
+            })
+            # 去重
+            pre_od_name = od["clientname"]
+    return {
+        'utils_manage': um.id,
+        'oracle_client': oracle_client_list
+    }
+
+
 ######################
 # 自主恢复
 ######################

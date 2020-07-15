@@ -11,9 +11,11 @@ from ..tasks import *
 from TSDRM import settings
 from drm.api.commvault.RestApi import *
 from .public_func import *
+from .commv_views import *
 from .basic_views import getpagefuns
 from django.contrib.auth.decorators import login_required
 from lxml import etree
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
 ######################
@@ -1624,12 +1626,41 @@ def load_hosts_params(request):
 ######################
 @login_required
 def client_manage(request, funid):
-    if request.user.is_authenticated():
-        return render(request, 'client_manage.html',
-                      {'username': request.user.userinfo.fullname,
-                       "pagefuns": getpagefuns(funid, request=request)})
-    else:
-        return HttpResponseRedirect("/login")
+    # 工具
+    utils_manage = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
+    data = []
+
+    try:
+        pool = ThreadPoolExecutor(max_workers=10)
+
+        all_tasks = [pool.submit(get_instance_list, (um)) for um in utils_manage]
+        for future in as_completed(all_tasks):
+            if future.result():
+                data.append(future.result())
+    except:
+        pass
+
+    # 所有关联终端
+    all_target = Target.objects.exclude(state="9").values()
+
+    u_targets = []
+
+    for um in utils_manage:
+        target_list = []
+        for target in all_target:
+            if target['utils_id'] == um.id:
+                target_list.append({
+                    'target_id': target['id'],
+                    'target_name': target['client_name']
+                })
+        u_targets.append({
+            'utils_manage': um.id,
+            'target_list': target_list
+        })
+
+    return render(request, 'client_manage.html',
+                  {'username': request.user.userinfo.fullname,
+                   "pagefuns": getpagefuns(funid, request=request)})
 
 def get_client_node(parent, select_id):
     nodes = []
@@ -1642,7 +1673,7 @@ def get_client_node(parent, select_id):
         node["data"] = {
             "name": child.host_name,
             "remark": child.remark,
-            "pname": parent.name
+            "pname": parent.host_name
         }
 
         node["children"] = get_client_node(child, select_id)
@@ -1652,6 +1683,8 @@ def get_client_node(parent, select_id):
             node["text"] = "<img src = '/static/pages/images/s.png' height='24px'> " + node["text"]
         if child.id==3:
             node["text"] = "<img src = '/static/pages/images/d.png' height='24px'> " + node["text"]
+        if child.nodetype=="NODE" and child.id not in [1,2,3]:
+            node["text"] = "<i class='jstree-icon jstree-themeicon fa fa-folder icon-state-warning icon-lg jstree-themeicon-custom'></i>" + node["text"]
         try:
             if int(select_id) == child.id:
                 node["state"] = {"selected": True}
@@ -1777,6 +1810,228 @@ def client_move(request):
                 return HttpResponse(client_parent.host_name + "^" + str(client_parent.id))
             else:
                 return HttpResponse("0")
+
+
+@login_required
+def client_node_save(request):
+    id = request.POST.get("id", "")
+    pid = request.POST.get("pid", "")
+    node_name = request.POST.get("node_name", "")
+    node_remark = request.POST.get("node_remark", "")
+
+    try:
+        id = int(id)
+    except:
+        ret = 0
+        info = "网络错误。"
+    else:
+        if node_name.strip():
+            if id == 0:
+                try:
+                    cur_host_manage = HostsManage()
+                    cur_host_manage.pnode_id = pid
+                    cur_host_manage.host_name = node_name
+                    cur_host_manage.remark = node_remark
+                    cur_host_manage.nodetype = "NODE"
+                    # 排序
+                    sort = 1
+                    try:
+                        max_sort = HostsManage.objects.exclude(state="9").filter(pnode_id=pid).aggregate(
+                            max_sort=Max('sort', distinct=True))["max_sort"]
+                        sort = max_sort + 1
+                    except:
+                        pass
+                    cur_host_manage.sort= sort
+
+                    cur_host_manage.save()
+                    id=cur_host_manage.id
+                except:
+                    ret = 0
+                    info = "服务器异常。"
+                else:
+                    ret = 1
+                    info = "新增节点成功。"
+            else:
+                # 修改
+                try:
+                    cur_host_manage = HostsManage.objects.get(id=id)
+                    cur_host_manage.host_name = node_name
+                    cur_host_manage.remark = node_remark
+                    cur_host_manage.save()
+
+                    ret = 1
+                    info = "节点信息修改成功。"
+                except:
+                    ret = 0
+                    info = "服务器异常。"
+        else:
+            ret = 0
+            info = "节点名称不能为空。"
+    return JsonResponse({
+        "ret": ret,
+        "info": info,
+        "nodeid": id
+    })
+
+
+@login_required
+def get_client_detail(request):
+    hostinfo={}
+    id = request.POST.get("id", "")
+    try:
+        id = int(id)
+        host_manage = HostsManage.objects.get(id=id)
+
+    except:
+        ret = 0
+        info = "当前客户端不存在。"
+    else:
+        param_list = []
+        try:
+            config = etree.XML(host_manage.config)
+
+            param_el = config.xpath("//param")
+            for v_param in param_el:
+                param_list.append({
+                    "param_name": v_param.attrib.get("param_name", ""),
+                    "variable_name": v_param.attrib.get("variable_name", ""),
+                    "param_value": v_param.attrib.get("param_value", ""),
+                })
+        except:
+            ret = 0
+            info = "数据格式异常，无法获取。"
+        else:
+            hostinfo={
+                "host_id": host_manage.id,
+                "host_ip": host_manage.host_ip,
+                "host_name": host_manage.host_name,
+                "os": host_manage.os,
+                "username": host_manage.username,
+                "password": host_manage.password,
+                "remark": host_manage.remark,
+                "variable_param_list": param_list,
+            }
+            ret = 1
+            info = "查询成功。"
+    return JsonResponse({
+        "ret": ret,
+        "info": info,
+        "data": hostinfo
+    })
+
+
+@login_required
+def client_client_save(request):
+    id = request.POST.get("id", "")
+    pid = request.POST.get("pid", "")
+    host_ip = request.POST.get("host_ip", "")
+    host_name = request.POST.get("host_name", "")
+    host_os = request.POST.get("os", "")
+    username = request.POST.get("username", "")
+    password = request.POST.get("password", "")
+    config = request.POST.get("config", "")
+    remark = request.POST.get("remark", "")
+
+    try:
+        id = int(id)
+    except:
+        ret = 0
+        info = "网络错误。"
+    else:
+        if host_ip.strip():
+            if host_name.strip():
+                if host_os.strip():
+                    if username.strip():
+                        if password.strip():
+                            # 主机参数
+                            root = etree.Element("root")
+
+                            if config:
+                                config = json.loads(config)
+                                # 动态参数
+                                for c_config in config:
+                                    param_node = etree.SubElement(root, "param")
+                                    param_node.attrib["param_name"] = c_config["param_name"].strip()
+                                    param_node.attrib["variable_name"] = c_config["variable_name"].strip()
+                                    param_node.attrib["param_value"] = c_config["param_value"].strip()
+                            config = etree.tounicode(root)
+
+                            # 新增
+                            if id == 0:
+                                # 判断主机是否已经存在
+                                check_host_manage = HostsManage.objects.exclude(state="9").filter(host_ip=host_ip)
+                                if check_host_manage.exists():
+                                    ret = 0
+                                    info = "主机已经存在，请勿重复添加。"
+                                else:
+                                    try:
+                                        cur_host_manage = HostsManage()
+                                        cur_host_manage.pnode_id = pid
+                                        cur_host_manage.nodetype = "CLIENT"
+                                        cur_host_manage.host_ip = host_ip
+                                        cur_host_manage.host_name = host_name
+                                        cur_host_manage.os = host_os
+                                        cur_host_manage.username = username
+                                        cur_host_manage.password = password
+                                        cur_host_manage.config = config
+                                        cur_host_manage.remark = remark
+                                        # 排序
+                                        sort = 1
+                                        try:
+                                            max_sort = \
+                                            HostsManage.objects.exclude(state="9").filter(pnode_id=pid).aggregate(
+                                                max_sort=Max('sort', distinct=True))["max_sort"]
+                                            sort = max_sort + 1
+                                        except:
+                                            pass
+                                        cur_host_manage.sort = sort
+
+                                        cur_host_manage.save()
+                                        id = cur_host_manage.id
+                                    except:
+                                        ret = 0
+                                        info = "服务器异常。"
+                                    else:
+                                        ret = 1
+                                        info = "新增节点成功。"
+                            else:
+                                # 修改
+                                try:
+                                    cur_host_manage = HostsManage.objects.get(id=id)
+                                    cur_host_manage.host_ip = host_ip
+                                    cur_host_manage.host_name = host_name
+                                    cur_host_manage.os = host_os
+                                    cur_host_manage.username = username
+                                    cur_host_manage.password = password
+                                    cur_host_manage.config = config
+                                    cur_host_manage.remark = remark
+                                    cur_host_manage.save()
+
+                                    ret = 1
+                                    info = "主机信息修改成功。"
+                                except:
+                                    ret = 0
+                                    info = "服务器异常。"
+                        else:
+                            ret = 0
+                            info = "密码未填写。"
+                    else:
+                        ret = 0
+                        info = "用户名未填写。"
+                else:
+                    ret = 0
+                    info = "系统未选择。"
+            else:
+                ret = 0
+                info = "主机名称不能为空。"
+        else:
+            ret = 0
+            info = "主机IP未填写。"
+    return JsonResponse({
+        "ret": ret,
+        "info": info,
+        "nodeid": id
+    })
 
 
 def host_save(request):

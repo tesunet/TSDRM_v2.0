@@ -22,8 +22,8 @@
                                         <li class="active">
                                             <a href="#tab_1_1" id='tabcheck1' data-toggle="tab"> 基础信息 </a>
                                         </li>
-                                        <li style="pointer-events:none;">
-                                            <a style="color: #cbd5dd" href="#tab_1_2"  id='tabcheck2' data-toggle="tab"> Commvault保护 </a>
+                                        <li >
+                                            <a href="#tab_1_2"  id='tabcheck2' data-toggle="tab"> Commvault保护 </a>
                                         </li>
                                          <li style="pointer-events:none;">
                                             <a style="color: #cbd5dd" id='tabcheck3' data-toggle="tab"> 数据库复制 </a>
@@ -83,7 +83,7 @@
                                                 </div>
                                             </div>
                                             <div class="form-group ">
-                                                <label class="col-md-2 control-label">主机参数</label>
+                                                <label class="col-md-2 control-label">客户端参数</label>
                                                 <div class="col-md-10">
                                                     <div id="context-menu2">
                                                         <ul class="dropdown-menu" role="menu">
@@ -99,14 +99,159 @@
                                                     </select>
                                                 </div>
                                             </div>
+                                            <div class="form-group ">
+                                                <label class="col-md-2 control-label" for="form_control_1">客户端说明</label>
+                                                <div class="col-md-10">
+                                                    <textarea class="form-control" placeholder="最大限制2500个汉字" rows="4"
+                                                              id="remark"
+                                                              name="remark"></textarea>
+                                                    <div class="form-control-focus"></div>
+
+                                                </div>
+                                            </div>
+                                            <div class="form-group " style="text-align:center">
+                                                <button type="button" id="client_save" name="client_save" class="btn blue">
+                                                    保存
+                                                </button>
+                                            </div>
                                         </div>
-                                         <div class="tab-pane fade active in" id="tab_1_2">
+
+                                         <div class="tab-pane fade" id="tab_1_2">
+                                             <div hidden id="div_creatcv" style="text-align:center">
+                                                 <button type="button" id="creatcv" name="creatcv" class="btn blue">
+                                                    创建Commvault保护
+                                                </button>
+                                             </div>
+                                             <div id="div_cv" >
+                                                 <ul id="navtabs2" class="nav nav-tabs">
+                                                    <li class="active">
+                                                        <a href="#tab_2_1" id='tabcheck2_1' data-toggle="tab"> Commvault配置 </a>
+                                                    </li>
+                                                    <li >
+                                                        <a href="#tab_2_2"  id='tabcheck2_2' data-toggle="tab"> 备份历史 </a>
+                                                    </li>
+                                                     <li>
+                                                        <a href="#tab_2_2"  id='tabcheck2_3' data-toggle="tab"> 自主恢复 </a>
+                                                    </li>
+                                                     <li>
+                                                        <a href="#tab_2_2"   id='tabcheck2_4' data-toggle="tab"> 恢复历史 </a>
+                                                    </li>
+                                                </ul>
+                                                 <div class="tab-content">
+                                                    <div class="tab-pane fade active in" id="tab_2_1">
+                                                        <div class="form-group">
+                                                            <label class="col-md-2 control-label"><span
+                                                                    style="color:red; ">*</span>客户端类型</label>
+                                                            <div class="col-md-10">
+                                                                <select name="copy_priority" id="copy_priority" class="form-control">
+                                                                    <option value="1">源端</option>
+                                                                    <option value="2">目标端</option>
+                                                                    <option value="3">源端和目标端</option>
+                                                                </select>
+                                                                <div class="form-control-focus"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label class="col-md-2 control-label"><span style="color:red; ">*</span>工具</label>
+                                                            <div class="col-md-10">
+                                                                <input type="text" id="utils_manage_info" name="utils_manage_info" value="{{ data }}" hidden>
+                                                                <select name="utils_manage" id="utils_manage" class="form-control">
+                                                                    {% for um in utils_manage %}
+                                                                    <option value="{{ um.id }}">{{ um.name }} ({{ um.code }})</option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                                <div class="form-control-focus"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label class="col-md-2 control-label"><span style="color:red; ">*</span>源客户端</label>
+                                                            <div class="col-md-10">
+                                                                <input type="text" id="selected_client_info" name="selected_client_info" hidden>
+                                                                <select name="origin" id="origin" class="form-control">
+
+                                                                </select>
+                                                                <div class="form-control-focus"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label class="col-md-2 control-label"><span style="color:red; ">*</span>应用类型</label>
+                                                            <div class="col-md-10">
+                                                                <select name="origin" id="origin" class="form-control">
+
+                                                                </select>
+                                                                <div class="form-control-focus"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label class="col-md-2 control-label"><span style="color:red; ">*</span>实例</label>
+                                                            <div class="col-md-10">
+                                                                <select name="origin" id="origin" class="form-control">
+
+                                                                </select>
+                                                                <div class="form-control-focus"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label class="col-md-2 control-label"><span style="color:red; ">*</span>恢复目标</label>
+                                                            <div class="col-md-10">
+                                                                <input type="text" id="u_targets" name="u_targets" value="{{ u_targets }}" hidden>
+                                                                <select name="target" id="target" class="form-control">
+
+                                                                </select>
+                                                                <div class="form-control-focus"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label class="col-md-2 control-label"><span
+                                                                    style="color:red; "></span>选择拷贝优先级</label>
+                                                            <div class="col-md-10">
+                                                                <select name="copy_priority" id="copy_priority" class="form-control">
+                                                                    <option value="1">主拷贝</option>
+                                                                    <option value="2">辅助拷贝</option>
+                                                                </select>
+                                                                <div class="form-control-focus"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label class="col-md-2 control-label"><span
+                                                                    style="color:red; "></span>是否开启数据库</label>
+                                                            <div class="col-md-10">
+                                                                <select name="db_open" id="db_open" class="form-control">
+                                                                    <option value="1">是</option>
+                                                                    <option value="2">否</option>
+                                                                </select>
+                                                                <div class="form-control-focus"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label class="col-md-2 control-label"><span
+                                                                    style="color:red; "></span>是否回滚日志</label>
+                                                            <div class="col-md-10">
+                                                                <select name="log_restore" id="log_restore" class="form-control">
+                                                                    <option value="1">是</option>
+                                                                    <option value="2">否</option>
+                                                                </select>
+                                                                <div class="form-control-focus"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group">
+                                                            <label class="col-md-2 control-label"><span style="color:red; "></span>数据重定向路径</label>
+                                                            <div class="col-md-10">
+                                                                <input id="data_path" type="text" name="data_path" class="form-control "
+                                                                       placeholder="">
+                                                                <div class="form-control-focus"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group " style="text-align:center">
+                                                            <button type="button" id="cv_save" name="cv_save" class="btn blue">
+                                                                保存
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                 </div>
+                                             </div>
                                          </div>
-                                        <div class="form-actions noborder" style="margin-top:-30px;text-align:center">
-                                            <button type="button" id="interface_save" name="interface_save" class="btn blue">
-                                                保存
-                                            </button>
-                                        </div>
+
                                     </div>
                                 </div>
                             </div>
@@ -121,7 +266,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group ">
-                                        <label class="col-md-2 control-label" for="form_control_1">名称</label>
+                                        <label class="col-md-2 control-label" for="form_control_1">节点名称</label>
                                         <div class="col-md-10">
                                             <input type="text" class="form-control" id="node_name" name="node_name"
                                                    placeholder="节点名称" value="">
@@ -153,91 +298,26 @@
 
         </div>
     </div>
-    <div class="table-toolbar">
-        <div id="error">
-            {% if errors %}
-                {% for error in errors %}
-                    <div class="alert alert-danger ">{{ error }}</div>
-                    <span> {% endfor %}</span>
-            {% endif %}</div>
-        <div class="row">
-            <div class="col-md-6">
-                <div>
-                    <button id="new" type="button" data-toggle="modal" data-target="#static" class="btn  green">
-                        新增
-                        <i class="fa fa-plus"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <table class="table table-striped table-bordered table-hover table-checkable order-column" id="client_dt">
-        <thead>
-        <tr>
-            <th style="width:40px;"> 序号</th>
-            <th> 客户端名称</th>
-            <th> 客户端ID</th>
-            <th> 操作系统</th>
-            <th> 安装时间</th>
-            <th style="width:50px;"> 操作</th>
-        </tr>
-        </thead>
-        <tbody>
-        </tbody>
-    </table>
-    <div id="static" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
-        <div class="modal-dialog">
+    <div id="static01" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog" style="margin-top: 150px;width:580px">
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
-                    <h4 class="modal-title">客户端信息配置</h4>
-                    <input hidden id="client_manage_id" type="text" name="client_manage_id">
+                    <h4 class="modal-title">参数配置</h4>
+                    <input id="param_operate" type="text" value="new" hidden>
                 </div>
                 <div class="panel-body">
-                    <form class="bs-example form-horizontal activate-form">{% csrf_token %}
-                        <div class="form-body">
-                            <div class="form-group">
-                                <label class="col-md-2 control-label"><span style="color:red; ">*</span>客户端名称</label>
-                                <div class="col-md-10">
-                                    <input type="text" id="client_info" name="client_info" value="{{ oracle_client_info }}" hidden>
-                                    <select class="form-control" id="client_name" name="client_name">
-                                        {% for client in oracle_client %}
-                                        <option value="{{ client.client_name }}">{{ client.client_name }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="col-md-2 control-label"><span style="color:red; "></span>客户端ID</label>
-                                <div class="col-md-10">
-                                    <input id="client_id" type="text" name="client_id" class="form-control " placeholder="" readonly>
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="col-md-2 control-label"><span style="color:red; "></span>操作系统</label>
-                                <div class="col-md-10">
-                                    <input id="client_os" type="text" name="client_os" class="form-control " placeholder="" readonly>
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="col-md-2 control-label"><span style="color:red; "></span>安装时间</label>
-                                <div class="col-md-10">
-                                    <input id="install_time" type="text" name="install_time" class="form-control"
-                                           placeholder="" readonly>
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
+                    <div class="bs-example form-horizontal activate-form">
+                        <div class="form-body" id="params">
+
                         </div>
                         <div class="form-actions ">
                             <div class="modal-footer">
-                                <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
+                                <button type="button" id="params_save" name="params_save" class="btn green">保存
                                 </button>
-                                <button type="button" id="save" name="save" class="btn green">保存</button>
                             </div>
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>

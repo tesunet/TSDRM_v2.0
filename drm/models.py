@@ -127,6 +127,18 @@ class HostsManage(models.Model):
     remark = models.TextField("节点/客户端说明", null=True, default="")
 
 
+class CvClient(models.Model):
+    hostsmanage = models.ForeignKey(HostsManage, blank=True, null=True, verbose_name="客户端")
+    utils = models.ForeignKey("UtilsManage", null=True, verbose_name="关联工具")
+    client_id = models.IntegerField("源端client_id", blank=True, null=True)
+    client_name = models.CharField("源端client_name", blank=True, null=True, max_length=128)
+    type = models.TextField("客户端类型", blank=True, null=True)
+    agentType = models.TextField("应用类型", blank=True, null=True)
+    instanceName = models.TextField("实例名", blank=True, null=True)
+    info = models.TextField("客户端相关信息", blank=True, null=True)
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
+
+
 class Script(models.Model):
     code = models.CharField("脚本编号", blank=True, max_length=50)
     name = models.CharField("脚本名称", blank=True, max_length=500)

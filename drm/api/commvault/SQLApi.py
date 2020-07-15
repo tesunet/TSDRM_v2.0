@@ -284,6 +284,46 @@ class CVApi(DataMonitor):
             })
         return instance_list
 
+    def get_all_instance(self):
+        # instance_sql = """SELECT DISTINCT [clientname],[idataagent],[instance], [clientid]
+        #                   FROM [commserv].[dbo].[CommCellSubClientConfig]
+        #                   WHERE [idataagentstatus] = 'installed' AND [instance] IS NOT NULL AND [instance] != ''
+        #                   AND [idataagent] LIKE 'Oracle%';"""
+        instance_sql = """SELECT [clientid],[clientname],[idataagent],[instance],[backupset]
+                    FROM [commserv].[dbo].[CommCellSubClientConfig] 
+                    WHERE [backupset]!='Indexing BackupSet' AND [subclient]!='(command line)' 
+                    ORDER BY [clientname] DESC, [idataagent] DESC, [instance] DESC, [backupset] DESC, [subclient] DESC"""
+        ret = self.fetch_all(instance_sql)
+        pre_clientname = ""
+        pre_idataagent = ""
+        pre_instance = ""
+        pre_backupset = ""
+
+        instance_list = []
+        # 客户端 应用类型
+        for c in ret:
+            # 去重
+            if c[0] == pre_clientname and c[1] == pre_idataagent and c[2] == pre_instance and c[3] == pre_backupset:
+                continue
+            type = c['backupset']
+            if "File System" in c['idataagent'] or "Virtual" in c['idataagent'] or "Big Data Apps" in c[
+                'idataagent']:
+                type = c['backupset']
+            if "Oracle" in c['idataagent'] or "SQL Server" in c['idataagent'] or "MySQL" in c[
+                'idataagent'] or "Exchange Database" in c['idataagent']:
+                type = c['instance']
+            instance_list.append({
+                "clientid": c[3],
+                "clientname": c[0],
+                "agent": c[1],
+                "instance": type
+            })
+            pre_clientname = c[0]
+            pre_idataagent = c[1]
+            pre_instance = c[2]
+            pre_backupset = c[3]
+        return instance_list
+
     def get_schedules(self, client=None, agent=None, backup_set=None, sub_client=None, schedule=None,
                       schedule_type=None):
         if all([client, agent, backup_set, sub_client, schedule, schedule_type]):
