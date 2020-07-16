@@ -1656,6 +1656,11 @@ def get_client_node(parent, select_id):
             node["text"] = "<img src = '/static/pages/images/d.png' height='24px'> " + node["text"]
         if child.nodetype=="NODE" and child.id not in [1,2,3]:
             node["text"] = "<i class='jstree-icon jstree-themeicon fa fa-folder icon-state-warning icon-lg jstree-themeicon-custom'></i>" + node["text"]
+
+        if child.nodetype=="CLIENT":
+            cv_client = CvClient.objects.exclude(state="9").filter(hostsmanage=child)
+            if len(cv_client)>0:
+                node["text"] = "<img src = '/static/pages/images/cv.png' height='24px'> " + node["text"]
         try:
             if int(select_id) == child.id:
                 node["state"] = {"selected": True}
@@ -1871,10 +1876,10 @@ def get_cvinfo(request):
     for um in utils_manage:
         destination_list = []
         for d in destination:
-            if d['utils_id'] == um.id:
+            if d.utils.id == um.id:
                 destination_list.append({
-                    'id': destination['id'],
-                    'name': destination['client_name']
+                    'id':d.id,
+                    'name': d.client_name
                 })
         u_destination.append({
             'utilid': um.id,
@@ -1932,8 +1937,28 @@ def get_client_detail(request):
 
             cc = CvClient.objects.exclude(state="9").filter(hostsmanage_id=id)
             if len(cc) >0:
-                cvinfo = model_to_dict(cc[0])
+                cvinfo["id"] = cc[0].id
+                cvinfo["type"] = cc[0].type
+                cvinfo["utils_id"] = cc[0].utils_id
+                cvinfo["client_id"] = cc[0].client_id
+                cvinfo["agentType"] = cc[0].agentType
+                cvinfo["instanceName"] = cc[0].instanceName
+                cvinfo["destination_id"] = cc[0].destination_id
+                cvinfo["copy_priority"] = ""
+                cvinfo["db_open"] = ""
+                cvinfo["log_restore"] = ""
+                cvinfo["data_path"] =""
 
+                try:
+                    config = etree.XML(cc[0].info)
+                    param_el = config.xpath("//param")
+                    if len(param_el) >0:
+                        cvinfo["copy_priority"] = param_el[0].attrib.get("copy_priority", ""),
+                        cvinfo["db_open"] = param_el[0].attrib.get("db_open", ""),
+                        cvinfo["log_restore"] = param_el[0].attrib.get("log_restore", ""),
+                        cvinfo["data_path"] = param_el[0].attrib.get("data_path", ""),
+                except:
+                    pass
     return JsonResponse({
         "ret": ret,
         "info": info,
@@ -2015,7 +2040,7 @@ def client_client_save(request):
                                         info = "服务器异常。"
                                     else:
                                         ret = 1
-                                        info = "新增节点成功。"
+                                        info = "主机信息新增成功。"
                             else:
                                 # 修改
                                 try:
@@ -2081,73 +2106,267 @@ def client_cv_save(request):
         info = "网络错误。"
     else:
         if cvclient_type.strip():
-            if cvclient_utils_manage.strip():
-                if cvclient_source.strip():
-                    if cvclient_agentType.strip():
-                        # 新增
-                        if id == 0:
-                            try:
-                                cvclient = CvClient()
-                                cvclient.hostsmanage_id = id
-                                cvclient.utils_id = cvclient_utils_manage
-                                cvclient.client_id = cvclient_source
-                                cvclient.client_name = cvclient_clientname
-                                cvclient.type = cvclient_type
-                                cvclient.agentType = cvclient_agentType
-                                cvclient.instanceName = cvclient_instance
-                                if cvclient_type in (1,3):
-                                    root = etree.Element("root")
-                                    param_node = etree.SubElement(root, "param")
-                                    param_node.attrib["copy_priority"] = cvclient_copy_priority
-                                    param_node.attrib["db_open"] = cvclient_db_open
-                                    param_node.attrib["log_restore"] = cvclient_log_restore
-                                    param_node.attrib["data_path"] = cvclient_data_path
-                                    config = etree.tounicode(root)
-                                    cvclient.info = config
-                                    cvclientcvclient_destination = request.POST.get("cvclient_destination", "")
+            if cvclient_source.strip():
+                if cvclient_agentType.strip():
+                    # 新增
+                    if cv_id == 0:
+                        try:
+                            cvclient = CvClient()
+                            cvclient.hostsmanage_id = id
+                            cvclient.utils_id = cvclient_utils_manage
+                            cvclient.client_id = cvclient_source
+                            cvclient.client_name = cvclient_clientname
+                            cvclient.type = cvclient_type
+                            cvclient.agentType = cvclient_agentType
+                            cvclient.instanceName = cvclient_instance
+                            if cvclient_type in ("1","3"):
+                                root = etree.Element("root")
+                                param_node = etree.SubElement(root, "param")
+                                param_node.attrib["copy_priority"] = cvclient_copy_priority
+                                param_node.attrib["db_open"] = cvclient_db_open
+                                param_node.attrib["log_restore"] = cvclient_log_restore
+                                param_node.attrib["data_path"] = cvclient_data_path
+                                config = etree.tounicode(root)
+                                cvclient.info = config
+                                if cvclient_destination!="self":
+                                    try:
+                                        cvclient_destination = int(cvclient_destination)
+                                        cvclient.destination_id = cvclient_destination
+                                    except:
+                                        pass
+                            cvclient.save()
+                            if cvclient_destination == "self":
+                                cvclient.destination_id = cvclient.id
                                 cvclient.save()
-                                id = cvclient.id
-                            except:
-                                ret = 0
-                                info = "服务器异常。"
-                            else:
-                                ret = 1
-                                info = "新增节点成功。"
+                            cv_id = cvclient.id
+                        except:
+                            ret = 0
+                            info = "服务器异常。"
                         else:
-                            # 修改
-                            try:
-                                cur_host_manage = HostsManage.objects.get(id=id)
-                                cur_host_manage.host_ip = host_ip
-                                cur_host_manage.host_name = host_name
-                                cur_host_manage.os = host_os
-                                cur_host_manage.username = username
-                                cur_host_manage.password = password
-                                cur_host_manage.config = config
-                                cur_host_manage.remark = remark
-                                cur_host_manage.save()
-
-                                ret = 1
-                                info = "主机信息修改成功。"
-                            except:
-                                ret = 0
-                                info = "服务器异常。"
+                            ret = 1
+                            info = "Commvault保护创建成功。"
                     else:
-                        ret = 0
-                        info = "应用类型不能为空。"
+                        # 修改
+                        try:
+                            cvclient = CvClient.objects.get(id=cv_id)
+                            cvclient.hostsmanage_id = id
+                            cvclient.utils_id = cvclient_utils_manage
+                            cvclient.client_id = cvclient_source
+                            cvclient.client_name = cvclient_clientname
+                            cvclient.type = cvclient_type
+                            cvclient.agentType = cvclient_agentType
+                            cvclient.instanceName = cvclient_instance
+                            if cvclient_type in ("1","3"):
+                                root = etree.Element("root")
+                                param_node = etree.SubElement(root, "param")
+                                param_node.attrib["copy_priority"] = cvclient_copy_priority
+                                param_node.attrib["db_open"] = cvclient_db_open
+                                param_node.attrib["log_restore"] = cvclient_log_restore
+                                param_node.attrib["data_path"] = cvclient_data_path
+                                config = etree.tounicode(root)
+                                cvclient.info = config
+                                if cvclient_destination=="self":
+                                    cvclient.destination_id=cv_id
+                                else:
+                                    try:
+                                        cvclient_destination = int(cvclient_destination)
+                                        cvclient.destination_id = cvclient_destination
+                                    except:
+                                        pass
+                            cvclient.save()
+                            ret = 1
+                            info = "Commvault保护修改成功。"
+                        except:
+                            ret = 0
+                            info = "服务器异常。"
                 else:
                     ret = 0
-                    info = "源客户端不能为空。"
+                    info = "应用类型不能为空。"
             else:
                 ret = 0
-                info = "工具不能为空。"
+                info = "源客户端不能为空。"
         else:
             ret = 0
             info = "客户端类型不能为空。"
     return JsonResponse({
         "ret": ret,
         "info": info,
-        "nodeid": id
+        "cv_id": cv_id
     })
+
+
+@login_required
+def client_cv_del(request):
+    if 'id' in request.POST:
+        id = request.POST.get('id', '')
+        try:
+            id = int(id)
+        except:
+            return HttpResponse(0)
+        cv = CvClient.objects.get(id=id)
+        cv.state = "9"
+        cv.save()
+
+        return HttpResponse(1)
+    else:
+        return HttpResponse(0)
+
+
+@login_required
+def client_cv_get_backup_his(request):
+    id = request.GET.get('id', '')
+
+    result = []
+    try:
+        id = int(id)
+        cvclient = CvClient.objects.get(id=id)
+        utils_manage = cvclient.utils
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
+        dm = SQLApi.CVApi(sqlserver_credit)
+        result = dm.get_all_backup_job_list(cvclient.client_name,cvclient.agentType,cvclient.instanceName)
+        dm.close()
+    except Exception as e:
+        print(e)
+
+    return JsonResponse({"data": result})
+
+
+@login_required
+def client_cv_recovery(request):
+    if request.method == 'POST':
+        sourceClient = request.POST.get('sourceClient', '')
+        destClient = request.POST.get('destClient', '')
+        restoreTime = request.POST.get('restoreTime', '')
+        browseJobId = request.POST.get('browseJobId', '')
+        agent = request.POST.get('agent', '')
+        data_path = request.POST.get('data_path', '')
+        copy_priority = request.POST.get('copy_priority', '')
+
+        try:
+            copy_priority = int(copy_priority)
+        except:
+            pass
+
+        data_sp = request.POST.get('data_sp', '')
+
+        #################################
+        # sourceClient>> instance_name  #
+        #################################
+        instance = ""
+        try:
+            cur_origin = CvClient.objects.exclude(state="9").get(client_name=sourceClient)
+        except Origin.DoesNotExist as e:
+            return HttpResponse("恢复任务启动失败, 源客户端不存在。")
+        else:
+            instance = cur_origin.instanceName
+            if not instance:
+                return HttpResponse("恢复任务启动失败, 数据库实例不存在。")
+
+            utils_content = cur_origin.utils.content if cur_origin.utils else ""
+            commvault_credit, sqlserver_credit = get_credit_info(utils_content)
+
+            # restoreTime对应curSCN号
+            dm = SQLApi.CVApi(sqlserver_credit)
+            oraclecopys = dm.get_oracle_backup_job_list(sourceClient)
+            # print("> %s" % restoreTime)
+            curSCN = ""
+            if restoreTime:
+                for i in oraclecopys:
+                    if i["subclient"] == "default" and i['LastTime'] == restoreTime:
+                        # print('>>>>>1')
+                        print(i['LastTime'])
+                        curSCN = i["cur_SCN"]
+                        break
+            else:
+                for i in oraclecopys:
+                    if i["subclient"] == "default":
+                        # print('>>>>>2')
+                        curSCN = i["cur_SCN"]
+                        break
+
+            if copy_priority == 2:
+                # 辅助拷贝状态
+                auxcopys = dm.get_all_auxcopys()
+                jobs_controller = dm.get_job_controller()
+
+                dm.close()
+
+                # 判断当前存储策略是否有辅助拷贝未完成
+                auxcopy_completed = True
+                for job in jobs_controller:
+                    if job['storagePolicy'] == data_sp and job['operation'] == "Aux Copy":
+                        auxcopy_completed = False
+                        break
+                # 假设未恢复成功
+                # auxcopy_status = 'ERROR'
+                print('当前备份记录对应的辅助拷贝状态 %s' % auxcopy_completed)
+                if not auxcopy_completed:
+                    # 找到成功的辅助拷贝，开始时间在辅助拷贝前的、值对应上的主拷贝备份时间点(最终转化UTC)
+                    for auxcopy in auxcopys:
+                        if auxcopy['storagepolicy'] == data_sp and auxcopy['jobstatus'] in ["Completed", "Success"]:
+                            bytesxferred = auxcopy['bytesxferred']
+
+                            end_tag = False
+                            for orcl_copy in oraclecopys:
+                                try:
+                                    orcl_copy_starttime = datetime.datetime.strptime(orcl_copy['StartTime'],
+                                                                                     "%Y-%m-%d %H:%M:%S")
+                                    aux_copy_starttime = datetime.datetime.strptime(auxcopy['startdate'],
+                                                                                    "%Y-%m-%d %H:%M:%S")
+                                    if orcl_copy[
+                                        'numbytesuncomp'] == bytesxferred and orcl_copy_starttime < aux_copy_starttime and \
+                                            orcl_copy['subclient'] == "default":
+                                        # 获取enddate,转化时间
+                                        curSCN = orcl_copy['cur_SCN']
+                                        end_tag = True
+                                        break
+                                except Exception as e:
+                                    print(e)
+                            if end_tag:
+                                break
+
+            dm.close()
+            # print('Rac %s' % curSCN)
+            oraRestoreOperator = {"curSCN": curSCN, "browseJobId": None, "data_path": data_path,
+                                  "copy_priority": copy_priority, "restoreTime": restoreTime}
+            # print("> %s > %s, %s, %s" % (oraRestoreOperator, sourceClient, destClient, instance))
+
+            cvToken = CV_RestApi_Token()
+            cvToken.login(commvault_credit)
+            cvAPI = CV_API(cvToken)
+            if agent.upper() == "ORACLE DATABASE":
+                if cvAPI.restoreOracleBackupset(sourceClient, destClient, instance, oraRestoreOperator):
+                    return HttpResponse("恢复任务已经启动。" + cvAPI.msg)
+                else:
+                    return HttpResponse("恢复任务启动失败。" + cvAPI.msg)
+            elif agent.upper() == "ORACLE RAC":
+                oraRestoreOperator["browseJobId"] = browseJobId
+                if cvAPI.restoreOracleRacBackupset(sourceClient, destClient, instance, oraRestoreOperator):
+                    return HttpResponse("恢复任务已经启动。" + cvAPI.msg)
+                else:
+                    return HttpResponse("恢复任务启动失败。" + cvAPI.msg)
+            else:
+                return HttpResponse("无当前模块，恢复任务启动失败。")
+    else:
+        return HttpResponse("恢复任务启动失败。")
+
+
+@login_required
+def client_cv_get_restore_his(request):
+    id = request.GET.get('id', '')
+
+    result = []
+    try:
+        id = int(id)
+        cvclient = CvClient.objects.get(id=id)
+        utils_manage = cvclient.utils
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
+        dm = SQLApi.CVApi(sqlserver_credit)
+        result = dm.get_all_restore_job_list(cvclient.client_name,cvclient.agentType,cvclient.instanceName)
+        dm.close()
+    except Exception as e:
+        print(e)
+    return JsonResponse({"data": result})
 
 
 def host_save(request):

@@ -211,6 +211,11 @@ urlpatterns = [
     url(r'^client_client_save/$', client_client_save),
     url(r'^get_cvinfo/$', get_cvinfo),
     url(r'^client_cv_save/$', client_cv_save),
+    url(r'^client_cv_del/$', client_cv_del),
+    url(r'^client_cv_get_backup_his/$', client_cv_get_backup_his),
+    url(r'^client_cv_recovery/$', client_cv_recovery),
+    url(r'^client_cv_get_restore_his/$', client_cv_get_restore_his),
+
 
     url(r'^host_save/$', host_save),
     url(r'^hosts_manage_data/$', hosts_manage_data),
