@@ -136,6 +136,7 @@ class CvClient(models.Model):
     agentType = models.TextField("应用类型", blank=True, null=True)
     instanceName = models.TextField("实例名", blank=True, null=True)
     info = models.TextField("客户端相关信息", blank=True, null=True)
+    destination = models.ForeignKey('self', blank=True, null=True,related_name='sourceclient', verbose_name="默认关联终端")
     state = models.CharField("状态", blank=True, null=True, max_length=20)
 
 

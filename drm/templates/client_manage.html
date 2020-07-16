@@ -140,10 +140,11 @@
                                                  <div class="tab-content">
                                                     <div class="tab-pane fade active in" id="tab_2_1">
                                                         <div class="form-group">
+                                                            <input type="text" hidden id="cv_id" name="cvclient_id" value="">
                                                             <label class="col-md-2 control-label"><span
                                                                     style="color:red; ">*</span>客户端类型</label>
                                                             <div class="col-md-10">
-                                                                <select name="copy_priority" id="copy_priority" class="form-control">
+                                                                <select name="cvclient_type" id="cvclient_type" class="form-control">
                                                                     <option value="1">源端</option>
                                                                     <option value="2">目标端</option>
                                                                     <option value="3">源端和目标端</option>
@@ -154,11 +155,9 @@
                                                         <div class="form-group">
                                                             <label class="col-md-2 control-label"><span style="color:red; ">*</span>工具</label>
                                                             <div class="col-md-10">
-                                                                <input type="text" id="utils_manage_info" name="utils_manage_info" value="{{ data }}" hidden>
-                                                                <select name="utils_manage" id="utils_manage" class="form-control">
-                                                                    {% for um in utils_manage %}
-                                                                    <option value="{{ um.id }}">{{ um.name }} ({{ um.code }})</option>
-                                                                    {% endfor %}
+                                                                <input type="text" id="cvclient_utils_manage_info" name="cvclient_utils_manage_info" value="" hidden>
+
+                                                                <select name="cvclient_utils_manage" id="cvclient_utils_manage" class="form-control">
                                                                 </select>
                                                                 <div class="form-control-focus"></div>
                                                             </div>
@@ -166,8 +165,8 @@
                                                         <div class="form-group">
                                                             <label class="col-md-2 control-label"><span style="color:red; ">*</span>源客户端</label>
                                                             <div class="col-md-10">
-                                                                <input type="text" id="selected_client_info" name="selected_client_info" hidden>
-                                                                <select name="origin" id="origin" class="form-control">
+                                                                <input type="text" id="cvclient_client_info" name="cvclient_client_info" value="" hidden>
+                                                                <select name="cvclient_source" id="cvclient_source" class="form-control">
 
                                                                 </select>
                                                                 <div class="form-control-focus"></div>
@@ -176,7 +175,7 @@
                                                         <div class="form-group">
                                                             <label class="col-md-2 control-label"><span style="color:red; ">*</span>应用类型</label>
                                                             <div class="col-md-10">
-                                                                <select name="origin" id="origin" class="form-control">
+                                                                <select name="cvclient_agentType" id="cvclient_agentType" class="form-control">
 
                                                                 </select>
                                                                 <div class="form-control-focus"></div>
@@ -185,66 +184,71 @@
                                                         <div class="form-group">
                                                             <label class="col-md-2 control-label"><span style="color:red; ">*</span>实例</label>
                                                             <div class="col-md-10">
-                                                                <select name="origin" id="origin" class="form-control">
+                                                                <select name="cvclient_instance" id="cvclient_instance" class="form-control">
 
                                                                 </select>
                                                                 <div class="form-control-focus"></div>
                                                             </div>
                                                         </div>
-                                                        <div class="form-group">
-                                                            <label class="col-md-2 control-label"><span style="color:red; ">*</span>恢复目标</label>
-                                                            <div class="col-md-10">
-                                                                <input type="text" id="u_targets" name="u_targets" value="{{ u_targets }}" hidden>
-                                                                <select name="target" id="target" class="form-control">
+                                                        <div id="sourcediv">
+                                                            <div class="form-group">
+                                                                <label class="col-md-2 control-label"><span style="color:red; ">*</span>恢复目标</label>
+                                                                <div class="col-md-10">
+                                                                    <input type="text" id="cvclient_u_destination" name="cvclient_u_destination" value="" hidden>
+                                                                    <select name="cvclient_destination" id="cvclient_destination" class="form-control">
 
-                                                                </select>
-                                                                <div class="form-control-focus"></div>
+                                                                    </select>
+                                                                    <div class="form-control-focus"></div>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <div class="form-group">
-                                                            <label class="col-md-2 control-label"><span
-                                                                    style="color:red; "></span>选择拷贝优先级</label>
-                                                            <div class="col-md-10">
-                                                                <select name="copy_priority" id="copy_priority" class="form-control">
-                                                                    <option value="1">主拷贝</option>
-                                                                    <option value="2">辅助拷贝</option>
-                                                                </select>
-                                                                <div class="form-control-focus"></div>
+                                                            <div class="form-group">
+                                                                <label class="col-md-2 control-label"><span
+                                                                        style="color:red; "></span>选择拷贝优先级</label>
+                                                                <div class="col-md-10">
+                                                                    <select name="cvclient_copy_priority" id="cvclient_copy_priority" class="form-control">
+                                                                        <option value="1">主拷贝</option>
+                                                                        <option value="2">辅助拷贝</option>
+                                                                    </select>
+                                                                    <div class="form-control-focus"></div>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <div class="form-group">
-                                                            <label class="col-md-2 control-label"><span
-                                                                    style="color:red; "></span>是否开启数据库</label>
-                                                            <div class="col-md-10">
-                                                                <select name="db_open" id="db_open" class="form-control">
-                                                                    <option value="1">是</option>
-                                                                    <option value="2">否</option>
-                                                                </select>
-                                                                <div class="form-control-focus"></div>
+                                                            <div class="form-group">
+                                                                <label class="col-md-2 control-label"><span
+                                                                        style="color:red; "></span>是否开启数据库</label>
+                                                                <div class="col-md-10">
+                                                                    <select name="cvclient_db_open" id="cvclient_db_open" class="form-control">
+                                                                        <option value="1">是</option>
+                                                                        <option value="2">否</option>
+                                                                    </select>
+                                                                    <div class="form-control-focus"></div>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <div class="form-group">
-                                                            <label class="col-md-2 control-label"><span
-                                                                    style="color:red; "></span>是否回滚日志</label>
-                                                            <div class="col-md-10">
-                                                                <select name="log_restore" id="log_restore" class="form-control">
-                                                                    <option value="1">是</option>
-                                                                    <option value="2">否</option>
-                                                                </select>
-                                                                <div class="form-control-focus"></div>
+                                                            <div class="form-group">
+                                                                <label class="col-md-2 control-label"><span
+                                                                        style="color:red; "></span>是否回滚日志</label>
+                                                                <div class="col-md-10">
+                                                                    <select name="cvclient_log_restore" id="cvclient_log_restore" class="form-control">
+                                                                        <option value="1">是</option>
+                                                                        <option value="2">否</option>
+                                                                    </select>
+                                                                    <div class="form-control-focus"></div>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                        <div class="form-group">
-                                                            <label class="col-md-2 control-label"><span style="color:red; "></span>数据重定向路径</label>
-                                                            <div class="col-md-10">
-                                                                <input id="data_path" type="text" name="data_path" class="form-control "
-                                                                       placeholder="">
-                                                                <div class="form-control-focus"></div>
+                                                            <div class="form-group">
+                                                                <label class="col-md-2 control-label"><span style="color:red; "></span>数据重定向路径</label>
+                                                                <div class="col-md-10">
+                                                                    <input id="cvclient_data_path" type="text" name="cvclient_data_path" class="form-control "
+                                                                           placeholder="">
+                                                                    <div class="form-control-focus"></div>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                         <div class="form-group " style="text-align:center">
                                                             <button type="button" id="cv_save" name="cv_save" class="btn blue">
                                                                 保存
+                                                            </button>
+                                                            <button type="button" id="cv_del" name="cv_del" class="btn blue">
+                                                                删除
                                                             </button>
                                                         </div>
                                                     </div>

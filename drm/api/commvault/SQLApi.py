@@ -305,17 +305,15 @@ class CVApi(DataMonitor):
             # 去重
             if c[0] == pre_clientname and c[1] == pre_idataagent and c[2] == pre_instance and c[3] == pre_backupset:
                 continue
-            type = c['backupset']
-            if "File System" in c['idataagent'] or "Virtual" in c['idataagent'] or "Big Data Apps" in c[
-                'idataagent']:
-                type = c['backupset']
-            if "Oracle" in c['idataagent'] or "SQL Server" in c['idataagent'] or "MySQL" in c[
-                'idataagent'] or "Exchange Database" in c['idataagent']:
-                type = c['instance']
+            type = c[4]
+            if "File System" in c[2] or "Virtual" in c[2] or "Big Data Apps" in c[2]:
+                type = c[4]
+            if "Oracle" in c[2] or "SQL Server" in c[2] or "MySQL" in c[2] or "Exchange Database" in c[2]:
+                type = c[3]
             instance_list.append({
-                "clientid": c[3],
-                "clientname": c[0],
-                "agent": c[1],
+                "clientid": c[0],
+                "clientname": c[1],
+                "agent": c[2],
                 "instance": type
             })
             pre_clientname = c[0]

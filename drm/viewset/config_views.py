@@ -6,6 +6,7 @@ from django.shortcuts import render
 from django.http import HttpResponseRedirect, Http404, HttpResponse, JsonResponse
 from django.http import StreamingHttpResponse
 from django.db.models import Max
+from django.forms.models import model_to_dict
 
 from ..tasks import *
 from TSDRM import settings
@@ -1626,37 +1627,7 @@ def load_hosts_params(request):
 ######################
 @login_required
 def client_manage(request, funid):
-    # 工具
-    utils_manage = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
-    data = []
 
-    try:
-        pool = ThreadPoolExecutor(max_workers=10)
-
-        all_tasks = [pool.submit(get_instance_list, (um)) for um in utils_manage]
-        for future in as_completed(all_tasks):
-            if future.result():
-                data.append(future.result())
-    except:
-        pass
-
-    # 所有关联终端
-    all_target = Target.objects.exclude(state="9").values()
-
-    u_targets = []
-
-    for um in utils_manage:
-        target_list = []
-        for target in all_target:
-            if target['utils_id'] == um.id:
-                target_list.append({
-                    'target_id': target['id'],
-                    'target_name': target['client_name']
-                })
-        u_targets.append({
-            'utils_manage': um.id,
-            'target_list': target_list
-        })
 
     return render(request, 'client_manage.html',
                   {'username': request.user.userinfo.fullname,
@@ -1875,8 +1846,53 @@ def client_node_save(request):
 
 
 @login_required
+def get_cvinfo(request):
+    # 工具
+    utils_manage = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
+    data = []
+
+    try:
+        pool = ThreadPoolExecutor(max_workers=10)
+
+        all_tasks = [pool.submit(get_instance_list, (um)) for um in utils_manage]
+        for future in as_completed(all_tasks):
+            if future.result():
+                data.append(future.result())
+    except:
+        pass
+    # for um in utils_manage:
+    #     data.append(get_instance_list(um))
+
+    # 所有关联终端
+    destination = CvClient.objects.exclude(state="9").filter(type__in=['2', '3'])
+
+    u_destination = []
+
+    for um in utils_manage:
+        destination_list = []
+        for d in destination:
+            if d['utils_id'] == um.id:
+                destination_list.append({
+                    'id': destination['id'],
+                    'name': destination['client_name']
+                })
+        u_destination.append({
+            'utilid': um.id,
+            'utilname':um.name,
+            'destination_list': destination_list
+        })
+    return JsonResponse({
+        "ret": 1,
+        "info": "查询成功。",
+        "data": data,
+        'u_destination': u_destination,
+    })
+
+
+@login_required
 def get_client_detail(request):
     hostinfo={}
+    cvinfo={}
     id = request.POST.get("id", "")
     try:
         id = int(id)
@@ -1913,10 +1929,16 @@ def get_client_detail(request):
             }
             ret = 1
             info = "查询成功。"
+
+            cc = CvClient.objects.exclude(state="9").filter(hostsmanage_id=id)
+            if len(cc) >0:
+                cvinfo = model_to_dict(cc[0])
+
     return JsonResponse({
         "ret": ret,
         "info": info,
-        "data": hostinfo
+        "data": hostinfo,
+        "cvinfo":cvinfo
     })
 
 
@@ -2027,6 +2049,100 @@ def client_client_save(request):
         else:
             ret = 0
             info = "主机IP未填写。"
+    return JsonResponse({
+        "ret": ret,
+        "info": info,
+        "nodeid": id
+    })
+
+
+@login_required
+def client_cv_save(request):
+    id = request.POST.get("id", "")
+    cv_id = request.POST.get("cv_id", "")
+    cvclient_type = request.POST.get("cvclient_type", "")
+    cvclient_utils_manage = request.POST.get("cvclient_utils_manage", "")
+    cvclient_source = request.POST.get("cvclient_source", "")
+    cvclient_clientname = request.POST.get("cvclient_clientname", "")
+    cvclient_agentType = request.POST.get("cvclient_agentType", "")
+    cvclient_instance = request.POST.get("cvclient_instance", "")
+    cvclient_destination = request.POST.get("cvclient_destination", "")
+    cvclient_copy_priority = request.POST.get("cvclient_copy_priority", "")
+    cvclient_db_open = request.POST.get("cvclient_db_open", "")
+    cvclient_log_restore = request.POST.get("cvclient_log_restore", "")
+    cvclient_data_path = request.POST.get("cvclient_data_path", "")
+
+    try:
+        id = int(id)
+        cv_id = int(cv_id)
+        cvclient_utils_manage = int(cvclient_utils_manage)
+    except:
+        ret = 0
+        info = "网络错误。"
+    else:
+        if cvclient_type.strip():
+            if cvclient_utils_manage.strip():
+                if cvclient_source.strip():
+                    if cvclient_agentType.strip():
+                        # 新增
+                        if id == 0:
+                            try:
+                                cvclient = CvClient()
+                                cvclient.hostsmanage_id = id
+                                cvclient.utils_id = cvclient_utils_manage
+                                cvclient.client_id = cvclient_source
+                                cvclient.client_name = cvclient_clientname
+                                cvclient.type = cvclient_type
+                                cvclient.agentType = cvclient_agentType
+                                cvclient.instanceName = cvclient_instance
+                                if cvclient_type in (1,3):
+                                    root = etree.Element("root")
+                                    param_node = etree.SubElement(root, "param")
+                                    param_node.attrib["copy_priority"] = cvclient_copy_priority
+                                    param_node.attrib["db_open"] = cvclient_db_open
+                                    param_node.attrib["log_restore"] = cvclient_log_restore
+                                    param_node.attrib["data_path"] = cvclient_data_path
+                                    config = etree.tounicode(root)
+                                    cvclient.info = config
+                                    cvclientcvclient_destination = request.POST.get("cvclient_destination", "")
+                                cvclient.save()
+                                id = cvclient.id
+                            except:
+                                ret = 0
+                                info = "服务器异常。"
+                            else:
+                                ret = 1
+                                info = "新增节点成功。"
+                        else:
+                            # 修改
+                            try:
+                                cur_host_manage = HostsManage.objects.get(id=id)
+                                cur_host_manage.host_ip = host_ip
+                                cur_host_manage.host_name = host_name
+                                cur_host_manage.os = host_os
+                                cur_host_manage.username = username
+                                cur_host_manage.password = password
+                                cur_host_manage.config = config
+                                cur_host_manage.remark = remark
+                                cur_host_manage.save()
+
+                                ret = 1
+                                info = "主机信息修改成功。"
+                            except:
+                                ret = 0
+                                info = "服务器异常。"
+                    else:
+                        ret = 0
+                        info = "应用类型不能为空。"
+                else:
+                    ret = 0
+                    info = "源客户端不能为空。"
+            else:
+                ret = 0
+                info = "工具不能为空。"
+        else:
+            ret = 0
+            info = "客户端类型不能为空。"
     return JsonResponse({
         "ret": ret,
         "info": info,

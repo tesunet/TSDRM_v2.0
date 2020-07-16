@@ -1,4 +1,15 @@
 $(document).ready(function () {
+
+    function inArray(search,array) {
+        for (var i in array) {
+            if (JSON.stringify(array[i])==JSON.stringify(search)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
     function getClientree() {
         $.ajax({
             type: 'POST',
@@ -184,6 +195,7 @@ $(document).ready(function () {
                         $("#title").text(data.node.data.name);
 
                         if (type == "CLIENT") {
+                            $("#tabcheck1").click();
                              $.ajax({
                                 type: "POST",
                                 dataType: 'json',
@@ -193,18 +205,28 @@ $(document).ready(function () {
                                     },
                                 success: function (data) {
                                     if (data.ret == 1) {
+                                        //基础信息
                                         $("#host_ip").val(data.data.host_ip);
                                         $("#host_name").val(data.data.host_name);
                                         $("#os").val(data.data.os);
                                         $("#username").val(data.data.username);
                                         $("#password").val(data.data.password);
                                         $("#remark").val(data.data.remark);
-
                                         // 动态参数
                                         $('#param_se').empty();
                                         var variable_param_list = data.data.variable_param_list;
                                         for (var i = 0; i < variable_param_list.length; i++) {
                                             $('#param_se').append('<option value="' + variable_param_list[i].variable_name + '">' + variable_param_list[i].param_name + ':'  + variable_param_list[i].variable_name +  ':' + variable_param_list[i].param_value + '</option>');
+                                        }
+
+                                        //cv信息
+                                        if(JSON.stringify(data.cvinfo) != '{}'){
+                                            $("#div_creatcv").hide();
+                                            $("#div_cv").show();
+                                        }
+                                        else{
+                                            $("#div_creatcv").show();
+                                            $("#div_cv").hide();
                                         }
                                     }
                                     else {
@@ -245,7 +267,94 @@ $(document).ready(function () {
             }
         });
     }
+
+    function getCvInstance() {
+        $("#cvclient_instance").empty();
+        var clientdata = JSON.parse($("#cvclient_client_info").val());
+        var instancelist = [];
+        for (var i = 0; i < clientdata.length; i++) {
+            if (clientdata[i].clientid == $("#cvclient_source").val() && clientdata[i].agent == $("#cvclient_agentType").val()) {
+                if (instancelist.indexOf(clientdata[i].instance) == -1) {
+                    instancelist.push(clientdata[i].instance);
+                }
+            }
+        }
+        for (var i = 0; i < instancelist.length; i++) {
+            $("#cvclient_instance").append('<option value="' +instancelist[i]+ '">' +  instancelist[i]+ '</option>');
+        }
+    }
+
+    function getCvAgenttype() {
+        $("#cvclient_agentType").empty();
+        var clientdata = JSON.parse($("#cvclient_client_info").val());
+        var agentlist = [];
+        for (var i = 0; i < clientdata.length; i++) {
+            if (clientdata[i].clientid == $("#cvclient_source").val()) {
+                if (agentlist.indexOf(clientdata[i].agent) == -1) {
+                    agentlist.push(clientdata[i].agent);
+                }
+            }
+        }
+        for (var i = 0; i < agentlist.length; i++) {
+            $("#cvclient_agentType").append('<option value="' +agentlist[i]+ '">' +  agentlist[i]+ '</option>');
+        }
+        getCvInstance();
+    }
+
+    function getCvClient() {
+        $("#cvclient_source").empty();
+        var utildata = JSON.parse($("#cvclient_utils_manage_info").val());
+        for (var i = 0; i < utildata.length; i++) {
+            if(utildata[i].utils_manage==$("#cvclient_utils_manage").val()){
+                var clientlist=[];
+                for (var j = 0; j <utildata[i].instance_list.length; j++) {
+                    var client={"clientid":utildata[i].instance_list[j].clientid,"clientname":utildata[i].instance_list[j].clientname};
+                    if(!inArray(client,clientlist)){
+                        clientlist.push(client);
+                     }
+                }
+                for (var j = 0; j < clientlist.length; j++) {
+                    $("#cvclient_source").append('<option value="' + clientlist[j].clientid+ '">' +  clientlist[j].clientname+ '</option>');
+                }
+                $("#cvclient_client_info").val(JSON.stringify(utildata[i].instance_list))
+                break;
+            }
+        }
+        getCvAgenttype();
+    }
+
+    function getCvDestination() {
+        $("#cvclient_destination").empty();
+        var destinationdata = JSON.parse($("#cvclient_u_destination").val());
+        for (var i = 0; i < destinationdata.length; i++) {
+            if(destinationdata[i].utilid==$("#cvclient_utils_manage").val()){
+                for (var j = 0; j <destinationdata[i].destination_list.length; j++) {
+                    $("#cvclient_destination").append('<option value="' + destinationdata[i].destination_list[j].id+ '">' +  destinationdata[i].destination_list[j].name+ '</option>');
+                }
+                break;
+            }
+        }
+    }
+
+    function getCvinfo() {
+        $.ajax({
+            type: 'POST',
+            dataType: 'json',
+            url: '../get_cvinfo/',
+            success: function (data) {
+                for (var i = 0; i < data.u_destination.length; i++) {
+                    $("#cvclient_utils_manage").append('<option value="' + data.u_destination[i].utilid+ '">' + data.u_destination[i].utilname + '</option>');
+                }
+                $("#cvclient_utils_manage_info").val(JSON.stringify(data.data))
+                $("#cvclient_u_destination").val(JSON.stringify(data.u_destination))
+                getCvClient();
+                getCvDestination();
+            }
+        });
+    }
+
     getClientree();
+    getCvinfo();
 
     $('#node_save').click(function () {
         $.ajax({
@@ -449,7 +558,69 @@ $(document).ready(function () {
         $("#static01").modal("hide");
     });
 
+    $('#creatcv').click(function () {
+        $("#div_creatcv").hide();
+        $("#div_cv").show();
+        $("#cv_del").hide();
 
+        $("#cv_id").val("0");
+        $("#cvclient_type").val("1");
 
+    });
 
+    $("#cvclient_utils_manage").change(function () {
+        getCvClient();
+        getCvDestination();
+    });
+    $("#cvclient_source").change(function () {
+        getCvAgenttype();
+    });
+    $("#cvclient_agentType").change(function () {
+        getCvInstance();
+    });
+    $("#cvclient_type").change(function () {
+        if($("#cvclient_type").val()=="2") {
+            $("#sourcediv").hide();
+        }
+        else{
+            $("#sourcediv").show();
+        }
+    });
+
+    $('#cv_save').click(function () {
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../client_cv_save/",
+            data: {
+
+                id: $("#id").val(),
+                cv_id: $("#cv_id").val(),
+                cvclient_type: $("#cvclient_type").val(),
+                cvclient_utils_manage: $("#cvclient_utils_manage").val(),
+                cvclient_source: $("#cvclient_source").val(),
+                cvclient_clientname: $("#cvclient_source").text(),
+                cvclient_agentType: $("#cvclient_agentType").val(),
+                cvclient_instance: $("#cvclient_instance").val(),
+                cvclient_destination: $("#cvclient_destination").val(),
+                cvclient_copy_priority: $("#cvclient_copy_priority").val(),
+                cvclient_db_open: $("#cvclient_db_open").val(),
+                cvclient_log_restore: $("#cvclient_log_restore").val(),
+                cvclient_data_path: $("#cvclient_data_path").val(),
+
+                },
+            success: function (data) {
+                if (data.ret == 1) {
+                    if ($("#id").val() == "0") {
+                        $("#cv_id").val(data.cv_id);
+                        $("#cv_del").show();
+                    }
+                }
+                alert(data.info);
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+            }
+        });
+    });
 });

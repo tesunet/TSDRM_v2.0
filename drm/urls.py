@@ -209,6 +209,8 @@ urlpatterns = [
     url(r'^client_node_save/$', client_node_save),
     url(r'^get_client_detail/$', get_client_detail),
     url(r'^client_client_save/$', client_client_save),
+    url(r'^get_cvinfo/$', get_cvinfo),
+    url(r'^client_cv_save/$', client_cv_save),
 
     url(r'^host_save/$', host_save),
     url(r'^hosts_manage_data/$', hosts_manage_data),
