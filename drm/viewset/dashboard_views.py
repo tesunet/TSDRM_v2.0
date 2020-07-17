@@ -674,6 +674,10 @@ def get_disk_space_daily(request):
                         last_month_total_space = round(dswd["total_space"] / 1024, 2)
                         break
                 
+                # 当月未取数
+                if i == 0 and not has_data:
+                    continue
+
                 if not has_data:
                     # 与上月相同
                     capacity_available_list.append(last_month_capacity_avaible)
@@ -730,7 +734,9 @@ def get_disk_space_daily(request):
                         last_month_capacity_avaible = round(sum_capacity_avaible / 1024, 2)
                         last_month_total_space = round(sum_total_space / 1024, 2)
                         break
-                
+                # 当月未取数
+                if i == 0 and not has_data:
+                    continue
                 if not has_data:
                     # 与上月相同
                     capacity_available_list.append(last_month_capacity_avaible)
