@@ -12,6 +12,7 @@ import subprocess
 import uuid
 
 
+@shared_task
 def get_disk_space_crond():
     """
     一周获取一次Commvault磁盘信息

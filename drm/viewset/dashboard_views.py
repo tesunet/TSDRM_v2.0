@@ -23,20 +23,10 @@ import wmi
 def dashboard(request, funid):
     util_manages = UtilsManage.objects.exclude(state='9')
 
-    # 监控页面url 磁盘空间 url
-    funs = Fun.objects.all()
-    disk_space = "/"
-    client_list = "/"
-    for fun in funs:
-        if "disk_space" in fun.url:
-            disk_space = fun.url
-        if "client_list" in fun.url:
-            client_list = fun.url
-
     return render(request, "dashboard.html", {
         'username': request.user.userinfo.fullname,
         "pagefuns": getpagefuns(funid, request=request),
-        "util_manages": util_manages, "disk_space": disk_space, "client_list": client_list
+        "util_manages": util_manages
     })
 
 
@@ -753,6 +743,15 @@ def get_ma_disk_space(request):
     info = ''
     utils_id = request.POST.get('util', '')
 
+    # 监控页面url 磁盘空间 url
+    funs = Fun.objects.all()
+    disk_space = "/"
+    client_list = "/"
+    for fun in funs:
+        if "disk_space" in fun.url:
+            disk_space = "{0}?util={1}".format(fun.url, utils_id)
+        if "client_list" in fun.url:
+            client_list = "{0}?util={1}".format(fun.url, utils_id)
     try:
         utils_id = int(utils_id)
         utils_manage = UtilsManage.objects.get(id=utils_id)
@@ -785,6 +784,8 @@ def get_ma_disk_space(request):
                 "used_space_percent": used_space_percent,
                 "total_space": round(total_space / 1024 / 1024, 2),
                 "used_space": round((total_space - space_reserved - capacity_available) / 1024 / 1024, 2),
+                "bk_space_href": disk_space,
+                "client_list_href": client_list
             }
         except:
             pass

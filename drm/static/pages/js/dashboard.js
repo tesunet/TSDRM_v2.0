@@ -288,6 +288,8 @@ $(document).ready(function () {
         getclientnum();
         getsla();
         getdashboard();
+        getAgentSpace($(this).val());
+        getBackupSpace($(this).val());
     });
 
 
@@ -326,52 +328,61 @@ $(document).ready(function () {
     /*
     TOP 5 客户端应用程序大小
      */
-    $('#loading4').show();
-    $('#app_space_div').hide();
-    $.ajax({
-        type: "POST",
-        dataType: "JSON",
-        url: "../get_top5_app_capacity/",
-        data: {
-            "util": $('#util').val()
-        },
-        success: function (data) {
-            $('#loading4').hide();
-            $('#app_space_div').show();
-            var top5_data = eval(data.data)
-            $('#tb_top5').empty();
-            for (var i = 0; i < top5_data.length; i++) {
-                if (i > 5) {
-                    break;
+    function getAgentSpace(util){
+        $('#loading4').show();
+        $('#app_space_div').hide();
+        $.ajax({
+            type: "POST",
+            dataType: "JSON",
+            url: "../get_top5_app_capacity/",
+            data: {
+                "util": util,
+            },
+            success: function (data) {
+                $('#loading4').hide();
+                $('#app_space_div').show();
+                var top5_data = eval(data.data)
+                $('#tb_top5').empty();
+                for (var i = 0; i < top5_data.length; i++) {
+                    if (i > 5) {
+                        break;
+                    }
+                    $('#tb_top5').append('<tr>\n' +
+                        '    <td> ' + top5_data[i].client_name + '</td>\n' +
+                        '    <td> ' + top5_data[i].app_capacity + ' TB </td>\n' +
+                        '</tr>')
                 }
-                $('#tb_top5').append('<tr>\n' +
-                    '    <td> ' + top5_data[i].client_name + '</td>\n' +
-                    '    <td> ' + top5_data[i].app_capacity + ' TB </td>\n' +
-                    '</tr>')
             }
-        }
-    });
-
+        });
+    }
+    getAgentSpace($("#util").val());
     /*
     备份空间使用情况
      */
-    $('#loading3').show();
-    $('#disk_space_div').hide();
-    $.ajax({
-        type: "POST",
-        dataType: "JSON",
-        url: "../get_ma_disk_space/",
-        data: {
-            "util": $('#util').val()
-        },
-        success: function (data) {
-            $('#loading3').hide();
-            $('#disk_space_div').show();
-            var disk_space = data.data;
-            $('#ma_disk_space input').eq(0).val(disk_space["used_space_percent"].toFixed(0)).trigger('change');
-            $('#ma_disk_space h4').eq(1).text(disk_space["used_space"] + " TB/" + disk_space["total_space"] + " TB")
-        }
-    });
+    function getBackupSpace(util){
+        $('#loading3').show();
+        $('#disk_space_div').hide();
+        $.ajax({
+            type: "POST",
+            dataType: "JSON",
+            url: "../get_ma_disk_space/",
+            data: {
+                "util": util
+            },
+            success: function (data) {
+                $('#loading3').hide();
+                $('#disk_space_div').show();
+                var disk_space = data.data;
+                $('#ma_disk_space input').eq(0).val(disk_space["used_space_percent"].toFixed(0)).trigger('change');
+                $('#ma_disk_space h4').eq(1).text(disk_space["used_space"] + " TB/" + disk_space["total_space"] + " TB")
+    
+                // href
+                $("#a_bk_space").attr("href", data.data["bk_space_href"]);
+                $("#a_top5").attr("href", data.data["client_list_href"]);
+            }
+        });
+    }
+    getBackupSpace($("#util").val());
 });
 
 
