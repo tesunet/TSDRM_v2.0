@@ -1,6 +1,7 @@
 # 监控图表：仪表盘、灾备基础框架
 from django.shortcuts import render
 from django.http import Http404, JsonResponse
+from django.contrib.auth.decorators import login_required
 
 from ..tasks import *
 from .basic_views import getpagefuns
@@ -8,7 +9,8 @@ from .config_views import get_credit_info
 from .public_func import *
 from drm.api.commvault import SQLApi
 from drm.api.commvault.RestApi import *
-from django.contrib.auth.decorators import login_required
+
+import datetime
 import pythoncom
 from ping3 import ping
 
@@ -633,6 +635,7 @@ def get_disk_space(request):
 @login_required
 def get_disk_space_daily(request):
     disk_list = []
+    categories = []
 
     media_id = request.POST.get("media_id", "")
     utils_id = request.POST.get("utils_id", "")
@@ -646,29 +649,46 @@ def get_disk_space_daily(request):
     except:
         pass
     if media_id:
-        disk_space_weekly_data = DiskSpaceWeeklyData.objects.filter(utils_id=utils_id, media_id=media_id).values()
+        disk_space_weekly_data = DiskSpaceWeeklyData.objects.filter(utils_id=utils_id).filter(media_id=media_id).order_by("extract_time").values()
         capacity_available_list = []
-        space_reserved_list = []
         total_space_list = []
 
+        # 遍历12个月
         if disk_space_weekly_data:
-            for num, dswd in enumerate(disk_space_weekly_data):
-                if num > 20:
-                    break
+            today = datetime.date.today()
+            last_month_capacity_avaible = 0
+            last_month_total_space = 0
 
-                capacity_available_list.append(round(dswd["capacity_avaible"] / 1024, 2))
-                space_reserved_list.append(round(dswd["space_reserved"] / 1024, 2))
-                total_space_list.append(round(dswd["total_space"] / 1024, 2))
+            for i in range(13):
+                c_time = "{0:%Y-%m}".format(today)
+
+                # 当月的表数据 第一条
+                has_data = False
+                for dswd in disk_space_weekly_data:
+                    extract_time = "{0:%Y-%m}".format(dswd["extract_time"]) if dswd["extract_time"] else ""
+                    if extract_time == c_time:
+                        capacity_available_list.append(round(dswd["capacity_avaible"] / 1024, 2))
+                        total_space_list.append(round(dswd["total_space"] / 1024, 2))
+                        has_data = True
+                        last_month_capacity_avaible = round(dswd["capacity_avaible"] / 1024, 2)
+                        last_month_total_space = round(dswd["total_space"] / 1024, 2)
+                        break
+                
+                if not has_data:
+                    # 与上月相同
+                    capacity_available_list.append(last_month_capacity_avaible)
+                    total_space_list.append(last_month_total_space)
+
+                # 减去一个月
+                first_day = today.replace(day=1)
+                today = first_day - datetime.timedelta(days=1)
+
+                categories.append(c_time)
 
             disk_list.append({
                 "name": "可用容量",
                 "color": "#3598dc",
                 "capacity_list": capacity_available_list
-            })
-            disk_list.append({
-                "name": "保留空间容量",
-                "color": "#e7505a",
-                "capacity_list": space_reserved_list
             })
             disk_list.append({
                 "name": "总容量",
@@ -677,48 +697,55 @@ def get_disk_space_daily(request):
             })
     else:
         # 总
-        disk_space_weekly_data = DiskSpaceWeeklyData.objects.filter(utils_id=utils_id).values(
-            "utils_id", "capacity_avaible", "space_reserved", "total_space", "point_tag"
-        )
+        #   同一次取得的库空间相加
+        disk_space_weekly_data = DiskSpaceWeeklyData.objects.filter(utils_id=utils_id).order_by("extract_time").values()
         capacity_available_list = []
-        space_reserved_list = []
         total_space_list = []
         if disk_space_weekly_data:
-            pre_point_tag = ""
-            num = 0
-            for dswd in disk_space_weekly_data:
-                if num > 20:
-                    break
-                # util_id 与 相同记录的 数据相加
-                if dswd["point_tag"] == pre_point_tag:
-                    continue
-                num += 1
+            today = datetime.date.today()
+            last_month_capacity_avaible = 0
+            last_month_total_space = 0
 
-                cur_disk_space_weekly_data = [i for i in disk_space_weekly_data if
-                                              i["utils_id"] == utils_id and i["point_tag"] == dswd["point_tag"]]
+            for i in range(13):
+                c_time = "{0:%Y-%m}".format(today)
 
-                sum_capacity_avaible = 0
-                sum_space_reserved = 0
-                sum_total_space = 0
-                for cdswd in cur_disk_space_weekly_data:
-                    sum_capacity_avaible += cdswd["capacity_avaible"]
-                    sum_space_reserved += cdswd["space_reserved"]
-                    sum_total_space += cdswd["total_space"]
+                # 当月的表数据 第一条
+                has_data = False
+                for dswd in disk_space_weekly_data:
+                    extract_time = "{0:%Y-%m}".format(dswd["extract_time"]) if dswd["extract_time"] else ""
+                    if extract_time == c_time:  # 当月的
+                        # 相同point_tag(第一个)的相加
+                        point_tag = dswd["point_tag"]
+                        cur_disk_space_weekly_data = [i for i in disk_space_weekly_data if i["utils_id"] == utils_id and i["point_tag"] == point_tag and extract_time == c_time]
 
-                capacity_available_list.append(round(sum_capacity_avaible / 1024, 2))
-                space_reserved_list.append(round(sum_space_reserved / 1024, 2))
-                total_space_list.append(round(sum_total_space / 1024, 2))
+                        sum_capacity_avaible = 0
+                        sum_total_space = 0
+                        for cdswd in cur_disk_space_weekly_data:
+                            sum_capacity_avaible += cdswd["capacity_avaible"]
+                            sum_total_space += cdswd["total_space"]
 
-                pre_point_tag = dswd["point_tag"]
+                        capacity_available_list.append(round(sum_capacity_avaible / 1024, 2))
+                        total_space_list.append(round(sum_total_space / 1024, 2))
+                        has_data = True
+                        last_month_capacity_avaible = round(sum_capacity_avaible / 1024, 2)
+                        last_month_total_space = round(sum_total_space / 1024, 2)
+                        break
+                
+                if not has_data:
+                    # 与上月相同
+                    capacity_available_list.append(last_month_capacity_avaible)
+                    total_space_list.append(last_month_total_space)
+
+                # 减去一个月
+                first_day = today.replace(day=1)
+                today = first_day - datetime.timedelta(days=1)
+
+                categories.append(c_time)
+
             disk_list.append({
                 "name": "可用容量",
                 "color": "#3598dc",
                 "capacity_list": capacity_available_list
-            })
-            disk_list.append({
-                "name": "保留空间容量",
-                "color": "#e7505a",
-                "capacity_list": space_reserved_list
             })
             disk_list.append({
                 "name": "总容量",
@@ -727,7 +754,8 @@ def get_disk_space_daily(request):
             })
 
     return JsonResponse({
-        "data": disk_list,
+        "disk_list": disk_list,
+        "categories": categories
     })
 
 
