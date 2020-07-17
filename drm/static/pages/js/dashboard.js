@@ -254,7 +254,7 @@ function getdashboard() {
                         '            <div class="cont-col2">\n' +
                         '                <div class="desc">\n' +
                         '                    <a href="#" data-toggle="modal" data-target="#static">\n' +
-                        '                        <span>' + '[' + data.error_job_list[i].enddate + ']' + '</span>\n' +
+                        '                        <span class="label label-sm label-success">' +  data.error_job_list[i].enddate  + '</span> \n' +
                         '                        <span>' +
                         '                            <font style="vertical-align: inherit;">\n' +
                         '                                <font style="vertical-align: inherit;">' + data.error_job_list[i].jobfailedreason + '</font>\n' +
