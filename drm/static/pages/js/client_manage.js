@@ -409,7 +409,10 @@ function getCvinfo() {
 }
 
 $(document).ready(function () {
-
+    $(".tabbed>ul>li").click(function () {
+        var aa = this.firstElementChild;
+        aa .click();
+    });
 
     $('#loading').show();
     $('#showdata').hide();
