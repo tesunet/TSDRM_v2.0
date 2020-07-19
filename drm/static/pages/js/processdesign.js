@@ -98,7 +98,7 @@ $(document).ready(function () {
         $('#param_se').empty();
         var variable_param_list = data.variable_param_list;
         for (var i = 0; i < variable_param_list.length; i++) {            
-            $('#param_se').append('<option value="' + variable_param_list[i].variable_name + '">' + variable_param_list[i].param_name + ': ' + variable_param_list[i].variable_name + ': ' + variable_param_list[i].param_value + '</option>');
+            $('#param_se').append('<option value="' + variable_param_list[i].variable_name + '">' + variable_param_list[i].param_name + ':' + variable_param_list[i].variable_name + ':' + variable_param_list[i].param_value + '</option>');
         }
     });
 
