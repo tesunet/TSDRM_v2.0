@@ -158,7 +158,7 @@ class Script(models.Model):
 class ScriptInstance(models.Model):
     script = models.ForeignKey(Script, blank=True, null=True, verbose_name='源接口')
     step = models.ForeignKey(Step, blank=True, null=True, verbose_name="步骤")
-    origin = models.ForeignKey("Origin", blank=True, null=True, verbose_name='源端客户端')
+    primary = models.ForeignKey("CvClient", blank=True, null=True, verbose_name='源端客户端')
     utils = models.ForeignKey("UtilsManage", blank=True, null=True, verbose_name='工具')
     name = models.CharField("接口实例名称", blank=True, max_length=500)
     remark = models.CharField("接口实例说明", blank=True, max_length=500)

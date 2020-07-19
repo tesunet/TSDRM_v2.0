@@ -829,17 +829,17 @@ def processconfig(request, funid):
     all_hosts_manage = HostsManage.objects.exclude(state="9")
 
     # commvault源端客户端
-    all_origins = Origin.objects.exclude(state="9").order_by("utils__name")
+    cv_clients = CvClient.objects.exclude(state="9").order_by("utils__name")
 
     # 工具
-    origin_data = []
+    cv_client_data = []
     utils = UtilsManage.objects.exclude(state="9").filter(util_type="Commvault")
     for u in utils:
-        origin_list = u.origin_set.exclude(state="9").values("id", "client_name")
-        origin_data.append({
+        cv_client_list = u.cvclient_set.exclude(state="9").values("id", "client_name")
+        cv_client_data.append({
             "utils_id": u.id,
             "utils_name": u.name,
-            "origins": origin_list,
+            "cv_client_list": cv_client_list,
         })
 
     # tree_data
@@ -873,7 +873,7 @@ def processconfig(request, funid):
     return render(request, 'processconfig.html',
                   {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request),
                    "processlist": processlist, "process_id": process_id, "all_hosts_manage": all_hosts_manage,
-                   "all_origins": all_origins, "tree_data": tree_data, "origin_data": origin_data})
+                   "cv_clients": cv_clients, "tree_data": tree_data, "cv_client_data": cv_client_data})
 
 
 @login_required
@@ -924,61 +924,80 @@ def processscriptsave(request):
         sort = int(sort)
     except:
         sort = None
-        # 初始化
-    if interface_type == "Commvault":
-        create_data = {
-            "params": config,
-            "step_id": step_id,
-            "script_id": script_id,
-            "name": script_instance_name,
-            "utils_id": utils,
-            "origin_id": origin_id,
-            "log_address": log_address,
-            "sort": sort,
-            "remark": script_instance_remark,
-            "hosts_manage_id": None,
-        }
-    else:
-        create_data = {
-            "params": config,
-            "step_id": step_id,
-            "script_id": script_id,
-            "hosts_manage_id": host_id,
-            "name": script_instance_name,
-            "log_address": log_address,
-            "sort": sort,
-            "remark": script_instance_remark,
-
-            "utils_id": None,
-            "origin_id": None,
-        }
-
-    try:
-        step = Step.objects.get(id=int(step_id))
-        script_id = int(script_id)
-    except Exception as e:
+    # 初始化
+    if not script_instance_name:
         result["status"] = 0
-        result["info"] = "保存脚本失败: {0}。".format(e)
+        result["info"] = "接口实例名称未填写。"
     else:
-        # 步骤在已有该脚本实例不可保存
-        if script_instance_id:
-            try:
-                ScriptInstance.objects.filter(id=script_instance_id).update(**create_data)
-                # 步骤下所有脚本
-                result["data"] = str(step.scriptinstance_set.exclude(state="9").values("id", "name"))
-                result["id"] = script_instance_id
-            except Exception as e:
-                result["status"] = 0
-                result["info"] = "修改脚本失败: {0}。".format(e)
+        if interface_type == "Commvault":
+            if not utils:
+                return JsonResponse({
+                    "status": 0,
+                    "info": "未选择工具。"
+                })
+            if not origin_id:
+                return JsonResponse({
+                    "status": 0,
+                    "info": "未选择源客户端"
+                })
+            create_data = {
+                "params": config,
+                "step_id": step_id,
+                "script_id": script_id,
+                "name": script_instance_name,
+                "utils_id": utils,
+                "primary_id": origin_id,
+                "log_address": log_address,
+                "sort": sort,
+                "remark": script_instance_remark,
+                "hosts_manage_id": None,
+            }
         else:
-            try:
-                script_instance_id = ScriptInstance.objects.create(**create_data).id
-                # 步骤下所有脚本
-                result["data"] = str(step.scriptinstance_set.exclude(state="9").values("id", "name"))
-                result["id"] = script_instance_id
-            except Exception as e:
-                result["status"] = 0
-                result["info"] = "新增脚本失败: {0}。".format(e)
+            if not host_id:
+                return JsonResponse({
+                    "status": 0,
+                    "info": "未选择主机"
+                })
+            create_data = {
+                "params": config,
+                "step_id": step_id,
+                "script_id": script_id,
+                "hosts_manage_id": host_id,
+                "name": script_instance_name,
+                "log_address": log_address,
+                "sort": sort,
+                "remark": script_instance_remark,
+
+                "utils_id": None,
+                "primary_id": None,
+            }
+
+        try:
+            step = Step.objects.get(id=int(step_id))
+            script_id = int(script_id)
+        except Exception as e:
+            result["status"] = 0
+            result["info"] = "保存脚本失败: {0}。".format(e)
+        else:
+            # 步骤在已有该脚本实例不可保存
+            if script_instance_id:
+                try:
+                    ScriptInstance.objects.filter(id=script_instance_id).update(**create_data)
+                    # 步骤下所有脚本
+                    result["data"] = str(step.scriptinstance_set.exclude(state="9").values("id", "name"))
+                    result["id"] = script_instance_id
+                except Exception as e:
+                    result["status"] = 0
+                    result["info"] = "修改脚本失败: {0}。".format(e)
+            else:
+                try:
+                    script_instance_id = ScriptInstance.objects.create(**create_data).id
+                    # 步骤下所有脚本
+                    result["data"] = str(step.scriptinstance_set.exclude(state="9").values("id", "name"))
+                    result["id"] = script_instance_id
+                except Exception as e:
+                    result["status"] = 0
+                    result["info"] = "新增脚本失败: {0}。".format(e)
 
     return JsonResponse(result)
 
@@ -1038,7 +1057,7 @@ def get_script_data(request):
             "params": "",
             "log_address": script_instance.log_address,
             "host_id": script_instance.hosts_manage_id,
-            "origin_id": script_instance.origin_id,
+            "primary_id": script_instance.primary_id,
             "utils_id": script_instance.utils_id
         }
 

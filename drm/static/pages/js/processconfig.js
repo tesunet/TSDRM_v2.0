@@ -103,18 +103,18 @@ function displayParams() {
 
 // 根据工具加载源客户端
 $("#utils").empty()
-for (var i=0; i<origin_data.length; i++){
-    $("#utils").append('<option value="' + origin_data[i].utils_id + '">' + origin_data[i].utils_name + '</option>');
+for (var i=0; i<cv_client_data.length; i++){
+    $("#utils").append('<option value="' + cv_client_data[i].utils_id + '">' + cv_client_data[i].utils_name + '</option>');
     if (i==0){
-        loadOrigins(origin_data[i].utils_id);
+        loadOrigins(cv_client_data[i].utils_id);
     }
 }
 
 function loadOrigins(utils_id){
     $('#origin').empty();
-    for (var i=0; i<origin_data.length; i++){
-        if (origin_data[i]["utils_id"] == utils_id){
-            var origins = origin_data[i]["origins"];
+    for (var i=0; i<cv_client_data.length; i++){
+        if (cv_client_data[i]["utils_id"] == utils_id){
+            var origins = cv_client_data[i]["cv_client_list"];
             for (var j=0; j< origins.length; j++){
                 $("#origin").append('<option value="' + origins[j].id + '">' + origins[j].client_name + '</option>')
             }
@@ -124,7 +124,6 @@ function loadOrigins(utils_id){
 }
 
 function loadHostsParams(){
-    /*
     $.ajax({
         type: "POST",
         dataType: "JSON",
@@ -159,8 +158,6 @@ function loadHostsParams(){
             }
         }
     });
-     */
-    console.log('暂时不添加主机参数')
 }
 
 $('#host_id').change(function(){
@@ -520,7 +517,7 @@ function customTree() {
                                             $("#host_id").val(data.data.host_id);
                                             // >> Commvault
                                             $('#utils').val(data.data.utils_id)
-                                            $("#origin").val(data.data.origin_id);
+                                            $("#origin").val(data.data.primary_id);
                                             $("#commv_interface").val(data.data.commv_interface);
                                             $('#script_instance_name_div').show();
                                             $('#script_instance_remark_div').show();
@@ -757,14 +754,14 @@ $('#scriptsave').click(function () {
             type: "SCRIPT"
         })
     })
-    // $('#host_div').find('input').each(function () {
-    //     config.push({
-    //         param_name: $(this).parent().prev().text(),
-    //         variable_name: $(this).attr("id"),
-    //         param_value: $(this).val(),
-    //         type: "HOST"
-    //     })
-    // })
+    $('#host_div').find('input').each(function () {
+        config.push({
+            param_name: $(this).parent().prev().text(),
+            variable_name: $(this).attr("id"),
+            param_value: $(this).val(),
+            type: "HOST"
+        })
+    })
     $.ajax({
         type: "POST",
         dataType: 'json',
