@@ -1,4 +1,5 @@
 # 系统维护:用户管理、角色管理、功能管理
+from django.db import reset_queries
 from django.shortcuts import render
 from django.http import HttpResponseRedirect, Http404, HttpResponse, JsonResponse
 
@@ -561,6 +562,106 @@ def groupsavefuntree(request):
 
 
 @login_required
+def get_all_client_tree(request):
+    id = request.POST.get('id', '')
+    tree_data = []
+    status = 1
+    try:
+        groupsave = Group.objects.get(id=int(id))
+        select_hosts = groupsave.host.all()
+    except Exception:
+        status = 0
+        tree_data = []
+    else:
+        root_nodes = HostsManage.objects.order_by("sort").exclude(state="9").filter(pnode=None).filter(nodetype="NODE")
+
+        for root_node in root_nodes:
+            root = dict()
+            root["text"] = root_node.host_name
+            root["id"] = root_node.id
+            root["type"] = root_node.nodetype
+            root["data"] = {
+                "name": root_node.host_name,
+                "remark": root_node.remark,
+                "pname": "无"
+            }
+            if root_node.id==1:
+                root["text"] = "<img src = '/static/pages/images/c.png' height='24px'> " + root["text"]
+
+            root["state"] = {"opened": True}
+            root["children"] = get_all_client_node(root_node, select_hosts)
+            tree_data.append(root)
+        
+    return JsonResponse({
+        "ret": status,
+        "data": tree_data
+    })
+
+
+def get_all_client_node(parent, select_hosts):
+    nodes = []
+    children = parent.children.order_by("sort").exclude(state="9")
+    for child in children:
+        node = dict()
+        node["text"] = child.host_name
+        node["id"] = child.id
+        node["type"] = child.nodetype
+        node["data"] = {
+            "name": child.host_name,
+            "remark": child.remark,
+            "pname": parent.host_name
+        }
+
+        node["children"] = get_all_client_node(child, select_hosts)
+        if child.id in [1,2,3]:
+            node["state"] = {"opened": True}
+        if child.id==2:
+            node["text"] = "<img src = '/static/pages/images/s.png' height='24px'> " + node["text"]
+        if child.id==3:
+            node["text"] = "<img src = '/static/pages/images/d.png' height='24px'> " + node["text"]
+        if child.nodetype=="NODE" and child.id not in [1,2,3]:
+            node["text"] = "<i class='jstree-icon jstree-themeicon fa fa-folder icon-state-warning icon-lg jstree-themeicon-custom'></i>" + node["text"]
+
+        if child.nodetype == "CLIENT":
+            cv_client = CvClient.objects.exclude(state="9").filter(hostsmanage=child)
+            if len(cv_client)>0:
+                node["text"] = "<img src = '/static/pages/images/cv.png' height='24px'> " + node["text"]
+            if child in select_hosts:
+                node["state"] = {"selected": True}
+        nodes.append(node)
+    return nodes
+
+
+@login_required
+def group_save_host_tree(request):
+    status = 1
+    info = ""
+    id = request.POST.get('id', '')
+    selected_hosts = request.POST.get('selected_hosts', '')
+    selected_hosts = selected_hosts.split(',')
+
+    try:
+        groupsave = Group.objects.get(id=int(id))
+    except Exception:
+        status = 0
+        info = "节点不存在。"
+    else:
+        groupsave.host.clear()
+
+        hosts = HostsManage.objects.filter(id__in=selected_hosts).filter(nodetype="CLIENT")
+
+        try:
+            groupsave.host.add(*hosts)
+        except Exception:
+            status = 0
+            info = "关联主机失败。"
+
+    return JsonResponse({
+        "status": status,
+        "info": info
+    })
+
+
 ######################
 # 功能管理
 ######################

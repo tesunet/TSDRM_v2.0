@@ -1652,10 +1652,29 @@ def client_manage(request, funid):
                   {'username': request.user.userinfo.fullname,
                    "pagefuns": getpagefuns(funid, request=request)})
 
-def get_client_node(parent, select_id):
+def get_client_node(parent, select_id, request):
     nodes = []
     children = parent.children.order_by("sort").exclude(state="9")
     for child in children:
+        # 当前用户所在用户组所拥有的 主机访问权限
+        # 如当前用户是管理员 均可访问
+        if not request.user.is_superuser and child.nodetype == "CLIENT":
+            # 能访问当前主机的所有角色
+            # 当前用户所在的所有角色
+            # 只要匹配一个就展示
+            user_in_groups = request.user.userinfo.group.all()
+            host_in_groups = child.group_set.all()
+
+            has_privilege = False
+
+            for uig in user_in_groups:
+                for hig in host_in_groups:
+                    if uig.id == hig.id:
+                        has_privilege = True
+                        break
+            if not has_privilege:
+                continue
+
         node = dict()
         node["text"] = child.host_name
         node["id"] = child.id
@@ -1666,7 +1685,7 @@ def get_client_node(parent, select_id):
             "pname": parent.host_name
         }
 
-        node["children"] = get_client_node(child, select_id)
+        node["children"] = get_client_node(child, select_id, request)
         if child.id in [1,2,3]:
             node["state"] = {"opened": True}
         if child.id==2:
@@ -1714,7 +1733,7 @@ def get_client_tree(request):
                 root["state"] = {"opened": True}
         except:
             root["state"] = {"opened": True}
-        root["children"] = get_client_node(root_node, select_id)
+        root["children"] = get_client_node(root_node, select_id, request)
         tree_data.append(root)
     return JsonResponse({
         "ret": 1,

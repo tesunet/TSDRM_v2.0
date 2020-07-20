@@ -47,6 +47,9 @@ urlpatterns = [
     url(r'^function/$', function, {'funid': '63'}),
     url(r'^fundel/$', fundel),
     url(r'^funmove/$', funmove),
+    url(r'^get_all_client_tree/$', get_all_client_tree),
+    url(r'^group_save_host_tree/$', group_save_host_tree),
+
 
     # 工具管理
     url(r'^util_manage/$', util_manage, {'funid': '88'}),
