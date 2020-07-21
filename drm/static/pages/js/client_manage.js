@@ -9,11 +9,9 @@ function inArray(search, array) {
 
 function get_cv_detail() {
     var table = $('#cv_backup_his').DataTable();
-    table.ajax.url("../client_cv_get_backup_his?id=" + $('#cv_id').val()
-    ).load();
+    table.ajax.url("../client_cv_get_backup_his?id=" + $('#cv_id').val()).load();
     var table1 = $('#cv_restore_his').DataTable();
-    table1.ajax.url("../client_cv_get_restore_his?id=" + $('#cv_id').val()
-    ).load();
+    table1.ajax.url("../client_cv_get_restore_his?id=" + $('#cv_id').val()).load();
 
     $('#cv_r_sourceClient').val($("#cvclient_source").find("option:selected").text());
     $('#cv_r_destClient').val($('#cvclient_destination').val());
@@ -31,123 +29,121 @@ function getClientree() {
         data: {
             'id': $("#id").val(),
         },
-        success: function (data) {
+        success: function(data) {
             if (data.ret == 0) {
                 alert(data.data)
-            }
-            else {
+            } else {
                 $('#tree_client').jstree({
-                    'core': {
-                        "themes": {
-                            "responsive": false
-                        },
-                        "check_callback": true,
-                        'data': data.data
-                    },
-
-                    "types": {
-                        "NODE": {
-                            "icon": false
-                        },
-                        "CLIENT": {
-                            "icon": false
-                        }
-                    },
-                    "contextmenu": {
-                        "items": {
-                            "create": null,
-                            "rename": null,
-                            "remove": null,
-                            "ccp": null,
-                            "新建节点": {
-                                "label": "新建节点",
-                                "action": function (data) {
-                                    var inst = jQuery.jstree.reference(data.reference),
-                                        obj = inst.get_node(data.reference);
-                                    if (obj.type == "CLIENT") {
-                                        alert("无法在客户端下新建节点。");
-                                    } else {
-                                        $("#title").text("新建");
-                                        $("#id").val("0");
-                                        $("#pid").val(obj.id);
-                                        $("#my_type").val("NODE");
-                                        $("#node_name").val("");
-                                        $("#node_pname").val(obj.data["name"]);
-                                        $("#node_remark").val("");
-
-                                        $("#client").hide();
-                                        $("#node").show();
-                                        $("#node_save").show()
-                                        $("#client_save").hide()
-                                    }
-                                }
+                        'core': {
+                            "themes": {
+                                "responsive": false
                             },
-                            "新建客户端": {
-                                "label": "新建客户端",
-                                "action": function (data) {
-                                    var inst = jQuery.jstree.reference(data.reference),
-                                        obj = inst.get_node(data.reference);
-                                    if (obj.type == "CLIENT") {
-                                        alert("无法在客户端下新建客户端。");
-                                    } else {
+                            "check_callback": true,
+                            'data': data.data
+                        },
 
-                                        $("#title").text("新建")
-                                        $("#pname").val(obj.data["name"])
-                                        $("#id").val("0");
-                                        $("#pid").val(obj.id);
-                                        $("#my_type").val("CLIENT");
-                                        $("#host_ip").val("");
-                                        $("#host_name").val("");
-                                        $("#os").val("");
-                                        $("#username").val("");
-                                        $("#password").val("");
-                                        $("#remark").val("");
-                                        $('#param_se').empty();
-
-                                        $("#client").show()
-                                        $("#node").hide()
-                                        $("#node_save").hide()
-                                        $("#client_save").show()
-                                    }
-                                }
+                        "types": {
+                            "NODE": {
+                                "icon": false
                             },
-                            "删除": {
-                                "label": "删除",
-                                "action": function (data) {
-                                    var inst = jQuery.jstree.reference(data.reference),
-                                        obj = inst.get_node(data.reference);
-                                    if (obj.children.length > 0)
-                                        alert("节点下还有其他节点或客户端，无法删除。");
-                                    else {
-                                        if (confirm("确定要删除？删除后不可恢复。")) {
-                                            $.ajax({
-                                                type: "POST",
-                                                url: "../clientdel/",
-                                                data:
-                                                {
-                                                    id: obj.id,
-                                                },
-                                                success: function (data) {
-                                                    if (data == 1) {
-                                                        inst.delete_node(obj);
-                                                        alert("删除成功！");
-                                                    } else
-                                                        alert("删除失败，请于管理员联系。");
-                                                },
-                                                error: function (e) {
-                                                    alert("删除失败，请于管理员联系。");
-                                                }
-                                            });
+                            "CLIENT": {
+                                "icon": false
+                            }
+                        },
+                        "contextmenu": {
+                            "items": {
+                                "create": null,
+                                "rename": null,
+                                "remove": null,
+                                "ccp": null,
+                                "新建节点": {
+                                    "label": "新建节点",
+                                    "action": function(data) {
+                                        var inst = jQuery.jstree.reference(data.reference),
+                                            obj = inst.get_node(data.reference);
+                                        if (obj.type == "CLIENT") {
+                                            alert("无法在客户端下新建节点。");
+                                        } else {
+                                            $("#title").text("新建");
+                                            $("#id").val("0");
+                                            $("#pid").val(obj.id);
+                                            $("#my_type").val("NODE");
+                                            $("#node_name").val("");
+                                            $("#node_pname").val(obj.data["name"]);
+                                            $("#node_remark").val("");
+
+                                            $("#client").hide();
+                                            $("#node").show();
+                                            $("#node_save").show()
+                                            $("#client_save").hide()
                                         }
                                     }
-                                }
-                            },
+                                },
+                                "新建客户端": {
+                                    "label": "新建客户端",
+                                    "action": function(data) {
+                                        var inst = jQuery.jstree.reference(data.reference),
+                                            obj = inst.get_node(data.reference);
+                                        if (obj.type == "CLIENT") {
+                                            alert("无法在客户端下新建客户端。");
+                                        } else {
 
-                        }
-                    },
-                    "plugins": ["contextmenu", "dnd", "types", "role"]
-                })
-                    .on('move_node.jstree', function (e, data) {
+                                            $("#title").text("新建")
+                                            $("#pname").val(obj.data["name"])
+                                            $("#id").val("0");
+                                            $("#pid").val(obj.id);
+                                            $("#my_type").val("CLIENT");
+                                            $("#host_ip").val("");
+                                            $("#host_name").val("");
+                                            $("#os").val("");
+                                            $("#username").val("");
+                                            $("#password").val("");
+                                            $("#remark").val("");
+                                            $('#param_se').empty();
+
+                                            $("#client").show()
+                                            $("#node").hide()
+                                            $("#node_save").hide()
+                                            $("#client_save").show()
+                                        }
+                                    }
+                                },
+                                "删除": {
+                                    "label": "删除",
+                                    "action": function(data) {
+                                        var inst = jQuery.jstree.reference(data.reference),
+                                            obj = inst.get_node(data.reference);
+                                        if (obj.children.length > 0)
+                                            alert("节点下还有其他节点或客户端，无法删除。");
+                                        else {
+                                            if (confirm("确定要删除？删除后不可恢复。")) {
+                                                $.ajax({
+                                                    type: "POST",
+                                                    url: "../clientdel/",
+                                                    data: {
+                                                        id: obj.id,
+                                                    },
+                                                    success: function(data) {
+                                                        if (data == 1) {
+                                                            inst.delete_node(obj);
+                                                            alert("删除成功！");
+                                                        } else
+                                                            alert("删除失败，请于管理员联系。");
+                                                    },
+                                                    error: function(e) {
+                                                        alert("删除失败，请于管理员联系。");
+                                                    }
+                                                });
+                                            }
+                                        }
+                                    }
+                                },
+
+                            }
+                        },
+                        "plugins": ["contextmenu", "dnd", "types", "role"]
+                    })
+                    .on('move_node.jstree', function(e, data) {
                         var moveid = data.node.id;
                         if (data.old_parent == "#") {
                             alert("根节点禁止移动。");
@@ -160,15 +156,14 @@ function getClientree() {
                                 $.ajax({
                                     type: "POST",
                                     url: "../client_move/",
-                                    data:
-                                    {
+                                    data: {
                                         id: data.node.id,
                                         parent: data.parent,
                                         old_parent: data.old_parent,
                                         position: data.position,
                                         old_position: data.old_position,
                                     },
-                                    success: function (data) {
+                                    success: function(data) {
                                         if (data == "重名") {
                                             alert("目标节点下存在重名。");
                                             location.reload()
@@ -188,7 +183,7 @@ function getClientree() {
                                             }
                                         }
                                     },
-                                    error: function (e) {
+                                    error: function(e) {
                                         alert("移动失败，请于管理员联系。");
                                         location.reload()
                                     }
@@ -198,7 +193,7 @@ function getClientree() {
                             }
                         }
                     })
-                    .bind('select_node.jstree', function (event, data) {
+                    .bind('select_node.jstree', function(event, data) {
                         $("#form_div").show();
                         var type = data.node.original.type;
 
@@ -216,7 +211,7 @@ function getClientree() {
                                 data: {
                                     id: data.node.id,
                                 },
-                                success: function (data) {
+                                success: function(data) {
                                     if (data.ret == 1) {
                                         //基础信息
                                         $("#host_ip").val(data.data.host_ip);
@@ -241,8 +236,7 @@ function getClientree() {
                                             $("#cvclient_type").val(data.cvinfo.type);
                                             if ($("#cvclient_type").val() == "2") {
                                                 $("#sourcediv").hide();
-                                            }
-                                            else {
+                                            } else {
                                                 $("#sourcediv").show();
                                             }
                                             $("#cvclient_utils_manage").val(data.cvinfo.utils_id);
@@ -255,8 +249,7 @@ function getClientree() {
                                             $("#cvclient_instance").val(data.cvinfo.instanceName);
                                             if (data.cvinfo.destination_id == data.cvinfo.id) {
                                                 $("#cvclient_destination").val('self');
-                                            }
-                                            else {
+                                            } else {
                                                 $("#cvclient_destination").val(data.cvinfo.destination_id);
                                             }
                                             $("#cvclient_copy_priority").val(data.cvinfo.copy_priority);
@@ -269,14 +262,12 @@ function getClientree() {
                                                 $("#tabcheck2_3").parent().show();
                                                 $("#tabcheck2_4").parent().show();
                                             }
-                                        }
-                                        else {
+                                        } else {
                                             $("#div_creatcv").show();
                                             $("#div_cv").hide();
                                             $("#cv_del").hide();
                                         }
-                                    }
-                                    else {
+                                    } else {
                                         $("#host_id").val("0");
                                         $("#host_ip").val("");
                                         $("#host_name").val("");
@@ -288,7 +279,7 @@ function getClientree() {
                                         alert(data.info);
                                     }
                                 },
-                                error: function (e) {
+                                error: function(e) {
                                     alert("页面出现错误，请于管理员联系。");
                                 }
                             });
@@ -393,7 +384,7 @@ function getCvinfo() {
         type: 'POST',
         dataType: 'json',
         url: '../get_cvinfo/',
-        success: function (data) {
+        success: function(data) {
             for (var i = 0; i < data.u_destination.length; i++) {
                 $("#cvclient_utils_manage").append('<option value="' + data.u_destination[i].utilid + '">' + data.u_destination[i].utilname + '</option>');
             }
@@ -408,8 +399,8 @@ function getCvinfo() {
 
 }
 
-$(document).ready(function () {
-    $(".tabbed>ul>li").click(function () {
+$(document).ready(function() {
+    $(".tabbed>ul>li").click(function() {
         var aa = this.firstElementChild;
         aa.click();
     });
@@ -419,7 +410,7 @@ $(document).ready(function () {
     getClientree();
     getCvinfo();
 
-    $('#node_save').click(function () {
+    $('#node_save').click(function() {
         $.ajax({
             type: "POST",
             dataType: 'json',
@@ -430,7 +421,7 @@ $(document).ready(function () {
                 node_name: $("#node_name").val(),
                 node_remark: $("#node_remark").val(),
             },
-            success: function (data) {
+            success: function(data) {
                 if (data.ret == 1) {
                     if ($("#id").val() == "0") {
                         $('#tree_client').jstree('create_node', $("#pid").val(), {
@@ -438,8 +429,7 @@ $(document).ready(function () {
                             "id": data.nodeid
                         }, "last", false, false);
                         $("#id").val(data.nodeid)
-                    }
-                    else {
+                    } else {
                         var curnode = $('#tree_client').jstree('get_node', $("#id").val());
                         var newtext = curnode.text.replace(curnode.data["name"], $("#node_name").val())
                         curnode.text = newtext
@@ -450,16 +440,16 @@ $(document).ready(function () {
                 }
                 alert(data.info);
             },
-            error: function (e) {
+            error: function(e) {
                 alert("页面出现错误，请于管理员联系。");
             }
         });
     });
-    $('#client_save').click(function () {
+    $('#client_save').click(function() {
         var params_list = [];
 
         // 构造参数Map>> Array (动态参数)
-        $('#param_se option').each(function () {
+        $('#param_se option').each(function() {
             // 构造单个参数信息
             var txt_param_list = $(this).text().split(":");
             var val_param = $(this).prop("value");
@@ -487,7 +477,7 @@ $(document).ready(function () {
                 config: JSON.stringify(params_list)
 
             },
-            success: function (data) {
+            success: function(data) {
                 if (data.ret == 1) {
                     if ($("#id").val() == "0") {
                         $('#tree_client').jstree('create_node', $("#pid").val(), {
@@ -495,8 +485,7 @@ $(document).ready(function () {
                             "id": data.nodeid
                         }, "last", false, false);
                         $("#id").val(data.nodeid)
-                    }
-                    else {
+                    } else {
                         var curnode = $('#tree_client').jstree('get_node', $("#id").val());
                         var newtext = curnode.text.replace(curnode.data["name"], $("#host_name").val())
                         curnode.text = newtext
@@ -506,7 +495,7 @@ $(document).ready(function () {
                 }
                 alert(data.info);
             },
-            error: function (e) {
+            error: function(e) {
                 alert("页面出现错误，请于管理员联系。");
             }
         });
@@ -514,7 +503,7 @@ $(document).ready(function () {
 
     $('#param_se').contextmenu({
         target: '#context-menu2',
-        onItem: function (context, e) {
+        onItem: function(context, e) {
             if ($(e.target).text() == "新增") {
                 $('#param_operate').val('new');
 
@@ -605,7 +594,7 @@ $(document).ready(function () {
             }
         }
     });
-    $('#params_save').click(function () {
+    $('#params_save').click(function() {
         var param_operate = $('#param_operate').val();
         var param_name = $('#param_name').val();
         var variable_name = $('#variable_name').val();
@@ -613,7 +602,7 @@ $(document).ready(function () {
         var existed = false;
         if (param_operate == "new") {
             // 判断是否重复
-            $("#param_se option").each(function () {
+            $("#param_se option").each(function() {
                 if (variable_name == $(this).val()) {
                     existed = true;
                     return false;
@@ -644,7 +633,7 @@ $(document).ready(function () {
         }
     });
 
-    $('#creatcv').click(function () {
+    $('#creatcv').click(function() {
         $("#div_creatcv").hide();
         $("#div_cv").show();
         $("#cv_del").hide();
@@ -658,26 +647,25 @@ $(document).ready(function () {
 
     });
 
-    $("#cvclient_utils_manage").change(function () {
+    $("#cvclient_utils_manage").change(function() {
         getCvClient();
         getCvDestination();
     });
-    $("#cvclient_source").change(function () {
+    $("#cvclient_source").change(function() {
         getCvAgenttype();
     });
-    $("#cvclient_agentType").change(function () {
+    $("#cvclient_agentType").change(function() {
         getCvInstance();
     });
-    $("#cvclient_type").change(function () {
+    $("#cvclient_type").change(function() {
         if ($("#cvclient_type").val() == "2") {
             $("#sourcediv").hide();
-        }
-        else {
+        } else {
             $("#sourcediv").show();
         }
     });
 
-    $('#cv_save').click(function () {
+    $('#cv_save').click(function() {
         $.ajax({
             type: "POST",
             dataType: 'json',
@@ -699,7 +687,7 @@ $(document).ready(function () {
                 cvclient_data_path: $("#cvclient_data_path").val(),
 
             },
-            success: function (data) {
+            success: function(data) {
                 if (data.ret == 1) {
                     if ($("#cv_id").val() == "0") {
                         $("#cv_id").val(data.cv_id);
@@ -729,21 +717,20 @@ $(document).ready(function () {
                 }
                 alert(data.info);
             },
-            error: function (e) {
+            error: function(e) {
                 alert("页面出现错误，请于管理员联系。");
             }
         });
     });
-    $('#cv_del').click(function () {
+    $('#cv_del').click(function() {
         if (confirm("确定要删除？删除后不可恢复。")) {
             $.ajax({
                 type: "POST",
                 url: "../client_cv_del/",
-                data:
-                {
+                data: {
                     id: $("#cv_id").val(),
                 },
-                success: function (data) {
+                success: function(data) {
                     if (data == 1) {
                         $("#div_creatcv").show();
                         $("#div_cv").hide();
@@ -771,7 +758,7 @@ $(document).ready(function () {
                     } else
                         alert("删除失败，请于管理员联系。");
                 },
-                error: function (e) {
+                error: function(e) {
                     alert("删除失败，请于管理员联系。");
                 }
             });
@@ -816,7 +803,7 @@ $(document).ready(function () {
 
         }
     });
-    $('#cv_backup_his tbody').on('click', 'button#select', function () {
+    $('#cv_backup_his tbody').on('click', 'button#select', function() {
         $('#tabcheck2_3').click();
         var table = $('#cv_backup_his').DataTable();
         var data = table.row($(this).parents('tr')).data();
@@ -865,7 +852,7 @@ $(document).ready(function () {
         pickerPosition: 'top-right'
     });
 
-    $('#cv_r_recovery').click(function () {
+    $('#cv_r_recovery').click(function() {
         if ($("input[name='optionsRadios']:checked").val() == "2" && $('#cv_r_datetimepicker').val() == "")
             alert("请输入时间。");
         else {
@@ -894,15 +881,18 @@ $(document).ready(function () {
                         copy_priority: $("#cv_r_copy_priority").val(),
                         data_sp: $("#cv_r_data_sp").val(),
                     },
-                    success: function (data) {
+                    success: function(data) {
                         alert(data);
                         $("#static1").modal("hide");
                     },
-                    error: function (e) {
+                    error: function(e) {
                         alert("恢复失败，请于客服联系。");
                     }
                 });
             }
         }
     });
+    $("#change_over").click(function() {
+        $("#change_over_modal").modal('show');
+    })
 });
