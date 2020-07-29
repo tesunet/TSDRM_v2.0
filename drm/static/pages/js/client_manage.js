@@ -263,6 +263,50 @@ function getClientree() {
                                         $("#div_cv").hide();
                                         $("#cv_del").hide();
                                     }
+
+                                    //dbcopy信息
+                                    if(JSON.stringify(data.dbcopyinfo) != '{}'){
+                                        $("#div_creatdbcopy").hide();
+                                        $("#div_dbcopy").show();
+                                        $("#dbcopy_del").show();
+                                        $("#dbcopy_id").val(data.cvinfo.id);
+                                        $("#dbcopy_dbtype").val(data.cvinfo.type);
+                                        if($("#cvclient_type").val()=="2") {
+                                            $("#sourcediv").hide();
+                                        }
+                                        else{
+                                            $("#sourcediv").show();
+                                        }
+                                        $("#cvclient_utils_manage").val(data.cvinfo.utils_id);
+                                        getCvClient();
+                                        getCvDestination();
+                                        $("#cvclient_source").val(data.cvinfo.client_id);
+                                        getCvAgenttype();
+                                        $("#cvclient_agentType").val(data.cvinfo.agentType);
+                                        getCvInstance()
+                                        $("#cvclient_instance").val(data.cvinfo.instanceName);
+                                        if(data.cvinfo.destination_id==data.cvinfo.id){
+                                            $("#cvclient_destination").val('self');
+                                        }
+                                        else {
+                                            $("#cvclient_destination").val(data.cvinfo.destination_id);
+                                        }
+                                        $("#cvclient_copy_priority").val(data.cvinfo.copy_priority);
+                                        $("#cvclient_db_open").val(data.cvinfo.db_open);
+                                        $("#cvclient_log_restore").val(data.cvinfo.log_restore);
+                                        $("#cvclient_data_path").val(data.cvinfo.data_path);
+                                        get_cv_detail();
+                                        if ($("#cvclient_type").val() == "1"||$("#cvclient_type").val() == "3") {
+                                            $("#tabcheck2_2").parent().show();
+                                            $("#tabcheck2_3").parent().show();
+                                            $("#tabcheck2_4").parent().show();
+                                        }
+                                    }
+                                    else{
+                                        $("#div_creatcv").show();
+                                        $("#div_cv").hide();
+                                        $("#cv_del").hide();
+                                    }
                                 }
                                 else {
                                     $("#host_id").val("0");

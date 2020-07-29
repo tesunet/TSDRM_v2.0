@@ -2001,33 +2001,29 @@ def get_client_detail(request):
 
             dc = DbCopyClient.objects.exclude(state="9").filter(hostsmanage_id=id)
             if len(dc) >0:
-                dbcopyinfo["id"] = cc[0].id
-                dbcopyinfo["type"] = cc[0].type
-                dbcopyinfo["utils_id"] = cc[0].utils_id
-                dbcopyinfo["client_id"] = cc[0].client_id
-                dbcopyinfo["agentType"] = cc[0].agentType
-                dbcopyinfo["instanceName"] = cc[0].instanceName
-                dbcopyinfo["destination_id"] = cc[0].destination_id
-                dbcopyinfo["copy_priority"] = ""
-                dbcopyinfo["db_open"] = ""
-                dbcopyinfo["log_restore"] = ""
-                dbcopyinfo["data_path"] =""
+                dbcopyinfo["id"] = dc[0].id
+                dbcopyinfo["type"] = dc[0].type
+                dbcopyinfo["dbType"] = dc[0].dbType
+                dbcopyinfo["std_id"] = dc[0].std_id
+                dbcopyinfo["dbusername"] = ""
+                dbcopyinfo["dbpassowrd"] = ""
+                dbcopyinfo["dbinstance"] = ""
 
                 try:
-                    config = etree.XML(cc[0].info)
+                    config = etree.XML(dc[0].info)
                     param_el = config.xpath("//param")
                     if len(param_el) >0:
-                        cvinfo["copy_priority"] = param_el[0].attrib.get("copy_priority", ""),
-                        cvinfo["db_open"] = param_el[0].attrib.get("db_open", ""),
-                        cvinfo["log_restore"] = param_el[0].attrib.get("log_restore", ""),
-                        cvinfo["data_path"] = param_el[0].attrib.get("data_path", ""),
+                        dbcopyinfo["dbusername"] = param_el[0].attrib.get("dbusername", ""),
+                        dbcopyinfo["dbpassowrd"] = param_el[0].attrib.get("dbpassowrd", ""),
+                        dbcopyinfo["dbinstance"] = param_el[0].attrib.get("dbinstance", ""),
                 except:
                     pass
     return JsonResponse({
         "ret": ret,
         "info": info,
         "data": hostinfo,
-        "cvinfo":cvinfo
+        "cvinfo":cvinfo,
+        "dbcopyinfo": dbcopyinfo
     })
 
 

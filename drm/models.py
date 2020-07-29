@@ -143,9 +143,9 @@ class CvClient(models.Model):
 
 class DbCopyClient(models.Model):
     hostsmanage = models.ForeignKey(HostsManage, blank=True, null=True, verbose_name="客户端")
-    type = models.TextField("客户端类型", blank=True, null=True)
-    dbType = models.TextField("数据库类型", blank=True, null=True)
-    info = models.TextField("客户端相关信息", blank=True, null=True)
+    dbtype = models.TextField("数据库类型", blank=True, null=True)
+    hosttype = models.TextField("主机类型", blank=True, null=True)
+    info = models.TextField("数据库相关信息", blank=True, null=True)
     std = models.ForeignKey('self', blank=True, null=True,related_name='pri', verbose_name="备库")
     state = models.CharField("状态", blank=True, null=True, max_length=20)
 
