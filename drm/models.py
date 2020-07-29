@@ -143,7 +143,6 @@ class CvClient(models.Model):
 
 class DbCopyClient(models.Model):
     hostsmanage = models.ForeignKey(HostsManage, blank=True, null=True, verbose_name="客户端")
-    utils = models.ForeignKey("UtilsManage", null=True, verbose_name="关联工具")
     type = models.TextField("客户端类型", blank=True, null=True)
     dbType = models.TextField("数据库类型", blank=True, null=True)
     info = models.TextField("客户端相关信息", blank=True, null=True)
