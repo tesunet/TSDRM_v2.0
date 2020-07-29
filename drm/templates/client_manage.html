@@ -387,28 +387,87 @@
                                     </div>
 
                                     <div class="tab-pane fade" id="tab_1_3" style="margin-top: -10px">
-                                        <div style="width:250px; float:right;">
-                                            <select name="db_copy" id="db_copy" class="form-control">
-                                                <option value="Oracle ADG">Oracle ADG</option>
-                                                <option value="MySQL主从复制">MySQL主从复制</option>
-                                            </select>
-                                        </div>
                                         <div hidden id="div_creatcv" style="text-align:center">
                                             <button type="button" id="creatcv" name="creatcv" class="btn blue">
                                                 创建Commvault保护
                                             </button>
                                         </div>
-                                        <div id="div_cv" class="tab " role="tabpanel">
-                                            <ul id="navtabs2" class="nav nav-tabs ">
-                                                <li class="active">
-                                                    <a href="#tab_3_1" id='tabcheck3_1' data-toggle="tab"> 数据库切换 </a>
-                                                </li>
-                                                <li>
-                                                    <a href="#tab_3_2" id='tabcheck3_2' data-toggle="tab"> 切换历史 </a>
-                                                </li>
+                                        <div id="div_dbcopy" class="tab " role="tabpanel">
+                                            <ul id="navtabs3" class="nav nav-tabs ">
+                                                    <li class="active">
+                                                        <a href="#tab_3_1" id='tabcheck3_1' data-toggle="tab"> 数据库复制配置 </a>
+                                                    </li>
+                                                    <li >
+                                                        <a href="#tab_3_2"  id='tabcheck3_2' data-toggle="tab"> 容灾切换 </a>
+                                                    </li>
+                                                     <li>
+                                                        <a href="#tab_3_3"  id='tabcheck3_3' data-toggle="tab"> 切换记录 </a>
+                                                    </li>
                                             </ul>
                                             <div class="tab-content">
                                                 <div class="tab-pane fade active in" id="tab_3_1">
+                                                    <div class="form-group">
+                                                        <input type="text" hidden id="dbcopy_id" name="dbcopy_id" value="">
+                                                        <label class="col-md-2 control-label"><span
+                                                                style="color:red; ">*</span>保护类型</label>
+                                                        <div class="col-md-10">
+                                                            <select name="dbcopy_dbtype" id="dbcopy_dbtype" class="form-control">
+                                                                <option value="1">Oracle ADG</option>
+                                                                <option value="2">MySQL主从复制</option>
+                                                            </select>
+                                                            <div class="form-control-focus"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label class="col-md-2 control-label"><span style="color:red; ">*</span>主机类型</label>
+                                                        <div class="col-md-10">
+                                                            <select class="form-control" id="dbcopy_hosttype" name="dbcopy_hosttype">
+                                                                <option value="1">主数据库</option>
+                                                                <option value="2">备数据库</option>
+                                                            </select>
+                                                            <div class="form-control-focus"></div>
+
+                                                        </div>
+                                                    </div>
+                                                    <div id="oraclediv">
+                                                        <div class="form-group" >
+                                                            <label class="col-md-2 control-label" ><span
+                                                                    style="color:red; ">*</span>oracle用户名</label>
+                                                            <div class="col-md-10">
+                                                                <input id="dbcopy_oracleusername" type="text" name="dbcopy_oracleusername" class="form-control"
+                                                                       placeholder="">
+                                                                <div class="form-control-focus"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group" >
+                                                            <label class="col-md-2 control-label" ><span style="color:red; ">*</span>oracle密码</label>
+                                                            <div class="col-md-10">
+                                                                <input id="dbcopy_oraclepassword" type="password" name="dbcopy_oraclepassword"
+                                                                       class="form-control "
+                                                                       placeholder="">
+                                                                <div class="form-control-focus"></div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="form-group" >
+                                                            <label class="col-md-2 control-label" ><span
+                                                                    style="color:red; ">*</span>oracle实例名</label>
+                                                            <div class="col-md-10">
+                                                                <input id="dbcopy_oracleinstance" type="text" name="dbcopy_oracleinstance" class="form-control "
+                                                                       placeholder="">
+                                                                <div class="form-control-focus"></div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group " style="text-align:center">
+                                                        <button type="button" id="dbcopy_save" name="dbcopy_save" class="btn green">
+                                                            保存
+                                                        </button>
+                                                        <button type="button" id="dbcopy_del" name="dbcopy_del" class="btn green">
+                                                            删除
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div class="tab-pane fade" id="tab_3_2">
                                                     <div style="height: 50px;"></div>
                                                     <div class="row">
                                                         <div align="right" class="col-md-4">
@@ -442,7 +501,7 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <div class="tab-pane fade" id="tab_3_2">
+                                                <div class="tab-pane fade" id="tab_3_3">
                                                     <table class="table table-striped table-bordered table-hover table-checkable order-column" id="cv_backup_his">
                                                         <thead>
                                                             <tr>

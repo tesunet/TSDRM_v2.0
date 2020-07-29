@@ -141,6 +141,16 @@ class CvClient(models.Model):
     state = models.CharField("状态", blank=True, null=True, max_length=20)
 
 
+class DbCopyClient(models.Model):
+    hostsmanage = models.ForeignKey(HostsManage, blank=True, null=True, verbose_name="客户端")
+    utils = models.ForeignKey("UtilsManage", null=True, verbose_name="关联工具")
+    type = models.TextField("客户端类型", blank=True, null=True)
+    dbType = models.TextField("数据库类型", blank=True, null=True)
+    info = models.TextField("客户端相关信息", blank=True, null=True)
+    std = models.ForeignKey('self', blank=True, null=True,related_name='pri', verbose_name="备库")
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
+
+
 class Script(models.Model):
     code = models.CharField("脚本编号", blank=True, max_length=50)
     name = models.CharField("脚本名称", blank=True, max_length=500)
