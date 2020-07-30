@@ -131,10 +131,12 @@ def get_backup_content(request):
                 idataagent_rowspan = get_rowspan(whole_list, clientname=wl['clientname'], idataagent=wl['idataagent'])
                 type_rowspan = get_rowspan(whole_list, clientname=wl['clientname'], idataagent=wl['idataagent'],
                                            type=wl['type'])
-
+                subclient_rowspan = get_rowspan(whole_list, clientname=wl['clientname'], idataagent=wl['idataagent'],
+                                           type=wl['type'], subclient=wl['subclient'])
                 whole_list[num]['clientname_rowspan'] = clientname_rowspan
                 whole_list[num]['idataagent_rowspan'] = idataagent_rowspan
                 whole_list[num]['type_rowspan'] = type_rowspan
+                whole_list[num]['subclient_rowspan'] = subclient_rowspan
 
         except Exception as e:
             print(e)

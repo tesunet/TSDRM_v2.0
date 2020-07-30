@@ -135,11 +135,13 @@ $(document).ready(function () {
                     var pre_clientname = "";
                     var pre_idataagent = "";
                     var pre_type = "";
+                    var pre_subclient = "";
                     var sort = 0;
                     for (var i = 0; i < backup_content.length; i++) {
                         var clientname_hidden = "";
                         var idataagent_hidden = "";
                         var type_hidden = "";
+                        var subclient_hidden = "";
 
                         if (pre_clientname == backup_content[i]["clientname"]) {
                             // 非首个客户端
@@ -153,6 +155,9 @@ $(document).ready(function () {
                         if (pre_clientname == backup_content[i]["clientname"] && pre_idataagent == backup_content[i]["idataagent"] && pre_type == backup_content[i]["type"]) {
                             type_hidden = "display:none";
                         }
+                        if (pre_clientname == backup_content[i]["clientname"] && pre_idataagent == backup_content[i]["idataagent"] && pre_type == backup_content[i]["type"] && pre_subclient == backup_content[i]['subclient']) {
+                            subclient_hidden = "display:none";
+                        }
                         // 备份大小、应用大小
                         var numbytescomp = (backup_content[i]["numbytescomp"] / 1024 / 1024 / 1024).toFixed(2)
                         var numbytesuncomp = (backup_content[i]["numbytesuncomp"] / 1024 / 1024 / 1024).toFixed(2)
@@ -163,7 +168,7 @@ $(document).ready(function () {
                             '<td rowspan="' + backup_content[i].clientname_rowspan + '" style="vertical-align:middle; ' + clientname_hidden + '">' + backup_content[i]["clientname"] + '</td>' +
                             '<td rowspan="' + backup_content[i].idataagent_rowspan + '" style="vertical-align:middle; ' + idataagent_hidden + '">' + backup_content[i]["idataagent"] + '</td>' +
                             '<td rowspan="' + backup_content[i].type_rowspan + '" style="vertical-align:middle; ' + type_hidden + '">' + backup_content[i]["type"] + '</td>' +
-                            '<td style="vertical-align:middle">' + backup_content[i]["subclient"] + '</td>' +
+                            '<td rowspan="' + backup_content[i].subclient_rowspan + '" style="vertical-align:middle; ' + subclient_hidden + '">' + backup_content[i]["subclient"] + '</td>' +
                             '<td style="vertical-align:middle">' + backup_content[i]["content"] + '</td>' +
                             '<td style="vertical-align:middle">' + numbytesuncomp + ' GB</td>' +
                             '<td style="vertical-align:middle">' + numbytescomp + ' GB</td>' +
@@ -173,6 +178,7 @@ $(document).ready(function () {
                         pre_clientname = backup_content[i]["clientname"]
                         pre_idataagent = backup_content[i]["idataagent"]
                         pre_type = backup_content[i]["type"]
+                        pre_subclient = backup_content[i]["subclient"]
                     }
                     $("#loading3").hide();
                 }
