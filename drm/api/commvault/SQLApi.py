@@ -397,7 +397,7 @@ class CVApi(DataMonitor):
                         ORDER BY [startdate] DESC"""
         if full and success:
             job_sql = """SELECT [jobid],[clientname],[idataagent],[instance],[backupset],[subclient],[data_sp],[backuplevel],[incrlevel],[jobstatus],[jobfailedreason],[startdate],[enddate],[totalBackupSize], [numbytescomp], [numbytesuncomp]
-                        FROM [commserv].[dbo].[CommCellBackupInfo] WHERE [backuplevel] LIKE '%Full%' AND [jobstatus]='Success'
+                        FROM [commserv].[dbo].[CommCellBackupInfo] WHERE [backuplevel] LIKE '%Full%' AND [jobstatus] LIKE '%Success%'
                         ORDER BY [startdate] DESC"""
         content = self.fetch_all(job_sql)
         backup_jobs = []
