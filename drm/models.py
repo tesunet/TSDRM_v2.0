@@ -187,16 +187,9 @@ class ProcessRun(models.Model):
     state = models.CharField("状态", blank=True, null=True, max_length=20)
     run_reason = models.TextField("启动原因", blank=True, null=True)
     note = models.TextField("记录", blank=True, null=True)
-    target = models.ForeignKey(Target, blank=True, null=True, verbose_name="oracle恢复流程指定目标客户端")
-    recover_time = models.DateTimeField("指定恢复时间点", blank=True, null=True)
-    browse_job_id = models.CharField("指点时间点的备份任务ID", blank=True, null=True, max_length=50)
-    data_path = models.CharField("数据重定向路径", blank=True, null=True, max_length=512)
-    copy_priority = models.IntegerField("优先拷贝顺序", blank=True, default=1, null=True)
-    origin = models.CharField("源客户端", blank=True, null=True, max_length=256)
-    curSCN = models.BigIntegerField("当前备份nextSCN-1", blank=True, null=True)
-    db_open = models.IntegerField("是否打开数据库", default=1, null=True)
-
     rto = models.IntegerField("流程RTO", default=0, null=True)
+    recover_time = models.DateTimeField("指定恢复时间点", blank=True, null=True)
+    info = models.TextField("恢复所需参数,如：target,origin,browse_job_id,data_path,copy_priority,curSCN,db_open", null=True, default="")
 
 
 class StepRun(models.Model):
