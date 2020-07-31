@@ -93,6 +93,8 @@ $(document).ready(function () {
         $("#sort").val(data.process_sort);
         $("#process_color").val(data.process_color);
         $("#type").val(data.type);
+        $("#process_main_database").val(data.main_database_id);
+        $("#process_back").val(data.process_back_id);
 
         // 动态参数
         $('#param_se').empty();
@@ -113,6 +115,8 @@ $(document).ready(function () {
         $("#sort").val("");
         $("#process_color").val("");
         $("#type").val("");
+        $("#process_main_database").val("");
+        $("#process_back").val("");
         $("#param_se").empty();
     });
 
@@ -148,6 +152,8 @@ $(document).ready(function () {
                     sort: $("#sort").val(),
                     color: $("#process_color").val(),
                     type: $("#type").val(),
+                    main_database: $("#process_main_database").val(),
+                    process_back: $("#process_back").val(),
                     config: JSON.stringify(params_list)
                 },
             success: function (data) {

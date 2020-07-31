@@ -124,7 +124,7 @@
                                     </div>
 
                                     <div class="tab-pane fade" id="tab_1_2" style="margin-top: -10px">
-                                        <div hidden id="div_creatcv" style="text-align:center">
+                                        <div  hidden id="div_creatcv" style="text-align:center;padding-top: 10px">
                                             <button type="button" id="creatcv" name="creatcv" class="btn green">
                                                 创建Commvault保护
                                             </button>
@@ -387,7 +387,7 @@
                                     </div>
 
                                     <div class="tab-pane fade" id="tab_1_3" style="margin-top: -10px">
-                                        <div hidden id="div_creatdbcopy" style="text-align:center">
+                                        <div hidden id="div_creatdbcopy" style="text-align:center;padding-top: 10px">
                                             <button type="button" id="creatdbcopy" name="creatdbcopy" class="btn green">
                                                 创建数据库复制保护
                                             </button>
@@ -458,11 +458,22 @@
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <div id="dbcopy_std_div" class="form-group">
+                                                        <label class="col-md-2 control-label"><span
+                                                                style="color:red; "></span>备库</label>
+                                                        <div class="col-md-10">
+                                                            <input type="text" id="dbcopy_u_std" name="dbcopy_u_std" value="" hidden>
+                                                            <select name="dbcopy_std" id="dbcopy_std" class="form-control">
+
+                                                            </select>
+                                                            <div class="form-control-focus"></div>
+                                                        </div>
+                                                    </div>
                                                     <div class="form-group " style="text-align:center">
-                                                        <button type="button" id="dbcopy_save" name="dbcopy_save" class="btn green">
+                                                        <button type="button" id="dbcopy_oracle_save" name="dbcopy_oracle_save" class="btn green">
                                                             保存
                                                         </button>
-                                                        <button type="button" id="dbcopy_del" name="dbcopy_del" class="btn green">
+                                                        <button type="button" id="dbcopy_oracle_del" name="dbcopy_oracle_del" class="btn green">
                                                             删除
                                                         </button>
                                                     </div>
@@ -584,60 +595,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-<div id="change_over_modal" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
-                <h4 class="modal-title">启动流程</h4>
-                <input hidden id="id" type="text" name="id">
-                <input hidden id="processid" type="text" name="processid">
-            </div>
-            <div class="panel-body">
-
-                <form class="bs-example form-horizontal activate-form">{% csrf_token %}
-
-                    <div class="form-body">
-                        <div class="form-group">
-                            <input type="text" hidden id="process_type" value="">
-                            <label class="col-md-2 control-label"><span style="color:red; ">*</span>源端</label>
-                            <div class="col-md-10">
-                                <input id="pri" type="text" name="pri" class="form-control " placeholder="" readonly>
-
-                                <div class="form-control-focus"></div>
-
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="col-md-2 control-label"><span style="color:red; ">*</span>目标端</label>
-                            <div class="col-md-10">
-                                <select name="" id="" class="form-control">
-                                    <option value=""></option>
-                                </select>
-                                <div class="form-control-focus"></div>
-
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="col-md-2 control-label">切换原因</label>
-                            <div class="col-md-10">
-                                <textarea class="form-control" placeholder="最大限制2500个汉字" rows="6" id="run_reason" name="run_reason"></textarea>
-                                <div class="form-control-focus"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-actions ">
-                        <div class="modal-footer">
-                            <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
-                            </button>
-                            <button type="button" id="confirm" name="confirm" class="btn green">确认</button>
-                        </div>
-                    </div>
-                </form>
             </div>
         </div>
     </div>

@@ -664,8 +664,25 @@ def script_move(request):
 ######################
 @login_required
 def process_design(request, funid):
-    return render(request, "processdesign.html",
-                  {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request)})
+    if request.user.is_authenticated():
+        all_main_database = []
+        all_processes_back = []
+        all_processes = Process.objects.exclude(state="9").filter(type='Oracle ADG')
+        all_hosts = DbCopyClient.objects.exclude(state="9",hosttype="1")
+        for host in all_hosts:
+            all_main_database.append({
+                "main_database_id": host.hostsmanage.id,
+                "main_database_name": host.hostsmanage.host_name
+            })
+        for process in all_processes:
+            all_processes_back.append({
+                "process_id": process.id,
+                "process_name": process.name
+            })
+        return render(request, "processdesign.html",
+                      {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request),
+                       'all_main_database': all_main_database, 'all_processes_back':all_processes_back
+                       })
 
 
 @login_required
@@ -696,6 +713,10 @@ def process_data(request):
             "process_rpo": process["rpo"],
             "process_sort": process["sort"],
             "process_color": process["color"],
+            "main_database_id": process.primary.id if process.primary else "",
+            "main_database_name": process.primary.host_name if process.primary else "",
+            "process_back_id": process.backprocess.id if process.backprocess else "",
+            "process_back_name": process.backprocess.name if process.backprocess else "",
             "type": process["type"],
             "variable_param_list": param_list,
         })
@@ -716,6 +737,9 @@ def process_save(request):
         sort = request.POST.get('sort', '')
         color = request.POST.get('color', '')
         type = request.POST.get('type', '')
+        main_database = request.POST.get('main_database', '')
+        process_back = request.POST.get('process_back', '')
+
         config = request.POST.get("config", "")
 
         try:
@@ -734,48 +758,32 @@ def process_save(request):
                     if sign.strip() == '':
                         result["res"] = '是否签到不能为空。'
                     else:
-                        # 流程参数
-                        root = etree.Element("root")
-
-                        if config:
-                            config = json.loads(config)
-                            # 动态参数
-                            for c_config in config:
-                                param_node = etree.SubElement(root, "param")
-                                param_node.attrib["param_name"] = c_config["param_name"].strip()
-                                param_node.attrib["variable_name"] = c_config["variable_name"].strip()
-                                param_node.attrib["param_value"] = c_config["param_value"].strip()
-                        config = etree.tounicode(root)
-
-                        if id == 0:
-                            all_process = Process.objects.filter(code=code).exclude(
-                                state="9").exclude(Q(type=None) | Q(type=""))
-                            if (len(all_process) > 0):
-                                result["res"] = '预案编码:' + code + '已存在。'
-                            else:
-                                processsave = Process()
-                                processsave.url = '/falconstor'
-                                processsave.code = code
-                                processsave.name = name
-                                processsave.remark = remark
-                                processsave.sign = sign
-                                processsave.rto = rto if rto else None
-                                processsave.rpo = rpo if rpo else None
-                                processsave.sort = sort if sort else None
-                                processsave.color = color
-                                processsave.type = type
-                                processsave.config = config
-                                processsave.save()
-                                result["res"] = "保存成功。"
-                                result["data"] = processsave.id
+                        try:
+                            main_database = int(main_database)
+                        except ValueError as e:
+                            result["res"] = '主数据库不能为空。'
                         else:
-                            all_process = Script.objects.filter(code=code).exclude(
-                                id=id).exclude(state="9")
-                            if (len(all_process) > 0):
-                                result["res"] = '预案编码:' + code + '已存在。'
-                            else:
-                                try:
-                                    processsave = Process.objects.get(id=id)
+                            # 流程参数
+                            root = etree.Element("root")
+
+                            if config:
+                                config = json.loads(config)
+                                # 动态参数
+                                for c_config in config:
+                                    param_node = etree.SubElement(root, "param")
+                                    param_node.attrib["param_name"] = c_config["param_name"].strip()
+                                    param_node.attrib["variable_name"] = c_config["variable_name"].strip()
+                                    param_node.attrib["param_value"] = c_config["param_value"].strip()
+                            config = etree.tounicode(root)
+
+                            if id == 0:
+                                all_process = Process.objects.filter(code=code).exclude(
+                                    state="9").exclude(Q(type=None) | Q(type=""))
+                                if (len(all_process) > 0):
+                                    result["res"] = '预案编码:' + code + '已存在。'
+                                else:
+                                    processsave = Process()
+                                    processsave.url = '/falconstor'
                                     processsave.code = code
                                     processsave.name = name
                                     processsave.remark = remark
@@ -785,12 +793,37 @@ def process_save(request):
                                     processsave.sort = sort if sort else None
                                     processsave.color = color
                                     processsave.type = type
+                                    processsave.primary_id = main_database
+                                    processsave.backprocess_id = process_back
                                     processsave.config = config
                                     processsave.save()
                                     result["res"] = "保存成功。"
                                     result["data"] = processsave.id
-                                except:
-                                    result["res"] = "修改失败。"
+                            else:
+                                all_process = Script.objects.filter(code=code).exclude(
+                                    id=id).exclude(state="9")
+                                if (len(all_process) > 0):
+                                    result["res"] = '预案编码:' + code + '已存在。'
+                                else:
+                                    try:
+                                        processsave = Process.objects.get(id=id)
+                                        processsave.code = code
+                                        processsave.name = name
+                                        processsave.remark = remark
+                                        processsave.sign = sign
+                                        processsave.rto = rto if rto else None
+                                        processsave.rpo = rpo if rpo else None
+                                        processsave.sort = sort if sort else None
+                                        processsave.color = color
+                                        processsave.type = type
+                                        processsave.primary_id = main_database
+                                        processsave.backprocess_id = process_back
+                                        processsave.config = config
+                                        processsave.save()
+                                        result["res"] = "保存成功。"
+                                        result["data"] = processsave.id
+                                    except:
+                                        result["res"] = "修改失败。"
     return HttpResponse(json.dumps(result))
 
 
@@ -1696,6 +1729,10 @@ def get_client_node(parent, select_id, request):
             node["text"] = "<i class='jstree-icon jstree-themeicon fa fa-folder icon-state-warning icon-lg jstree-themeicon-custom'></i>" + node["text"]
 
         if child.nodetype=="CLIENT":
+            db_client = DbCopyClient.objects.exclude(state="9").filter(hostsmanage=child)
+            if len(db_client) > 0:
+                if db_client[0].dbtype=="1":
+                    node["text"] = "<img src = '/static/pages/images/oracle.png' height='24px'> " + node["text"]
             cv_client = CvClient.objects.exclude(state="9").filter(hostsmanage=child)
             if len(cv_client)>0:
                 node["text"] = "<img src = '/static/pages/images/cv.png' height='24px'> " + node["text"]
@@ -2002,8 +2039,8 @@ def get_client_detail(request):
             dc = DbCopyClient.objects.exclude(state="9").filter(hostsmanage_id=id)
             if len(dc) >0:
                 dbcopyinfo["id"] = dc[0].id
-                dbcopyinfo["type"] = dc[0].type
-                dbcopyinfo["dbType"] = dc[0].dbType
+                dbcopyinfo["dbtype"] = dc[0].dbtype
+                dbcopyinfo["hosttype"] = dc[0].hosttype
                 dbcopyinfo["std_id"] = dc[0].std_id
                 dbcopyinfo["dbusername"] = ""
                 dbcopyinfo["dbpassowrd"] = ""
@@ -2427,6 +2464,218 @@ def client_cv_get_restore_his(request):
     except Exception as e:
         print(e)
     return JsonResponse({"data": result})
+
+
+@login_required
+def get_dbcopyinfo(request):
+    # 所有关联终端
+    stdlist = DbCopyClient.objects.exclude(state="9").filter(hosttype='2')
+
+    u_std = []
+
+    for std in stdlist:
+        u_std.append({
+            'type':std.dbtype,
+            'id':std.id,
+            'name': std.hostsmanage.host_name + "(" + std.hostsmanage.host_ip + ")"
+        })
+    return JsonResponse({
+        "ret": 1,
+        "info": "查询成功。",
+        'u_std': u_std,
+    })
+
+
+def get_adg_status(request):
+    if request.user.is_authenticated():
+        dbcopy_id = request.POST.get('dbcopy_id', "")
+
+        try:
+            process = Process.objects.get(id=process_id)
+        except Process.DoesNotExist as e:
+            return JsonResponse({
+                "ret": 0,
+                "data": []
+            })
+        else:
+
+            host_list = [process.primary, process.standby]
+
+            adg_info_list = []
+            for host in host_list:
+                db_status = ''
+                database_role = ''
+                switchover_status = ''
+                host_status = 1 # 1为连接，0为断开
+                host_name = host.host_name
+                host_ip = host.host_ip
+                host_password = host.password
+                host_username = host.username
+                # oracle用户名/密码
+                oracle_name = host.oracle_name
+                oracle_password = host.oracle_password
+                oracle_instance = host.oracle_instance
+                host_os = host.os
+
+                try:
+                    conn = cx_Oracle.connect('{oracle_name}/{oracle_password}@{host_ip}/{oracle_instance}'.format(
+                        oracle_name=oracle_name, oracle_password=oracle_password, host_ip=host_ip, oracle_instance=oracle_instance))
+                    curs = conn.cursor()
+                    a_db_status_sql = 'select open_mode,switchover_status,database_role from v$database'
+                    curs.execute(a_db_status_sql)
+                    db_status_row = curs.fetchone()
+                    db_status = db_status_row[0] if db_status_row else ""
+                    database_role = db_status_row[1] if db_status_row else ""
+                    switchover_status = db_status_row[2] if db_status_row else ""
+                except Exception as e:
+                    check_host = ServerByPara('cd ..', host_ip, host_username, host_password, host_os)
+                    result = check_host.run("")
+                    if result["exec_tag"] == "1":
+                        host_status = 0
+                else:
+                    curs.close()
+                    conn.close()
+
+                adg_info_list.append({
+                    "db_status": db_status,
+                    "database_role": database_role,
+                    "switchover_status": switchover_status,
+                    "host_status": host_status,
+                    "host_name": host_name,
+                    "host_ip": host_ip
+                })
+
+            return JsonResponse({
+                "ret": 1,
+                "data": adg_info_list
+            })
+    else:
+        return HttpResponseRedirect("/login")
+
+
+@login_required
+def client_dbcopy_save(request):
+    id = request.POST.get("id", "")
+    dbcopy_id = request.POST.get("dbcopy_id", "")
+    dbcopy_dbtype = request.POST.get("dbcopy_dbtype", "")
+    dbcopy_hosttype = request.POST.get("dbcopy_hosttype", "")
+    dbcopy_oracleusername = request.POST.get("dbcopy_oracleusername", "")
+    dbcopy_oraclepassword = request.POST.get("dbcopy_oraclepassword", "")
+    dbcopy_oracleinstance = request.POST.get("dbcopy_oracleinstance", "")
+    dbcopy_std = request.POST.get("dbcopy_std", "")
+
+    try:
+        id = int(id)
+        dbcopy_id = int(dbcopy_id)
+    except:
+        ret = 0
+        info = "网络错误。"
+    else:
+        if dbcopy_dbtype.strip():
+            if dbcopy_hosttype.strip():
+                if dbcopy_oracleusername.strip():
+                    if dbcopy_oraclepassword.strip():
+                        if dbcopy_oracleinstance.strip():
+                            # 新增
+                            if dbcopy_id == 0:
+                                try:
+                                    dbcopy = DbCopyClient()
+                                    dbcopy.hostsmanage_id = id
+                                    dbcopy.dbtype = dbcopy_dbtype
+                                    dbcopy.hosttype = dbcopy_hosttype
+                                    if dbcopy_dbtype =="1":
+                                        root = etree.Element("root")
+                                        param_node = etree.SubElement(root, "param")
+                                        param_node.attrib["dbusername"] = dbcopy_oracleusername
+                                        param_node.attrib["dbpassowrd"] = dbcopy_oraclepassword
+                                        param_node.attrib["dbinstance"] = dbcopy_oracleinstance
+                                        config = etree.tounicode(root)
+                                        dbcopy.info = config
+                                        if dbcopy_hosttype =="1":
+                                            if dbcopy_std!="none":
+                                                try:
+                                                    dbcopy_std = int(dbcopy_std)
+                                                    dbcopy.std_id = dbcopy_std
+                                                except:
+                                                    pass
+                                            else:
+                                                dbcopy.std=None
+                                    dbcopy.save()
+                                    dbcopy_id = dbcopy.id
+                                except:
+                                    ret = 0
+                                    info = "服务器异常。"
+                                else:
+                                    ret = 1
+                                    info = "数据库复制保护创建成功。"
+                            else:
+                                # 修改
+                                try:
+                                    dbcopy = DbCopyClient.objects.get(id=dbcopy_id)
+                                    dbcopy.hostsmanage_id = id
+                                    dbcopy.dbtype = dbcopy_dbtype
+                                    dbcopy.hosttype = dbcopy_hosttype
+                                    if dbcopy_dbtype == "1":
+                                        root = etree.Element("root")
+                                        param_node = etree.SubElement(root, "param")
+                                        param_node.attrib["dbusername"] = dbcopy_oracleusername
+                                        param_node.attrib["dbpassowrd"] = dbcopy_oraclepassword
+                                        param_node.attrib["dbinstance"] = dbcopy_oracleinstance
+                                        config = etree.tounicode(root)
+                                        dbcopy.info = config
+                                        if dbcopy_hosttype == "1":
+                                            if dbcopy_std != "none":
+                                                try:
+                                                    dbcopy_std = int(dbcopy_std)
+                                                    dbcopy.std_id = dbcopy_std
+                                                except:
+                                                    pass
+                                            else:
+                                                dbcopy.std = None
+                                    dbcopy.save()
+                                    ret = 1
+                                    info = "数据库复制保护修改成功。"
+                                except:
+                                    ret = 0
+                                    info = "服务器异常。"
+
+                        else:
+                            ret = 0
+                            info = "oracle实例名不能为空。"
+                    else:
+                        ret = 0
+                        info = "oracle密码不能为空。"
+                else:
+                    ret = 0
+                    info = "oracle用户名不能为空。"
+            else:
+                ret = 0
+                info = "主机类型不能为空。"
+        else:
+            ret = 0
+            info = "保护类型不能为空。"
+    return JsonResponse({
+        "ret": ret,
+        "info": info,
+        "dbcopy_id": dbcopy_id
+    })
+
+
+@login_required
+def client_dbcopy_del(request):
+    if 'id' in request.POST:
+        id = request.POST.get('id', '')
+        try:
+            id = int(id)
+        except:
+            return HttpResponse(0)
+        dc = DbCopyClient.objects.get(id=id)
+        dc.state = "9"
+        dc.save()
+
+        return HttpResponse(1)
+    else:
+        return HttpResponse(0)
 
 
 def host_save(request):

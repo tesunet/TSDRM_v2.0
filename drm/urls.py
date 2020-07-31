@@ -218,6 +218,10 @@ urlpatterns = [
     url(r'^client_cv_get_backup_his/$', client_cv_get_backup_his),
     url(r'^client_cv_recovery/$', client_cv_recovery),
     url(r'^client_cv_get_restore_his/$', client_cv_get_restore_his),
+    url(r'^get_dbcopyinfo/$', get_dbcopyinfo),
+    url(r'^client_dbcopy_save/$', client_dbcopy_save),
+    url(r'^client_dbcopy_del/$', client_dbcopy_del),
+    url(r'^get_adg_status/$', get_adg_status),
 
 
     url(r'^host_save/$', host_save),

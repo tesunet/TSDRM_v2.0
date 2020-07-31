@@ -256,6 +256,10 @@ function getClientree() {
                                             $("#tabcheck2_2").parent().show();
                                             $("#tabcheck2_3").parent().show();
                                             $("#tabcheck2_4").parent().show();
+                                        }else{
+                                            $("#tabcheck2_2").parent().hide();
+                                            $("#tabcheck2_3").parent().hide();
+                                            $("#tabcheck2_4").parent().hide();
                                         }
                                     }
                                     else{
@@ -269,43 +273,53 @@ function getClientree() {
                                         $("#div_creatdbcopy").hide();
                                         $("#div_dbcopy").show();
                                         $("#dbcopy_del").show();
-                                        $("#dbcopy_id").val(data.cvinfo.id);
-                                        $("#dbcopy_dbtype").val(data.cvinfo.type);
-                                        if($("#cvclient_type").val()=="2") {
-                                            $("#sourcediv").hide();
+                                        $("#dbcopy_id").val(data.dbcopyinfo.id);
+                                        $("#dbcopy_dbtype").val(data.dbcopyinfo.dbtype);
+                                        $("#dbcopy_hosttype").val(data.dbcopyinfo.hosttype);
+                                        if($("#dbcopy_hosttype").val()=="1"){
+                                            $("#dbcopy_std_div").show();
+                                        }else{
+                                            $("#dbcopy_std_div").hide();
+                                        }
+                                        $("#dbcopy_std").empty();
+                                        var std = JSON.parse($("#dbcopy_u_std").val());
+                                        for (var i = 0; i < std.length; i++) {
+                                            if(std[i].type==$("#dbcopy_dbtype").val()){
+                                                $("#dbcopy_std").append('<option value="' + std[i].id+ '">' +  std[i].name+ '</option>');
+                                            }
+                                        }
+                                        $("#dbcopy_std").append('<option value="none">' + "无" + '</option>');
+                                        if(data.dbcopyinfo.std_id!=null) {
+                                            $("#dbcopy_std").val(data.dbcopyinfo.std_id);
+                                        }else{
+                                            $("#dbcopy_std").val("none");
+                                        }
+
+                                        if($("#dbcopy_dbtype").val()=="1") {
+                                            $("#mysqldiv").hide();
+                                            $("#oraclediv").show();
+                                            $("#dbcopy_oracleusername").val(data.dbcopyinfo.dbusername);
+                                            $("#dbcopy_oraclepassword").val(data.dbcopyinfo.dbpassowrd);
+                                            $("#dbcopy_oracleinstance").val(data.dbcopyinfo.dbinstance);
+                                        }
+                                        if($("#dbcopy_dbtype").val()=="2") {
+                                            $("#mysqldiv").show();
+                                            $("#oraclediv").hide();
+                                        }
+                                        //get_dbcopy_detail();
+                                        if ($("#dbcopy_hosttype").val() == "1") {
+                                            $("#tabcheck3_2").parent().show();
+                                            $("#tabcheck3_3").parent().show();
                                         }
                                         else{
-                                            $("#sourcediv").show();
-                                        }
-                                        $("#cvclient_utils_manage").val(data.cvinfo.utils_id);
-                                        getCvClient();
-                                        getCvDestination();
-                                        $("#cvclient_source").val(data.cvinfo.client_id);
-                                        getCvAgenttype();
-                                        $("#cvclient_agentType").val(data.cvinfo.agentType);
-                                        getCvInstance()
-                                        $("#cvclient_instance").val(data.cvinfo.instanceName);
-                                        if(data.cvinfo.destination_id==data.cvinfo.id){
-                                            $("#cvclient_destination").val('self');
-                                        }
-                                        else {
-                                            $("#cvclient_destination").val(data.cvinfo.destination_id);
-                                        }
-                                        $("#cvclient_copy_priority").val(data.cvinfo.copy_priority);
-                                        $("#cvclient_db_open").val(data.cvinfo.db_open);
-                                        $("#cvclient_log_restore").val(data.cvinfo.log_restore);
-                                        $("#cvclient_data_path").val(data.cvinfo.data_path);
-                                        get_cv_detail();
-                                        if ($("#cvclient_type").val() == "1"||$("#cvclient_type").val() == "3") {
-                                            $("#tabcheck2_2").parent().show();
-                                            $("#tabcheck2_3").parent().show();
-                                            $("#tabcheck2_4").parent().show();
+                                            $("#tabcheck3_2").parent().hide();
+                                            $("#tabcheck3_3").parent().hide();
                                         }
                                     }
                                     else{
-                                        $("#div_creatcv").show();
-                                        $("#div_cv").hide();
-                                        $("#cv_del").hide();
+                                        $("#div_creatdbcopy").show();
+                                        $("#div_dbcopy").hide();
+                                        $("#dbcopy_del").hide();
                                     }
                                 }
                                 else {
@@ -458,6 +472,99 @@ function getCvinfo() {
 }
 
 //数据库复制
+function get_dbcopy_detail(){
+    $.ajax({
+        type: "POST",
+        dataType: 'json',
+        url: "../get_adg_status/",
+        data:
+            {
+                dbcopy_id: $("#dbcopy_id").val()
+            },
+        success: function (data) {
+            //..
+            console.log(data);
+            l_host_name=data["data"][0].host_name;
+            l_db_status = data["data"][0].db_status;
+            l_switchover_status = data["data"][0].switchover_status;
+
+            r_host_name=data["data"][1].host_name;
+            r_db_status = data["data"][1].db_status;
+            r_switchover_status = data["data"][1].switchover_status;
+            $(".ldbname").text(l_host_name);
+            $(".ldbsta").text(l_db_status );
+            $(".rdbname").text(r_host_name);
+            $(".rdbsta").text(r_db_status);
+
+            if(l_db_status=="OPEN"){
+                $(".ldbimg").attr("src","/static/new/images/db1.png");
+            }
+            if(l_db_status=="READ ONLY WITH APPLY"){
+                $(".ldbimg").attr("src","/static/new/images/db1.png");
+            }
+            if(l_db_status=="READ WRITE"){
+                $(".ldbimg").attr("src","/static/new/images/db1.png");
+            }
+            if(l_db_status=="READ ONLY"){
+                $(".ldbimg").attr("src","/static/new/images/db1.png");
+            }
+            if(l_db_status=="MOUNT"){
+                $(".ldbimg").attr("src","/static/new/images/db2.png");
+            }
+            if(r_db_status=="OPEN"){
+                $(".rdbimg").attr("src","/static/new/images/db1.png");
+            }
+            if(r_db_status=="READ ONLY WITH APPLY"){
+                $(".rdbimg").attr("src","/static/new/images/db1.png");
+            }
+            if(r_db_status=="READ WRITE"){
+                $(".rdbimg").attr("src","/static/new/images/db1.png");
+            }
+            if(r_db_status=="MOUNT"){
+                $(".rdbimg").attr("src","/static/new/images/db2.png");
+            }
+            if(r_db_status=="READ ONLY"){
+                $(".rdbimg").attr("src","/static/new/images/db1.png");
+            }
+            if(l_switchover_status=="PRIMARY"){
+                $(".sync").attr("src","/static/new/images/sync_r.gif");
+            }
+            if(r_switchover_status=="PRIMARY"){
+                $(".sync").attr("src","/static/new/images/sync_l.gif");
+            }
+
+            //$("#test").val(JSON.stringify(data["data"]) + "\n" + "host_status:主机状态,host_ip:主机IP，switchover_status:切换状态,database_role:切换角色,host_name:主机名称,db_status:数据库状态");
+        },
+        error: function (e) {
+            ;
+        }
+    });
+}
+
+function getDbcopyStd() {
+    $("#dbcopy_std").empty();
+
+    var stddata = JSON.parse($("#dbcopy_u_std").val());
+    for (var i = 0; i < stddata.length; i++) {
+        if(stddata[i].type==$("#dbcopy_dbtype").val()){
+            $("#dbcopy_std").append('<option value="' + stddata[i].id+ '">' +  stddata[i].name+ '</option>');
+        }
+    }
+    $("#dbcopy_std").append('<option value="none">' + "无" + '</option>');
+}
+
+function getDbcopyinfo() {
+    $.ajax({
+        type: 'POST',
+        dataType: 'json',
+        url: '../get_dbcopyinfo/',
+        success: function (data) {
+            $("#dbcopy_u_std").val(JSON.stringify(data.u_std));
+            getDbcopyStd();
+        }
+    });
+
+}
 
 $(document).ready(function () {
     //主机
@@ -754,6 +861,11 @@ $(document).ready(function () {
                             $("#tabcheck2_3").parent().show();
                             $("#tabcheck2_4").parent().show();
                         }
+                        else{
+                            $("#tabcheck2_2").parent().hide();
+                            $("#tabcheck2_3").parent().hide();
+                            $("#tabcheck2_4").parent().hide();
+                        }
                         var curnode = $('#tree_client').jstree('get_node', $("#id").val());
                         var newtext = "<img src = '/static/pages/images/cv.png' height='24px'> " + curnode.text
                         $('#tree_client').jstree('set_text', $("#id").val() , newtext);
@@ -806,13 +918,14 @@ $(document).ready(function () {
                                 if(destinationdata[i].utilid==$("#cvclient_utils_manage").val()){
                                     for (var j = 0; j < destinationdata[i].destination_list.length; j++) {
                                         if (destinationdata[i].destination_list[j].id == $("#cv_id").val()) {
-                                            destinationdata[i].destination_list.splice(0, j)
+                                            destinationdata[i].destination_list.splice(j, 1)
                                             $("#cvclient_u_destination").val(JSON.stringify(destinationdata));
-                                            $("#cv_r_destClient").val(JSON.stringify(destinationdata));
+
                                             break;
                                         }
                                     }
-                                    $("#cvclient_destination option[value=''" + $("#cv_id").val() +  "']").remove();
+                                    $("#cvclient_destination option[value='" + $("#cv_id").val() +  "']").remove();
+                                    $("#cv_r_destClient option[value='" + $("#cv_id").val() +  "']").remove();
                                     break;
                                 }
                             }
@@ -946,7 +1059,8 @@ $(document).ready(function () {
                     },
                     success: function (data) {
                         alert(data);
-                        $("#static1").modal("hide");
+                        var table1 = $('#cv_restore_his').DataTable();
+                        table1.ajax.reload();
                     },
                     error: function (e) {
                         alert("恢复失败，请于客服联系。");
@@ -955,4 +1069,149 @@ $(document).ready(function () {
             }
         }
     });
+
+    //db复制
+    getDbcopyinfo();
+    $("#dbcopy_hosttype").change(function () {
+        if($("#dbcopy_hosttype").val()=="1"){
+            $("#dbcopy_std_div").show();
+        }else{
+            $("#dbcopy_std_div").hide();
+        }
+    });
+    $('#creatdbcopy').click(function () {
+        $("#div_creatdbcopy").hide();
+        $("#div_dbcopy").show();
+        $("#dbcopy_del").hide();
+        $("#tabcheck3_1").click();
+        $("#tabcheck3_2").parent().hide();
+        $("#tabcheck3_3").parent().hide();
+
+        $("#dbcopy_id").val("0");
+        $("#dbcopy_dbtype").val("1");
+        $("#dbcopy_hosttype").val("1");
+        $("#dbcopy_oracleusername").val("");
+        $("#dbcopy_oraclepassword").val("");
+        $("#dbcopy_oracleinstance").val("");
+        $("#dbcopy_std_div").show();
+
+    });
+    $('#dbcopy_oracle_save').click(function () {
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../client_dbcopy_save/",
+            data: {
+
+                id: $("#id").val(),
+                dbcopy_id: $("#dbcopy_id").val(),
+                dbcopy_dbtype: $("#dbcopy_dbtype").val(),
+                dbcopy_hosttype: $("#dbcopy_hosttype").val(),
+                dbcopy_oracleusername: $("#dbcopy_oracleusername").val(),
+                dbcopy_oraclepassword: $("#dbcopy_oraclepassword").val(),
+                dbcopy_oracleinstance: $("#dbcopy_oracleinstance").val(),
+                dbcopy_std: $("#dbcopy_std").val(),
+                },
+            success: function (data) {
+                if (data.ret == 1) {
+                    if ($("#dbcopy_id").val() == "0") {
+                        $("#dbcopy_id").val(data.dbcopy_id);
+                        $("#dbcopy_del").show();
+                        if ($("#dbcopy_hosttype").val() == "1") {
+                            $("#tabcheck3_2").parent().show();
+                            $("#tabcheck3_3").parent().show();
+                        }
+                        else{
+                            $("#tabcheck3_2").parent().hide();
+                            $("#tabcheck3_3").parent().hide();
+                        }
+                        var curnode = $('#tree_client').jstree('get_node', $("#id").val());
+                        var newtext = curnode
+                        if($("#dbcopy_dbtype").val()=="1") {
+                            newtext = "<img src = '/static/pages/images/oracle.png' height='24px'> " + curnode.text
+                        }
+                        $('#tree_client').jstree('set_text', $("#id").val() , newtext);
+                    }
+                    //刷新备库下拉菜单
+                    if ($("#dbcopy_hosttype").val() == "2"){
+                        var std = $("#dbcopy_std").val();
+                        var stddata = JSON.parse($("#dbcopy_u_std").val());
+                        var cur_std={"name":$("#host_name").val()+"(" + $("#host_ip").val() + ")","id":data.dbcopy_id,"type":$("#dbcopy_dbtype").val()}
+                        if(!inArray(cur_std,stddata)){
+                            stddata.push(cur_std);
+                            $("#dbcopy_u_std").val(JSON.stringify(stddata));
+                        }
+                        getDbcopyStd();
+                        $("#dbcopy_std").val(std);
+                    }
+                    if ($("#dbcopy_hosttype").val() == "1") {
+                        var stddata = JSON.parse($("#dbcopy_u_std").val());
+                        for (var i = 0; i < stddata.length; i++) {
+                            if (stddata[i].id == $("#dbcopy_id").val()) {
+                                stddata.splice(i, 1)
+                                $("#dbcopy_u_std").val(JSON.stringify(stddata));
+                                break;
+                            }
+                        }
+                        $("#dbcopy_std option[value='" + $("#dbcopy_id").val() +  "']").remove();
+                    }
+                    if ($("#dbcopy_hosttype").val() == "1") {
+                        $("#tabcheck3_2").parent().show();
+                        $("#tabcheck3_3").parent().show();
+                    }
+                    else{
+                        $("#tabcheck3_2").parent().hide();
+                        $("#tabcheck3_3").parent().hide();
+                    }
+                    //get_dbcopy_detail();
+                }
+                alert(data.info);
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+            }
+        });
+    });
+    $('#dbcopy_oracle_del').click(function () {
+        if (confirm("确定要删除？删除后不可恢复。")) {
+            $.ajax({
+                type: "POST",
+                url: "../client_dbcopy_del/",
+                data:
+                    {
+                        id: $("#dbcopy_id").val(),
+                    },
+                success: function (data) {
+                    if (data == 1) {
+                        $("#div_creatdbcopy").show();
+                        $("#div_dbcopy").hide();
+                        $("#dbcopy_del").hide();
+
+                        var curnode = $('#tree_client').jstree('get_node', $("#id").val());
+                        var newtext = curnode
+                        if($("#dbcopy_dbtype").val()=="1") {
+                            newtext = curnode.text.replace("<img src = '/static/pages/images/oracle.png' height='24px'> ", "")
+                        }
+                        $('#tree_client').jstree('set_text', $("#id").val() , newtext);
+                        //刷新备库下拉菜单
+                        var stddata = JSON.parse($("#dbcopy_u_std").val());
+                        for (var i = 0; i < stddata.length; i++) {
+                            if (stddata[i].id == $("#dbcopy_id").val()) {
+                                stddata.splice(i, 1)
+                                $("#dbcopy_u_std").val(JSON.stringify(stddata));
+                                break;
+                            }
+                        }
+                        $("#dbcopy_std option[value='" + $("#dbcopy_id").val() +  "']").remove();
+
+                        alert("删除成功！");
+                    } else
+                        alert("删除失败，请于管理员联系。");
+                },
+                error: function (e) {
+                    alert("删除失败，请于管理员联系。");
+                }
+            });
+        }
+    })
 });
