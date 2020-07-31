@@ -17,6 +17,8 @@ from .basic_views import getpagefuns
 from django.contrib.auth.decorators import login_required
 from lxml import etree
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import cx_Oracle
+from ..remote import ServerByPara
 
 
 ######################
@@ -668,7 +670,7 @@ def process_design(request, funid):
         all_main_database = []
         all_processes_back = []
         all_processes = Process.objects.exclude(state="9").filter(type='Oracle ADG')
-        all_hosts = DbCopyClient.objects.exclude(state="9",hosttype="1")
+        all_hosts = DbCopyClient.objects.exclude(state="9").filter(hosttype="1")
         for host in all_hosts:
             all_main_database.append({
                 "main_database_id": host.hostsmanage.id,
@@ -688,11 +690,11 @@ def process_design(request, funid):
 @login_required
 def process_data(request):
     result = []
-    all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).order_by("sort").values()
+    all_process = Process.objects.all().exclude(state="9").exclude(Q(type=None) | Q(type="")).order_by("sort").select_related("primary", "backprocess")
     for process in all_process:
         param_list = []
         try:
-            config = etree.XML(process['config'])
+            config = etree.XML(process.config)
 
             param_el = config.xpath("//param")
             for v_param in param_el:
@@ -704,20 +706,20 @@ def process_data(request):
         except Exception as e:
             print(e)
         result.append({
-            "process_id": process["id"],
-            "process_code": process["code"],
-            "process_name": process["name"],
-            "process_remark": process["remark"],
-            "process_sign": process["sign"],
-            "process_rto": process["rto"],
-            "process_rpo": process["rpo"],
-            "process_sort": process["sort"],
-            "process_color": process["color"],
+            "process_id": process.id,
+            "process_code": process.code,
+            "process_name": process.name,
+            "process_remark": process.remark,
+            "process_sign": process.sign,
+            "process_rto": process.rto,
+            "process_rpo": process.rpo,
+            "process_sort": process.sort,
+            "process_color": process.color,
             "main_database_id": process.primary.id if process.primary else "",
             "main_database_name": process.primary.host_name if process.primary else "",
             "process_back_id": process.backprocess.id if process.backprocess else "",
             "process_back_name": process.backprocess.name if process.backprocess else "",
-            "type": process["type"],
+            "type": process.type,
             "variable_param_list": param_list,
         })
     return JsonResponse({"data": result})
@@ -759,7 +761,8 @@ def process_save(request):
                         result["res"] = '是否签到不能为空。'
                     else:
                         try:
-                            main_database = int(main_database)
+                            if type=="Oracle ADG":
+                                main_database = int(main_database)
                         except ValueError as e:
                             result["res"] = '主数据库不能为空。'
                         else:
@@ -2486,40 +2489,64 @@ def get_dbcopyinfo(request):
     })
 
 
+@login_required
 def get_adg_status(request):
-    if request.user.is_authenticated():
-        dbcopy_id = request.POST.get('dbcopy_id', "")
+    id = request.POST.get('id', "")
+    dbcopy_id = request.POST.get('dbcopy_id', "")
+    dbcopy_std = request.POST.get('dbcopy_std', "")
+    try:
+        dbcopy_id = int(dbcopy_id)
+    except:
+        dbcopy_id=0
+    try:
+        dbcopy_std = int(dbcopy_std)
+    except:
+        dbcopy_std=0
+    try:
+        id = int(id)
+    except:
+        id = 0
 
-        try:
-            process = Process.objects.get(id=process_id)
-        except Process.DoesNotExist as e:
-            return JsonResponse({
-                "ret": 0,
-                "data": []
-            })
-        else:
+    host_list = [dbcopy_id, dbcopy_std]
 
-            host_list = [process.primary, process.standby]
-
-            adg_info_list = []
-            for host in host_list:
+    adg_info_list = []
+    adg_process_list = []
+    for hostid in host_list:
+        if hostid !=0:
+            host=DbCopyClient.objects.filter(id=hostid).exclude(state="9")
+            if len(host)>0:
+                host=host[0]
                 db_status = ''
                 database_role = ''
                 switchover_status = ''
-                host_status = 1 # 1为连接，0为断开
-                host_name = host.host_name
-                host_ip = host.host_ip
-                host_password = host.password
-                host_username = host.username
+                host_status = 1  # 1为连接，0为断开
+                host_name = host.hostsmanage.host_name
+                host_ip = host.hostsmanage.host_ip
+                host_password = host.hostsmanage.password
+                host_username = host.hostsmanage.username
+                host_os = host.hostsmanage.os
                 # oracle用户名/密码
-                oracle_name = host.oracle_name
-                oracle_password = host.oracle_password
-                oracle_instance = host.oracle_instance
-                host_os = host.os
+                oracle_name = ""
+                oracle_password = ""
+                oracle_instance = ""
+
+                try:
+                    config = etree.XML(host.info)
+                    param_el = config.xpath("//param")
+                    if len(param_el) > 0:
+                        oracle_name =  param_el[0].attrib.get("dbusername", ""),
+                        oracle_name=oracle_name[0]
+                        oracle_password =  param_el[0].attrib.get("dbpassowrd", ""),
+                        oracle_password = oracle_password[0]
+                        oracle_instance =  param_el[0].attrib.get("dbinstance", ""),
+                        oracle_instance = oracle_instance[0]
+                except:
+                    pass
 
                 try:
                     conn = cx_Oracle.connect('{oracle_name}/{oracle_password}@{host_ip}/{oracle_instance}'.format(
-                        oracle_name=oracle_name, oracle_password=oracle_password, host_ip=host_ip, oracle_instance=oracle_instance))
+                        oracle_name=oracle_name, oracle_password=oracle_password, host_ip=host_ip,
+                        oracle_instance=oracle_instance))
                     curs = conn.cursor()
                     a_db_status_sql = 'select open_mode,switchover_status,database_role from v$database'
                     curs.execute(a_db_status_sql)
@@ -2545,12 +2572,85 @@ def get_adg_status(request):
                     "host_ip": host_ip
                 })
 
-            return JsonResponse({
-                "ret": 1,
-                "data": adg_info_list
+    if hostid != 0:
+        processlist = Process.objects.filter(primary=id,type='Oracle ADG').exclude(state="9")
+        for process in processlist:
+            adg_process_list.append({
+                "process_id": process.id,
+                "back_id": process.backprocess_id,
+                "process_name": process.name
             })
-    else:
-        return HttpResponseRedirect("/login")
+
+    return JsonResponse({
+        "ret": 1,
+        "data": adg_info_list,
+        "process": adg_process_list
+    })
+
+
+@login_required
+def client_dbcopy_get_adg_his(request):
+    result = []
+    id = request.GET.get("id", "")
+    state_dict = {
+        "DONE": "已完成",
+        "EDIT": "未执行",
+        "RUN": "执行中",
+        "ERROR": "执行失败",
+        "IGNORE": "忽略",
+        "STOP": "终止",
+        "PLAN": "计划",
+        "REJECT": "取消",
+        "SIGN": "签到",
+        "": "",
+    }
+
+    allprocess = []
+    frontprocess = []
+    backprocess = []
+    processlist = Process.objects.filter(primary=id,type='Oracle ADG').exclude(state="9")
+    for process in processlist:
+        allprocess.append(process.id)
+        frontprocess.append(process.id)
+        if process.backprocess is not None:
+            allprocess.append(process.backprocess.id)
+            backprocess.append(process.backprocess.id)
+    allprocess_new = [str(x) for x in allprocess]
+    strprocess = ','.join(allprocess_new)
+
+    cursor = connection.cursor()
+
+    exec_sql = """
+    select r.starttime, r.endtime, r.creatuser, r.state, r.process_id, r.id, r.run_reason, p.name, p.url, p.type from drm_processrun as r 
+    left join drm_process as p on p.id = r.process_id where r.state != '9' and r.state != 'REJECT' and p.id in ({0}) order by r.starttime desc;
+    """.format(strprocess)
+
+    cursor.execute(exec_sql)
+    rows = cursor.fetchall()
+    for processrun_obj in rows:
+        create_users = processrun_obj[2] if processrun_obj[2] else ""
+        create_user_objs = User.objects.filter(username=create_users)
+        create_user_fullname = create_user_objs[0].userinfo.fullname if create_user_objs else ""
+        process_type=""
+        if processrun_obj[4] in frontprocess:
+            process_type = "正切"
+        elif processrun_obj[4] in backprocess:
+            process_type = "回切"
+
+        result.append({
+            "starttime": processrun_obj[0].strftime('%Y-%m-%d %H:%M:%S') if processrun_obj[0] else "",
+            "endtime": processrun_obj[1].strftime('%Y-%m-%d %H:%M:%S') if processrun_obj[1] else "",
+            "createuser": create_user_fullname,
+            "state": state_dict["{0}".format(processrun_obj[3])] if processrun_obj[3] else "",
+            "process_id": processrun_obj[4] if processrun_obj[4] else "",
+            "processrun_id": processrun_obj[5] if processrun_obj[5] else "",
+            "run_reason": processrun_obj[6][:20] if processrun_obj[6] else "",
+            "process_name": processrun_obj[7] if processrun_obj[7] else "",
+            "process_type": process_type,
+            "process_url": processrun_obj[8] if processrun_obj[8] else ""
+        })
+
+    return JsonResponse({"data": result})
 
 
 @login_required

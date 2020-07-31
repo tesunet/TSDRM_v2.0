@@ -222,6 +222,7 @@ function getClientree() {
 
                                     //cv信息
                                     if(JSON.stringify(data.cvinfo) != '{}'){
+                                        $("#tabcheck2_1").click();
                                         $("#div_creatcv").hide();
                                         $("#div_cv").show();
                                         $("#cv_del").show();
@@ -270,6 +271,7 @@ function getClientree() {
 
                                     //dbcopy信息
                                     if(JSON.stringify(data.dbcopyinfo) != '{}'){
+                                        $("#tabcheck3_1").click();
                                         $("#div_creatdbcopy").hide();
                                         $("#div_dbcopy").show();
                                         $("#dbcopy_del").show();
@@ -306,10 +308,10 @@ function getClientree() {
                                             $("#mysqldiv").show();
                                             $("#oraclediv").hide();
                                         }
-                                        //get_dbcopy_detail();
                                         if ($("#dbcopy_hosttype").val() == "1") {
                                             $("#tabcheck3_2").parent().show();
                                             $("#tabcheck3_3").parent().show();
+                                            get_dbcopy_detail();
                                         }
                                         else{
                                             $("#tabcheck3_2").parent().hide();
@@ -473,17 +475,21 @@ function getCvinfo() {
 
 //数据库复制
 function get_dbcopy_detail(){
+    var table = $('#dbcopy_adg_his').DataTable();
+    table.ajax.url("../client_dbcopy_get_adg_his?id=" + $('#id').val()
+    ).load();
     $.ajax({
         type: "POST",
         dataType: 'json',
         url: "../get_adg_status/",
         data:
             {
-                dbcopy_id: $("#dbcopy_id").val()
+                id: $("#id").val(),
+                dbcopy_id: $("#dbcopy_id").val(),
+                dbcopy_std: $("#dbcopy_std").val(),
             },
         success: function (data) {
-            //..
-            console.log(data);
+            //数据库状态
             l_host_name=data["data"][0].host_name;
             l_db_status = data["data"][0].db_status;
             l_switchover_status = data["data"][0].switchover_status;
@@ -497,42 +503,54 @@ function get_dbcopy_detail(){
             $(".rdbsta").text(r_db_status);
 
             if(l_db_status=="OPEN"){
-                $(".ldbimg").attr("src","/static/new/images/db1.png");
+                $(".ldbimg").attr("src","/static/pages/images/adg/db1.png");
             }
             if(l_db_status=="READ ONLY WITH APPLY"){
-                $(".ldbimg").attr("src","/static/new/images/db1.png");
+                $(".ldbimg").attr("src","/static/pages/images/adg/db1.png");
             }
             if(l_db_status=="READ WRITE"){
-                $(".ldbimg").attr("src","/static/new/images/db1.png");
+                $(".ldbimg").attr("src","/static/pages/images/adg/db1.png");
             }
             if(l_db_status=="READ ONLY"){
-                $(".ldbimg").attr("src","/static/new/images/db1.png");
+                $(".ldbimg").attr("src","/static/pages/images/adg/db1.png");
             }
             if(l_db_status=="MOUNT"){
-                $(".ldbimg").attr("src","/static/new/images/db2.png");
+                $(".ldbimg").attr("src","/static/pages/images/adg/db2.png");
             }
             if(r_db_status=="OPEN"){
-                $(".rdbimg").attr("src","/static/new/images/db1.png");
+                $(".rdbimg").attr("src","/static/pages/images/adg/db1.png");
             }
             if(r_db_status=="READ ONLY WITH APPLY"){
-                $(".rdbimg").attr("src","/static/new/images/db1.png");
+                $(".rdbimg").attr("src","/static/pages/images/adg/db1.png");
             }
             if(r_db_status=="READ WRITE"){
-                $(".rdbimg").attr("src","/static/new/images/db1.png");
+                $(".rdbimg").attr("src","/static/pages/images/adg/db1.png");
             }
             if(r_db_status=="MOUNT"){
-                $(".rdbimg").attr("src","/static/new/images/db2.png");
+                $(".rdbimg").attr("src","/static/pages/images/adg/db2.png");
             }
             if(r_db_status=="READ ONLY"){
-                $(".rdbimg").attr("src","/static/new/images/db1.png");
+                $(".rdbimg").attr("src","/static/pages/images/adg/db1.png");
             }
             if(l_switchover_status=="PRIMARY"){
-                $(".sync").attr("src","/static/new/images/sync_r.gif");
+                $(".sync").attr("src","/static/pages/images/adg/sync_r.gif");
             }
             if(r_switchover_status=="PRIMARY"){
-                $(".sync").attr("src","/static/new/images/sync_l.gif");
+                $(".sync").attr("src","/static/pages/images/adg/sync_l.gif");
             }
-
+            //流程
+            var processtext= ""
+            for (var i = 0; i < data["process"].length; i++) {
+                processtext+="<div  class='form-group'><button onclick=\"runprocess(" + data["process"][i].process_id + ",'1')\"  type='button' class=' btn  green'>切换:" + data["process"][i].process_name + "</button> ";
+                if(data["process"][i].back_id!=null &&data["process"][i].back_id!="")
+                {
+                    processtext+="<button onclick=\"runprocess(" + data["process"][i].process_id + ",'2')\" type='button' class='backprocessbtn btn  green'>回切</button>";
+                }
+                processtext+="</div>"
+            }
+            $("#processdiv").empty();
+            $("#processdiv").append(processtext);
+            l_host_name=data["data"][0].host_name;
             //$("#test").val(JSON.stringify(data["data"]) + "\n" + "host_status:主机状态,host_ip:主机IP，switchover_status:切换状态,database_role:切换角色,host_name:主机名称,db_status:数据库状态");
         },
         error: function (e) {
@@ -564,6 +582,18 @@ function getDbcopyinfo() {
         }
     });
 
+}
+function runprocess(processid,process_type) {
+    $("#static").modal({backdrop: "static"});
+    $('#recovery_time').datetimepicker({
+        format: 'yyyy-mm-dd hh:ii:ss',
+        pickerPosition: 'top-right'
+    });
+    // 写入当前时间
+    var myDate = new Date();
+    $("#run_time").val(myDate.toLocaleString());
+    $("#processid").val(processid);
+    $("#process_type").val(process_type);
 }
 
 $(document).ready(function () {
@@ -1070,6 +1100,8 @@ $(document).ready(function () {
         }
     });
 
+
+
     //db复制
     getDbcopyinfo();
     $("#dbcopy_hosttype").change(function () {
@@ -1158,12 +1190,12 @@ $(document).ready(function () {
                     if ($("#dbcopy_hosttype").val() == "1") {
                         $("#tabcheck3_2").parent().show();
                         $("#tabcheck3_3").parent().show();
+                        get_dbcopy_detail();
                     }
                     else{
                         $("#tabcheck3_2").parent().hide();
                         $("#tabcheck3_3").parent().hide();
                     }
-                    //get_dbcopy_detail();
                 }
                 alert(data.info);
             },
@@ -1214,4 +1246,118 @@ $(document).ready(function () {
             });
         }
     })
+    $("#confirm").click(function () {
+        var process_id = $("#process_id").val();
+
+        // 非邀请流程启动
+        // $.ajax({
+        //     type: "POST",
+        //     dataType: 'json',
+        //     url: "../cv_oracle_run/",
+        //     data:
+        //         {
+        //             processid: process_id,
+        //             run_person: $("#run_person").val(),
+        //             run_time: $("#run_time").val(),
+        //             run_reason: $("#run_reason").val(),
+        //             process_type:$("#process_type").val()
+        //         },
+        //     success: function (data) {
+        //         if (data["res"] == "新增成功。") {
+        //             window.location.href = data["data"];
+        //         } else
+        //             alert(data["res"]);
+        //     },
+        //     error: function (e) {
+        //         alert("流程启动失败，请于管理员联系。");
+        //     }
+        // });
+    });
+    $('#dbcopy_adg_his').dataTable({
+        "bAutoWidth": true,
+        "bSort": false,
+        "bProcessing": true,
+        //"ajax": "../oracle_restore_data/",
+        "fnServerParams": function (aoData) {
+            aoData.push({
+                name: "process_id",
+                value: $("#process_id").val()
+            })
+        },
+        "columns": [
+            {"data": "processrun_id"},
+            {"data": "process_name"},
+            {"data": "process_type"},
+            {"data": "createuser"},
+            {"data": "state"},
+            {"data": "run_reason"},
+            {"data": "starttime"},
+            {"data": "endtime"},
+            {"data": "process_id"},
+            {"data": "process_url"},
+            {"data": null},
+        ],
+        "columnDefs": [{
+            "targets": 1,
+            "render": function (data, type, full) {
+                return full.state != "计划" ? "<td><a href='process_url' target='_blank'>data</a></td>".replace("data", full.process_name).replace("process_url", "/processindex/" + full.processrun_id + "?s=true") : "<td>" + full.process_name + "</td>"
+            }
+        }, {
+            "visible": false,
+            "targets": -2  // 倒数第一列
+        }, {
+            "visible": false,
+            "targets": -3  // 倒数第一列
+        }, {
+            "targets": -1,  // 指定最后一列添加按钮；
+            "data": null,
+            "width": "60px",  // 指定列宽；
+            "render": function (data, type, full) {
+                return "<td><button class='btn btn-xs btn-primary' type='button'><a href='/custom_pdf_report/?processrunid&processid'><i class='fa fa-arrow-circle-down' style='color: white'></i></a></button><button title='删除'  id='delrow' class='btn btn-xs btn-primary' type='button'><i class='fa fa-trash-o'></i></button></td>".replace("processrunid", "processrunid=" + full.processrun_id).replace("processid", "processid=" + full.process_id)
+            }
+        }],
+
+        "oLanguage": {
+            "sLengthMenu": "&nbsp;&nbsp;每页显示 _MENU_ 条记录",
+            "sZeroRecords": "抱歉， 没有找到",
+            "sInfo": "从 _START_ 到 _END_ /共 _TOTAL_ 条数据",
+            "sInfoEmpty": '',
+            "sInfoFiltered": "(从 _MAX_ 条数据中检索)",
+            "sSearch": "搜索",
+            "oPaginate": {
+                "sFirst": "首页",
+                "sPrevious": "前一页",
+                "sNext": "后一页",
+                "sLast": "尾页"
+            },
+            "sZeroRecords": "没有检索到数据",
+
+        }
+    });
+
+    $('#dbcopy_adg_his tbody').on('click', 'button#delrow', function () {
+            if (confirm("确定要删除该条数据？")) {
+                var table = $('#sample_1').DataTable();
+                var data = table.row($(this).parents('tr')).data();
+                $.ajax({
+                    type: "POST",
+                    url: "../../delete_current_process_run/",
+                    data:
+                        {
+                            processrun_id: data.processrun_id
+                        },
+                    success: function (data) {
+                        if (data == 1) {
+                            table.ajax.reload();
+                            alert("删除成功！");
+                        } else
+                            alert("删除失败，请于管理员联系。");
+                    },
+                    error: function (e) {
+                        alert("删除失败，请于管理员联系。");
+                    }
+                });
+
+            }
+        });
 });

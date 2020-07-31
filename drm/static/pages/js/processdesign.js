@@ -96,6 +96,14 @@ $(document).ready(function () {
         $("#process_main_database").val(data.main_database_id);
         $("#process_back").val(data.process_back_id);
 
+
+        if ($("#type").val()=="Oracle ADG"){
+            $("#adg_div").show();
+        }
+        else{
+            $("#adg_div").hide();
+        }
+
         // 动态参数
         $('#param_se').empty();
         var variable_param_list = data.variable_param_list;
@@ -118,7 +126,18 @@ $(document).ready(function () {
         $("#process_main_database").val("");
         $("#process_back").val("");
         $("#param_se").empty();
+        $("#adg_div").hide();
     });
+
+    $("#type").change(function () {
+        if ($("#type").val()=="Oracle ADG"){
+            $("#adg_div").show();
+        }
+        else{
+            $("#adg_div").hide();
+        }
+    });
+
 
     $('#save').click(function () {
         var table = $('#sample_1').DataTable();
