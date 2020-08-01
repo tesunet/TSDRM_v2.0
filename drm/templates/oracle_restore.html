@@ -163,8 +163,7 @@
                             <div class="form-group">
                                 <label class="col-md-2 control-label"><span style="color:red; "></span>数据重定向路径</label>
                                 <div class="col-md-10">
-                                    <input id="data_path" type="text" name="data_path" class="form-control"
-                                           value="{{ data_path }}" placeholder="">
+                                    <input id="data_path" type="text" name="data_path" class="form-control" value="{{ orcl_params.data_path }}">
                                     <div class="form-control-focus"></div>
 
                                 </div>
@@ -174,8 +173,7 @@
                                     <label class="col-md-2 control-label"><span
                                             style="color:red; "></span>选择拷贝优先级</label>
                                     <div class="col-md-10">
-                                        <input type="text" id="copy_priority_hidden" name="copy_priority_hidden"
-                                               value="{{ copy_priority }}" hidden>
+                                        <input type="text" id="copy_priority_hidden" name="copy_priority_hidden" value="{{ orcl_params.copy_priority }}" hidden>
                                         <select name="copy_priority" id="copy_priority" class="form-control">
                                             <option value="1">主拷贝</option>
                                             <option value="2">辅助拷贝</option>
@@ -189,9 +187,22 @@
                                     <label class="col-md-2 control-label"><span
                                             style="color:red; "></span>是否开启数据库</label>
                                     <div class="col-md-10">
-                                        <input type="text" id="db_open_hidden" name="db_open_hidden"
-                                               value="{{ db_open }}" hidden>
+                                        <input type="text" id="db_open_hidden" name="db_open_hidden" value="{{ orcl_params.db_open }}" hidden>
                                         <select name="db_open" id="db_open" class="form-control">
+                                            <option value="1">是</option>
+                                            <option value="2">否</option>
+                                        </select>
+                                        <div class="form-control-focus"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-body">
+                                <div class="form-group">
+                                    <label class="col-md-2 control-label"><span
+                                            style="color:red; "></span>是否回滚日志</label>
+                                    <div class="col-md-10">
+                                        <input type="text" id="log_restore_hidden" name="log_restore_hidden" value="{{ orcl_params.log_restore }}" hidden>
+                                        <select name="log_restore" id="log_restore" class="form-control">
                                             <option value="1">是</option>
                                             <option value="2">否</option>
                                         </select>
@@ -202,21 +213,18 @@
                             <div class="form-group">
                                 <label class="col-md-2 control-label"><span style="color:red; ">*</span>源客户端</label>
                                 <div class="col-md-10">
-                                    <input id="origin" autocomplete="off" type="text" readonly name="origin"
-                                           class="form-control" value="{{ origin.client_name }}">
+                                    <input id="pri" type="text" hidden name="pri" value="{{ orcl_params.pri_id }}">
+                                    <input id="pri_name" autocomplete="off" type="text" readonly name="pri_name" class="form-control" value="{{ orcl_params.pri_name }}">
                                     <div class="form-control-focus"></div>
                                 </div>
                             </div>
                             <div class="form-group">
                                 <label class="col-md-2 control-label"><span style="color:red; ">*</span>选择目标客户端</label>
                                 <div class="col-md-10">
-                                    <input type="text" id="target_selected" name="target_selected"
-                                           value="{{ target_id }}"
-                                           hidden>
-
-                                    <select name="target" id="target" class="form-control">
-                                        {% for target in all_targets %}
-                                            <option value="{{ target.id }}">{{ target.client_name }}</option>
+                                    <input type="text" id="std_selected" name="std_selected" value="{{ orcl_params.std_id }}" hidden>
+                                    <select name="std" id="std" class="form-control">
+                                        {% for std in cv_clients %}
+                                            <option value="{{ std.id }}">{{ std.client_name }}</option>
                                         {% endfor %}
                                     </select>
                                     <div class="form-control-focus"></div>
@@ -231,8 +239,6 @@
                                     <div class="form-control-focus"></div>
                                 </div>
                             </div>
-
-
                         </div>
                         <div class="form-actions ">
                             <div class="modal-footer">
@@ -247,232 +253,7 @@
         </div>
     </div>
 
-    <div id="static01" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
-                    <h4 class="modal-title">恢复计划</h4>
-                    <input hidden id="id" type="text" name="id">
-                </div>
-                <div class="panel-body">
-
-                    <form class="bs-example form-horizontal activate-form">{% csrf_token %}
-
-                        <div class="form-body">
-                            <div class="form-group ">
-                                <label class="col-md-3 control-label"><span style="color:red; ">*</span>演练开始时间</label>
-                                <div class="col-md-9">
-                                    <input id="start_date" autocomplete="off" type="datetime" name="start_date"
-                                           class="form-control">
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
-                            <div class="form-group ">
-                                <label class="col-md-3 control-label"><span style="color:red; ">*</span>演练结束时间</label>
-                                <div class="col-md-9">
-                                    <input id="end_date" autocomplete="off" type="datetime" name="end_date"
-                                           class="form-control">
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="col-md-3 control-label">演练项目</label>
-                                <div class="col-md-9">
-                                <textarea class="form-control" placeholder="最大限制2500个汉字" rows="6" id="purpose"
-                                          name="purpose">模拟***机房不可用情况下，利用***机房恢复启动系统。操作员登录***系统，验证功能。
-                                        </textarea>
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-actions ">
-                            <div class="modal-footer" id="save_div">
-                                <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
-                                </button>
-                                <button type="button" id="save_invitation" name="save_invitation" class="btn blue">保存
-                                </button>
-                                </button>
-                            </div>
-                            <div class="modal-footer" id="download_div" hidden>
-                                <button type="button" id="generate" name="generate" class="btn blue">下载邀请函
-                                </button>
-                                <button type="button" id="run_invited" name="run_invited" class="btn blue">启动
-                                </button>
-                                <button type="button" id="modify_invited" name="modify_invited" class="btn blue">修改计划
-                                </button>
-                                <button type="button" id="reject_invited" name="reject_invited" class="btn blue">取消计划
-                                </button>
-                                <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div id="static02" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
-                    <h4 class="modal-title">启动流程</h4>
-                </div>
-                <div class="panel-body">
-                    <form class="bs-example form-horizontal activate-form">{% csrf_token %}
-
-                        <div class="form-body">
-                            <input hidden id="browseJobIdInvited" type="text" name="browseJobIdInvited">
-
-                            <div class="form-group">
-                                <label class="col-md-2 control-label"><span style="color:red; ">*</span>启动人</label>
-                                <div class="col-md-10">
-                                    <input id="runperson_invited" type="text" name="runperson_invited"
-                                           class="form-control "
-                                           placeholder="" value="{{ request.user.userinfo.fullname }}" readonly>
-
-                                    <div class="form-control-focus"></div>
-
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="col-md-2 control-label"><span style="color:red; ">*</span>启动时间</label>
-                                <div class="col-md-10">
-                                    <input id="runtime_invited" type="text" name="runtime_invited" class="form-control"
-                                           placeholder="" readonly>
-                                    <div class="form-control-focus"></div>
-
-                                </div>
-                            </div>
-                        </div>
-                        <!-- 选择时间点/选择恢复终端 -->
-                        <div class="form-group">
-                            <label class="col-md-2 control-label"><span style="color:red; ">*</span>恢复时间点</label>
-                            <div class="col-md-10">
-                                <div class="input-group" id="recovery_time_redio_group_invited">
-                                <span class="input-group-addon">
-                                    <input type="radio" name="recovery_time_redio_invited" value="1" checked> 最新时间点
-                                    <input type="radio" name="recovery_time_redio_invited" value="2">选择时间
-                                </span>
-                                    <input id="recovery_time_invited" autocomplete="off" type="datetime"
-                                           name="recovery_time_invited" class="form-control">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="col-md-2 control-label"><span style="color:red; ">*</span>数据重定向路径</label>
-                            <div class="col-md-10">
-                                <input id="data_path_invited" type="text" name="data_path_invited" class="form-control"
-                                       value="{{ data_path }}" placeholder="" readonly>
-                                <div class="form-control-focus"></div>
-
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="col-md-2 control-label"><span style="color:red; ">*</span>源客户端</label>
-                            <div class="col-md-10">
-                                <input id="origin_invited" autocomplete="off" type="text" readonly name="origin_invited"
-                                       class="form-control" value="{{ origin.client_name }}">
-                                <div class="form-control-focus"></div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="col-md-2 control-label"><span style="color:red; ">*</span>选择目标客户端</label>
-                            <div class="col-md-10">
-                                <input type="text" id="target_selected_invited" name="target_selected_invited"
-                                       value="{{ target_id }}" hidden>
-                                <select name="target_invited" id="target_invited" class="form-control">
-
-                                    {% for target in all_targets %}
-                                        <option value="{{ target.id }}">{{ target.client_name }}</option>
-                                    {% endfor %}
-                                </select>
-                                <div class="form-control-focus"></div>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="col-md-2 control-label">启动原因</label>
-                            <div class="col-md-10">
-                            <textarea class="form-control" placeholder="最大限制2500个汉字" rows="6" id="runreason_invited"
-                                      name="runreason_invited"></textarea>
-                                <div class="form-control-focus"></div>
-                            </div>
-                        </div>
-                        <div class="form-actions ">
-                            <div class="modal-footer">
-                                <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
-                                </button>
-                                <button type="button" id="confirm_invited" name="confirm_invited" class="btn green">确认
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="static03" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
-                    <h4 class="modal-title">修改计划</h4>
-                </div>
-                <div class="panel-body">
-
-                    <form class="bs-example form-horizontal activate-form">{% csrf_token %}
-
-                        <div class="form-body">
-                            <div class="form-group ">
-                                <label class="col-md-3 control-label"><span style="color:red; ">*</span>演练开始时间</label>
-                                <div class="col-md-9">
-                                    <input id="start_date_modify" autocomplete="off" type="datetime"
-                                           name="start_date_modify" class="form-control">
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
-                            <div class="form-group ">
-                                <label class="col-md-3 control-label"><span style="color:red; ">*</span>演练结束时间</label>
-                                <div class="col-md-9">
-                                    <input id="end_date_modify" autocomplete="off" type="datetime"
-                                           name="end_date_modify"
-                                           class="form-control">
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
-
-                            <div class="form-group">
-                                <label class="col-md-3 control-label">演练项目</label>
-                                <div class="col-md-9">
-                                <textarea class="form-control" placeholder="最大限制2500个汉字" rows="6" id="purpose_modify"
-                                          name="purpose_modify">模拟陆家嘴机房不可用情况下，利用张江机房备份启动系统。操作员登录张江系统，验证功能。
-                                        </textarea>
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-actions ">
-                            <div class="modal-footer">
-                                <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
-                                </button>
-                                <button type="button" id="save_modify_invitation" name="save_modify_invitation"
-                                        class="btn blue">保存
-                                </button>
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="static04" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
         <div class="modal-dialog" style="width:900px;">
             <div class="modal-content">
                 <div class="modal-header">

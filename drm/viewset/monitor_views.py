@@ -20,8 +20,7 @@ from .basic_views import getpagefuns
 ######################
 def oracle_restore(request, process_id):
     if request.user.is_authenticated():
-        all_wrapper_steps = Step.objects.exclude(state="9").filter(process_id=process_id, pnode_id=None).order_by(
-            "sort").prefetch_related("script_set", "verifyitems_set")
+        all_wrapper_steps = Step.objects.exclude(state="9").filter(process_id=process_id, pnode_id=None).order_by("sort")
         wrapper_step_list = []
         num_to_char_choices = {
             "1": "一",
@@ -51,7 +50,7 @@ def oracle_restore(request, process_id):
             wrapper_step_dict["wrapper_step_group_name"] = wrapper_step_group_name
 
             wrapper_script_list = []
-            all_wrapper_scripts = wrapper_step.script_set.exclude(state="9").order_by("sort")
+            all_wrapper_scripts = wrapper_step.scriptinstance_set.exclude(state="9").order_by("sort")
             for wrapper_script in all_wrapper_scripts:
                 wrapper_script_dict = {
                     "wrapper_script_name": wrapper_script.name
@@ -71,7 +70,7 @@ def oracle_restore(request, process_id):
             pnode_id = wrapper_step.id
             inner_step_list = []
             all_inner_steps = Step.objects.exclude(state="9").filter(process_id=process_id, pnode_id=pnode_id).order_by(
-                "sort").prefetch_related("script_set", "verifyitems_set")
+                "sort")
             for inner_step in all_inner_steps:
                 inner_step_dict = {}
                 inner_step_dict["inner_step_name"] = inner_step.name
@@ -89,7 +88,7 @@ def oracle_restore(request, process_id):
                 inner_step_dict["inner_step_group_name"] = inner_step_group_name
 
                 inner_script_list = []
-                all_inner_scripts = inner_step.script_set.exclude(state="9").order_by("sort")
+                all_inner_scripts = inner_step.scriptinstance_set.exclude(state="9").order_by("sort")
                 for inner_script in all_inner_scripts:
                     inner_script_dict = {
                         "inner_script_name": inner_script.name
@@ -130,34 +129,51 @@ def oracle_restore(request, process_id):
         else:
             return Http404()
 
-        # commvault目标客户端
-        all_targets = Target.objects.exclude(state="9")
+        # 1.流程配置中源端ID与名称,以及默认源端关联的终端ID
+        # 2.所有客户端ID与名称
+        # 3.Oracle恢复需要的参数
+        # pri, std, data_path, copy_priority, db_open, log_restore
+        orcl_params = {
+            "pri_id": "",
+            "pri_name": "",
+            "std_id": "",
+            "data_path": "",
+            "copy_priority": "",
+            "db_open": "",
+            "log_restore": "",
+        }
 
-        # commvault源客户端
-        all_steps = Step.objects.exclude(state="9").filter(process_id=process_id).prefetch_related(
-            "script_set", "script_set__origin", "script_set__origin__target")
-
-        target_id = ""
-        origin = ""
-        data_path = ""
-        copy_priority = ""
-        db_open = ""
+        all_steps = Step.objects.exclude(state="9").filter(process_id=process_id)
+        if_break = False
         for cur_step in all_steps:
-            # all_scripts = Script.objects.filter(step_id=cur_step.id).exclude(state="9").select_related("origin")
-            all_scripts = cur_step.script_set.exclude(state="9")
-            for cur_script in all_scripts:
-                if cur_script.origin:
-                    origin = cur_script.origin
-                    target_id = cur_script.origin.target.id
-                    data_path = cur_script.origin.data_path
-                    copy_priority = cur_script.origin.copy_priority
-                    db_open = cur_script.origin.db_open
+            all_scriptinstances = cur_step.scriptinstance_set.exclude(state="9")
+            for cur_scriptinstance in all_scriptinstances:
+                pri = cur_scriptinstance.primary
+                if pri:
+                    info = {}
+                    info = etree.XML(pri.info)
+                    params = info.xpath("//param")
+
+                    if params:
+                        param = params[0]
+                        orcl_params["pri_id"] = pri.client_id
+                        orcl_params["pri_name"] = pri.client_name
+                        orcl_params["std_id"] = pri.destination.client_id if pri.destination else ""
+                        orcl_params["data_path"] = param.attrib.get("data_path", "")
+                        orcl_params["copy_priority"] = param.attrib.get("copy_priority", "")
+                        orcl_params["db_open"] = param.attrib.get("db_open", "")
+                        orcl_params["log_restore"] = param.attrib.get("log_restore", "")
+                    if_break = True
                     break
+            if if_break:
+                break
+        
+        cv_clients = CvClient.objects.exclude(state="9").values("id", "client_name")
+
         return render(request, 'oracle_restore.html',
                       {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request),
-                       "wrapper_step_list": wrapper_step_list, "process_id": process_id, "data_path": data_path,
-                       "plan_process_run_id": plan_process_run_id, "all_targets": all_targets, "origin": origin,
-                       "target_id": target_id, "copy_priority": copy_priority, "db_open": db_open})
+                       "wrapper_step_list": wrapper_step_list, "process_id": process_id,  "plan_process_run_id": plan_process_run_id, 
+                       "orcl_params": orcl_params, "cv_clients": cv_clients})
     else:
         return HttpResponseRedirect("/login")
 
@@ -217,14 +233,15 @@ def cv_oracle_run(request):
         run_time = request.POST.get('run_time', '')
         run_reason = request.POST.get('run_reason', '')
 
-        target = request.POST.get('target', '')
         recovery_time = request.POST.get('recovery_time', '')
         browseJobId = request.POST.get('browseJobId', '')
         data_path = request.POST.get('data_path', '')
         copy_priority = request.POST.get('copy_priority', '')
         db_open = request.POST.get('db_open', '')
+        log_restore = request.POST.get('log_restore', '')
 
-        origin = request.POST.get('origin', '')
+        pri = request.POST.get('pri', '')
+        std = request.POST.get('std', '')
 
         try:
             copy_priority = int(copy_priority)
@@ -240,14 +257,13 @@ def cv_oracle_run(request):
         except:
             return JsonResponse({"res": "当前流程不存在。"})
 
-        # if not data_path.strip():
-        #     return JsonResponse({"res": "数据文件重定向路径不能为空。"})
-
-        if not origin.strip():
+        try:
+            pri = int(pri)
+        except Exception:
             return JsonResponse({"res": "流程步骤中未添加Commvault接口，导致源客户端未空。"})
 
         try:
-            target = int(target)
+            std = int(std)
         except:
             return JsonResponse({"res": "目标客户端未选择。"})
 
@@ -268,15 +284,23 @@ def cv_oracle_run(request):
                     myprocessrun.starttime = datetime.datetime.now()
                     myprocessrun.creatuser = request.user.username
                     myprocessrun.run_reason = run_reason
+                    myprocessrun.recover_time = datetime.datetime.strptime(
+                        recovery_time, "%Y-%m-%d %H:%M:%S"
+                    ) if recovery_time else None
                     myprocessrun.state = "RUN"
-                    myprocessrun.target_id = target
-                    myprocessrun.browse_job_id = browseJobId
-                    myprocessrun.data_path = data_path
-                    myprocessrun.copy_priority = copy_priority
-                    myprocessrun.db_open = db_open
-                    myprocessrun.origin = origin
-                    myprocessrun.recover_time = datetime.datetime.strptime(recovery_time,
-                                                                           "%Y-%m-%d %H:%M:%S") if recovery_time else None
+
+                    # xml
+                    root = etree.Element("root")
+                    param_node = etree.SubElement(root, "param")
+                    param_node.attrib["copy_priority"] = copy_priority
+                    param_node.attrib["db_open"] = db_open
+                    param_node.attrib["log_restore"] = log_restore
+                    param_node.attrib["data_path"] = data_path
+                    param_node.attrib["pri_id"] = pri
+                    param_node.attrib["std_id"] = std
+                    param_node.attrib["browse_job_id"] = browseJobId
+                    info = etree.tounicode(root)
+                    myprocessrun.info = info
 
                     myprocessrun.save()
                     mystep = process[0].step_set.exclude(state="9").order_by("sort")
@@ -290,7 +314,7 @@ def cv_oracle_run(request):
                             mysteprun.state = "EDIT"
                             mysteprun.save()
 
-                            myscript = step.script_set.exclude(state="9").order_by("sort")
+                            myscript = step.scriptinstance_set.exclude(state="9").order_by("sort")
                             for script in myscript:
                                 myscriptrun = ScriptRun()
                                 myscriptrun.script = script
@@ -378,278 +402,6 @@ def cv_oracle(request, offset, funid):
                        "pagefuns": getpagefuns(funid, request)})
     else:
         return HttpResponseRedirect("/index")
-
-
-def save_invitation(request):
-    if request.user.is_authenticated():
-        result = {}
-        process_id = request.POST.get("process_id", "")
-        start_time = request.POST.get("start_time", "")
-        purpose = request.POST.get("purpose", "")
-        end_time = request.POST.get("end_time", "")
-
-        # 准备流程PLAN
-        try:
-            process_id = int(process_id)
-        except:
-            raise Http404()
-
-        if start_time:
-            if end_time:
-                process = Process.objects.filter(id=process_id).exclude(
-                    state="9").filter(type="cv_oracle")
-                if (len(process) <= 0):
-                    result["res"] = '流程计划失败，该流程不存在。'
-                else:
-
-                    planning_process = ProcessRun.objects.filter(
-                        process=process[0], state="PLAN")
-                    if (len(planning_process) > 0):
-                        result["res"] = '流程计划失败，已经存在计划流程，务必先完成该计划流程。'
-                    else:
-                        curprocessrun = ProcessRun.objects.filter(
-                            process=process[0], state__in=["RUN", "ERROR"])
-                        if (len(curprocessrun) > 0):
-                            result["res"] = '流程计划失败，有流程正在进行中，请勿重复启动。'
-                        else:
-                            myprocessrun = ProcessRun()
-                            myprocessrun.process = process[0]
-                            myprocessrun.state = "PLAN"
-                            myprocessrun.starttime = datetime.datetime.now()
-                            myprocessrun.save()
-                            current_process_run_id = myprocessrun.id
-
-                            process = Process.objects.filter(id=process_id).exclude(
-                                state="9").filter(type="cv_oracle")
-                            mystep = process[0].step_set.exclude(state="9")
-                            if (len(mystep) <= 0):
-                                result["res"] = '流程启动失败，没有找到可用步骤。'
-                            else:
-                                for step in mystep:
-                                    mysteprun = StepRun()
-                                    mysteprun.step = step
-                                    mysteprun.processrun = myprocessrun
-                                    mysteprun.state = "EDIT"
-                                    mysteprun.save()
-
-                                    myscript = step.script_set.exclude(
-                                        state="9")
-                                    for script in myscript:
-                                        myscriptrun = ScriptRun()
-                                        myscriptrun.script = script
-                                        myscriptrun.steprun = mysteprun
-                                        myscriptrun.state = "EDIT"
-                                        myscriptrun.save()
-
-                                    myverifyitems = step.verifyitems_set.exclude(
-                                        state="9")
-                                    for verifyitems in myverifyitems:
-                                        myverifyitemsrun = VerifyItemsRun()
-                                        myverifyitemsrun.verify_items = verifyitems
-                                        myverifyitemsrun.steprun = mysteprun
-                                        myverifyitemsrun.save()
-
-                            # 保存邀请函
-                            current_invitation = Invitation()
-                            current_invitation.process_run_id = current_process_run_id
-                            current_invitation.start_time = start_time
-                            current_invitation.end_time = end_time
-                            current_invitation.purpose = purpose
-                            current_invitation.current_time = datetime.datetime.now()
-                            current_invitation.save()
-
-                            # 生成邀请任务信息
-                            myprocesstask = ProcessTask()
-                            myprocesstask.processrun_id = current_process_run_id
-                            myprocesstask.starttime = datetime.datetime.now()
-                            myprocesstask.senduser = request.user.username
-                            myprocesstask.type = "INFO"
-                            myprocesstask.logtype = "PLAN"
-                            myprocesstask.state = "1"
-                            myprocesstask.content = "创建演练计划。"
-                            myprocesstask.save()
-
-                            result["data"] = current_process_run_id
-                            result["res"] = "流程计划成功，待开启流程。"
-            else:
-                result["res"] = "演练结束时间必须填写！"
-        else:
-            result["res"] = "演练开始时间必须填写！"
-
-        return JsonResponse(result)
-
-
-def cv_oracle_run_invited(request):
-    if request.user.is_authenticated():
-        result = {}
-        process_id = request.POST.get('processid', '')
-        run_person = request.POST.get('run_person', '')
-        run_time = request.POST.get('run_time', '')
-        run_reason = request.POST.get('run_reason', '')
-        plan_process_run_id = request.POST.get('plan_process_run_id', '')
-
-        current_process_run = ProcessRun.objects.filter(id=plan_process_run_id)
-
-        target = request.POST.get('target', '')
-        recovery_time = request.POST.get('recovery_time', '')
-        browseJobId = request.POST.get('browseJobId', '')
-
-        data_path = request.POST.get('data_path', '')
-
-        origin = request.POST.get('origin', '')
-
-        if not data_path.strip():
-            return JsonResponse({"res": "数据文件重定向路径不能为空。"})
-
-        if not origin.strip():
-            return JsonResponse({"res": "流程步骤中未添加Commvault接口，导致源客户端未空。"})
-
-        try:
-            target = int(target)
-        except:
-            return JsonResponse({"res": "目标客户端未选择。"})
-
-        if current_process_run:
-            current_process_run = current_process_run[0]
-
-            if current_process_run.state == "RUN":
-                result["res"] = '请勿重复启动该流程。'
-            else:
-                current_process_run.starttime = datetime.datetime.now()
-                current_process_run.creatuser = request.user.username
-                current_process_run.run_reason = run_reason
-                current_process_run.state = "RUN"
-                current_process_run.target_id = target
-                current_process_run.recover_time = datetime.datetime.strptime(recovery_time,
-                                                                              "%Y-%m-%d %H:%M:%S") if recovery_time else None
-                current_process_run.browse_job_id = browseJobId
-                current_process_run.data_path = data_path
-                current_process_run.origin = origin
-
-                current_process_run.save()
-
-                process = Process.objects.filter(id=process_id).exclude(
-                    state="9").filter(type="cv_oracle")
-
-                allgroup = process[0].step_set.exclude(state="9").exclude(Q(group="") | Q(group=None)).values(
-                    "group").distinct()  # 过滤出需要签字的组,但一个对象只发送一次task
-
-                # 如果流程需要签字,发送签字tasks
-                if process[0].sign == "1" and len(allgroup) > 0:
-                    # 将当前流程改成SIGN
-                    c_process_run_id = current_process_run.id
-                    c_process_run = ProcessRun.objects.filter(
-                        id=c_process_run_id)
-                    if c_process_run:
-                        c_process_run = c_process_run[0]
-                        c_process_run.state = "SIGN"
-                        c_process_run.save()
-                    for group in allgroup:
-                        try:
-                            signgroup = Group.objects.get(
-                                id=int(group["group"]))
-                            groupname = signgroup.name
-                            myprocesstask = ProcessTask()
-                            myprocesstask.processrun = current_process_run
-                            myprocesstask.starttime = datetime.datetime.now()
-                            myprocesstask.senduser = request.user.username
-                            myprocesstask.receiveauth = group["group"]
-                            myprocesstask.type = "SIGN"
-                            myprocesstask.state = "0"
-                            myprocesstask.content = "流程即将启动”，请" + groupname + "签到。"
-                            myprocesstask.save()
-                        except:
-                            pass
-                    result["res"] = "新增成功。"
-                    result["data"] = "/"
-
-                else:
-                    prosssigns = ProcessTask.objects.filter(
-                        processrun=current_process_run, state="0")
-                    if len(prosssigns) <= 0:
-                        myprocesstask = ProcessTask()
-                        myprocesstask.processrun = current_process_run
-                        myprocesstask.starttime = datetime.datetime.now()
-                        myprocesstask.type = "INFO"
-                        myprocesstask.logtype = "START"
-                        myprocesstask.state = "1"
-                        myprocesstask.senduser = request.user.username
-                        myprocesstask.content = "流程已启动。"
-                        myprocesstask.save()
-
-                        exec_process.delay(current_process_run.id)
-                        result["res"] = "新增成功。"
-                        result["data"] = process[0].url + \
-                            "/" + str(current_process_run.id)
-        else:
-            result["res"] = '流程启动异常，请联系客服。'
-
-        return HttpResponse(json.dumps(result))
-
-
-def fill_with_invitation(request):
-    if request.user.is_authenticated():
-        plan_process_run_id = request.POST.get("plan_process_run_id", "")
-        current_invitation = Invitation.objects.filter(
-            process_run_id=plan_process_run_id)
-        if current_invitation:
-            current_invitation = current_invitation[0]
-            start_time = current_invitation.start_time
-            end_time = current_invitation.end_time
-            purpose = current_invitation.purpose
-            return JsonResponse({
-                "start_time": start_time.strftime('%Y-%m-%d %H:%M:%S') if start_time else "",
-                "end_time": end_time.strftime('%Y-%m-%d %H:%M:%S') if end_time else "",
-                "purpose": purpose,
-            })
-
-
-def save_modify_invitation(request):
-    if request.user.is_authenticated():
-        result = {}
-        plan_process_run_id = request.POST.get("plan_process_run_id", "")
-        start_time = request.POST.get("start_date_modify", "")
-        purpose = request.POST.get("purpose_modify", "")
-        end_time = request.POST.get("end_date_modify", "")
-
-        try:
-            plan_process_run_id = int(plan_process_run_id)
-        except:
-            raise Http404()
-
-        if start_time:
-            if end_time:
-                current_invitation = Invitation.objects.filter(
-                    process_run_id=plan_process_run_id)
-                if current_invitation:
-                    current_invitation = current_invitation[0]
-
-                    current_invitation.start_time = start_time
-                    current_invitation.end_time = end_time
-                    current_invitation.purpose = purpose
-                    current_invitation.save()
-
-                    # 生成邀请任务信息
-                    myprocesstask = ProcessTask()
-                    myprocesstask.processrun_id = plan_process_run_id
-                    myprocesstask.starttime = datetime.datetime.now()
-                    myprocesstask.senduser = request.user.username
-                    myprocesstask.type = "INFO"
-                    myprocesstask.logtype = "PLAN"
-                    myprocesstask.state = "1"
-                    myprocesstask.content = "修改演练计划。"
-                    myprocesstask.save()
-
-                    result["data"] = plan_process_run_id
-                    result["res"] = "修改流程计划成功，待开启流程。"
-                else:
-                    result["res"] = "演练计划不存在，请联系客服！"
-            else:
-                result["res"] = "演练结束时间必须填写！"
-        else:
-            result["res"] = "演练开始时间必须填写！"
-
-        return JsonResponse(result)
 
 
 def getrunsetps(request):
@@ -782,7 +534,7 @@ def getrunsetps(request):
                         except:
                             pass
                     scripts = []
-                    scriptlist = Script.objects.exclude(
+                    scriptlist = ScriptInstance.objects.exclude(
                         state="9").filter(step=step).order_by("sort")
                     for script in scriptlist:
                         runscriptid = 0
@@ -814,7 +566,7 @@ def getrunsetps(request):
                                 scriptexplain = scriptrunlist[0].explain
                                 scriptstate = scriptrunlist[0].state
                         scripts.append(
-                            {"id": script.id, "code": script.code, "name": script.name, "runscriptid": runscriptid,
+                            {"id": script.id, "code": script.script.code, "name": script.name, "runscriptid": runscriptid,
                              "scriptstarttime": scriptstarttime,
                              "scriptendtime": scriptendtime, "scriptoperator": scriptoperator,
                              "scriptrunresult": scriptrunresult, "scriptexplain": scriptexplain,
@@ -929,33 +681,29 @@ def processsignsave(request):
 
 
 def get_current_scriptinfo(request):
+    """
+    获取脚本信息
+    Args:
+        steprun_id  运行步骤ID
+        script_instance_id  接口实例ID
+
+    Returns:
+        接口信息 接口实例信息 步骤状态
+    """
     if request.user.is_authenticated():
-        current_step_id = request.POST.get('steprunid', '')
-        selected_script_id = request.POST.get('scriptid', '')
+        status = 1
+        info = ""
+        data = {}
+        scriptrun_id = request.POST.get('scriptrun_id', '')
 
-        if selected_script_id:
-            try:
-                selected_script_id = int(selected_script_id)
-            except:
-                selected_script_id = None
-        else:
-            selected_script_id = None
-
-        scriptrun_objs = ScriptRun.objects.filter(
-            id=selected_script_id).select_related("steprun", "steprun__processrun")
-        script_id = scriptrun_objs[0].script_id if scriptrun_objs else None
-
-        script_objs = Script.objects.filter(
-            id=script_id).select_related("hosts_manage", "origin")
-        script_obj = script_objs[0] if script_objs else None
-
-        if script_obj:
-            scriptrun_obj = scriptrun_objs[0]
-            step_id_from_script = scriptrun_obj.steprun.step_id
-            show_button = ""
-            if step_id_from_script == current_step_id:
-                # 显示button
-                show_button = 1
+        try:
+            scriptrun = ScriptRun.objects.get(id=int(scriptrun_id))
+            script_instance = scriptrun.script
+            script = script_instance.script
+            steprun = scriptrun.steprun
+            processrun = steprun.processrun
+            origin = script_instance.origin
+            
             state_dict = {
                 "DONE": "已完成",
                 "EDIT": "未执行",
@@ -965,36 +713,47 @@ def get_current_scriptinfo(request):
                 "": "",
             }
 
-            starttime = scriptrun_obj.starttime.strftime(
-                "%Y-%m-%d %H:%M:%S") if scriptrun_obj.starttime else ""
-            endtime = scriptrun_obj.endtime.strftime(
-                "%Y-%m-%d %H:%M:%S") if scriptrun_obj.endtime else ""
+            starttime = '{0:%Y-%m-%d %H:%M:%S}'.format(scriptrun.starttime) if scriptrun.starttime else ""
+            endtime = '{0:%Y-%m-%d %H:%M:%S}'.format(scriptrun.endtime) if scriptrun.endtime else ""
 
+            # 目标客户端
             target = ""
-            if script_obj.interface_type == "commvault":
-                if scriptrun_obj.steprun.processrun.target:
-                    target = scriptrun_obj.steprun.processrun.target.client_name
+            if script.interface_type == "Commvault":
+                target = processrun.target.client_name if processrun.target else ""
 
-            script_info = {
-                "processrunstate": scriptrun_obj.steprun.processrun.state,
-                "code": script_obj.code,
-                "ip": script_obj.hosts_manage.host_ip if script_obj.hosts_manage else "",
-                "filename": script_obj.filename,
-                "scriptpath": script_obj.scriptpath,
-                "state": state_dict["{0}".format(scriptrun_obj.state)],
+            # 状态
+            state = ""
+            try:
+                state = state_dict[scriptrun.state]
+            except:
+                pass
+
+            data = {
+                "processrunstate": processrun.state,
+                "code": script.code,
+                "ip": script_instance.hosts_manage.host_ip if script_instance.hosts_manage else "",
+                "state": state,
                 "starttime": starttime,
                 "endtime": endtime,
-                "operator": scriptrun_obj.operator,
-                "explain": scriptrun_obj.explain,
-                "show_button": show_button,
-                "step_id_from_script": step_id_from_script,
-                "show_log_btn": "1" if script_obj.log_address else "0",
-                "origin": script_obj.origin.client_name if script_obj.origin else "",
+                "operator": scriptrun.operator,
+                "explain": scriptrun.explain,
+                "step_id_from_script": steprun.step_id,
+                "show_log_btn": "1" if script_instance.log_address else "0",
+                "origin": origin.client_name if origin else "",
                 "target": target,
-                "interface_type": script_obj.interface_type,
+                "interface_type": script.interface_type,
             }
+        except Exception as e:
+            status = 0
+            info = "获取脚本信息失败：{0}".format(e)
 
-            return JsonResponse({"data": script_info})
+        return JsonResponse({
+            "status": status,
+            "data": data,
+            "info": info    
+        })
+    else:
+        return HttpResponseRedirect("/login")
 
 
 def ignore_current_script(request):

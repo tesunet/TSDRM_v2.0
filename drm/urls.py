@@ -98,11 +98,7 @@ urlpatterns = [
     url(r'^oracle_restore/(?P<process_id>\d+)$', oracle_restore),
     url(r'^oracle_restore_data/$', oracle_restore_data),
     url(r'^cv_oracle_run/$', cv_oracle_run),
-    url(r'^cv_oracle/(\d+)/$', cv_oracle, {'funid': '49'}),
-    url(r'^save_invitation/$', save_invitation),
-    url(r'^cv_oracle_run_invited/$', cv_oracle_run_invited),
-    url(r'^fill_with_invitation/$', fill_with_invitation),
-    url(r'^save_modify_invitation/$', save_modify_invitation),
+    url(r'^cv_oracle/(\d+)/$', cv_oracle, {'funid': '96'}),
 
     url(r'^getrunsetps/$', getrunsetps),
     url(r'^cv_oracle_continue/$', cv_oracle_continue),

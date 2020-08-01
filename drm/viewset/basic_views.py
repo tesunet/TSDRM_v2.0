@@ -1244,8 +1244,7 @@ def get_process_run_facts(request):
         #######################################################
         cv_oracle_process_list = []
 
-        all_process = Process.objects.exclude(state="9").order_by("sort").filter(type="cv_oracle"). \
-            prefetch_related("processrun_set", "step_set", "step_set__scriptinstance_set", "step_set__scriptinstance_set__origin")
+        all_process = Process.objects.exclude(state="9").order_by("sort").filter(type="cv_oracle")
 
         for cur_process in all_process:
             # 今日演练(状态)  0/1/2
@@ -1297,15 +1296,15 @@ def get_process_run_facts(request):
             process_run_rate = "%.0f" % ((
                                              cur_client_succeed_process_times / cur_client_process_times if cur_client_process_times != 0 else 0) * 100)
 
-            # 客户端
-            client_name = ""
-            all_steps = cur_process.step_set.exclude(state="9")
-            for step in all_steps:
-                all_scripts = step.scriptinstance_set.exclude(state="9")
-                for script in all_scripts:
-                    if script.origin:
-                        client_name = script.origin.client_name
-                        break
+            # # 客户端
+            # client_name = ""
+            # all_steps = cur_process.step_set.exclude(state="9")
+            # for step in all_steps:
+            #     all_scripts = step.scriptinstance_set.exclude(state="9")
+            #     for script in all_scripts:
+            #         if script.origin:
+            #             client_name = script.origin.client_name
+            #             break
 
             cv_oracle_process_list.append({
                 "process_name": cur_process.name,

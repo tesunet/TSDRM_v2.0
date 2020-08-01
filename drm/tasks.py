@@ -7,9 +7,10 @@ from django.db.models import Q
 import os
 from TSDRM import settings
 import json
-from drm.api.commvault import SQLApi
+from .api.commvault import SQLApi
 import subprocess
 import uuid
+import paramiko
 
 
 @shared_task
@@ -42,6 +43,63 @@ def get_disk_space_crond():
                 print(e)
 
 
+def content_load_params(script_instance):
+    """
+    脚本中传入参数
+    :return:
+    """
+    params = eval(script_instance.params)
+    script = script_instance.script
+    script_text = script.script_text
+    # 匹配出参数，替换
+    def get_variable_name(content, param_type):
+        variable_list = []
+        variable_list_with_symbol = []
+        com = ""
+        com_with_symbol = ""
+        if param_type == "HOST":
+            com = re.compile("\(\((.*?)\)\)")
+            com_with_symbol = re.compile("(\(\(.*?\)\))")
+        if param_type == "PROCESS":
+            com = re.compile("\{\{(.*?)\}\}")
+            com_with_symbol = re.compile("(\{\{.*?\}\})")
+        if param_type == "SCRIPT":
+            com = re.compile("\[\[(.*?)\]\]")
+            com_with_symbol = re.compile("(\[\[.*?\]\])")
+        if com:
+            variable_list = com.findall(content)
+        if com_with_symbol:
+            variable_list_with_symbol = com_with_symbol.findall(content)
+        return variable_list, variable_list_with_symbol
+
+    def get_value_from_params(variable_name, params):
+        param_value = ""
+        for param in params:
+            if variable_name.strip() == param["variable_name"]:
+                param_value = param["param_value"]
+                break
+        return param_value
+
+    # 流程参数参数 注意空格
+    process_variable_list, process_variable_list_with_symbol = get_variable_name(script_text, "PROCESS")
+    for n, pv in enumerate(process_variable_list):
+        param_value = get_value_from_params(pv, params)
+        script_text = script_text.replace(process_variable_list_with_symbol[n], param_value)
+
+    # 主机参数
+    host_variable_list, host_variable_list_with_symbol = get_variable_name(script_text, "HOST")
+    for n, hv in enumerate(host_variable_list):
+        param_value = get_value_from_params(hv, params)
+        script_text = script_text.replace(host_variable_list_with_symbol[n], param_value)
+    # 脚本参数
+    script_variable_list, script_variable_list_with_symbol = get_variable_name(script_text, "SCRIPT")
+    for n, sv in enumerate(script_variable_list):
+        param_value = get_value_from_params(sv, params)
+        script_text = script_text.replace(script_variable_list_with_symbol[n], param_value)
+
+    return script_text
+
+
 @shared_task
 def force_exec_script(processrunid):
     try:
@@ -57,58 +115,126 @@ def force_exec_script(processrunid):
             all_step_runs = processrun.steprun_set.exclude(step__state="9").filter(step__force_exec=1)
             for steprun in all_step_runs:
                 cur_step_scripts = steprun.scriptrun_set.all()
-                for script in cur_step_scripts:
-                    script.starttime = datetime.datetime.now()
-                    script.result = ""
-                    script.state = "RUN"
-                    script.save()
+                for script_run in cur_step_scripts:
+                    script_instance = script_run.script
+                    script = script_instance.script
+                    script_name = script_instance.name if script_instance.name else ""
+                    
+                    script_run.starttime = datetime.datetime.now()
+                    script_run.result = ""
+                    script_run.state = "RUN"
+                    script_run.save()
 
                     # HostsManage
-                    cur_host_manage = script.script.hosts_manage
+                    cur_host_manage = script_instance.hosts_manage
                     ip = cur_host_manage.host_ip
                     username = cur_host_manage.username
                     password = cur_host_manage.password
                     system_tag = cur_host_manage.os
 
-                    if system_tag in ["Linux", "AIX"]:
-                        ############################
-                        # 创建windows下目录:       #
-                        #   先判断文件是否存在，再  #
-                        #   mkdir/md path 创建文件 #
-                        ############################
+                    if system_tag == "Linux":
+                        ###########################
+                        # 创建linux下目录:         #
+                        #   mkdir path -p 覆盖路径 #
+                        ###########################
                         linux_temp_script_path = "/tmp/drm/{processrunid}".format(**{"processrunid": processrun.id})
-                        mkdir_cmd = "mkdir -p {linux_temp_script_path}".format(
+                        mkdir_cmd = "mkdir {linux_temp_script_path} -p".format(
                             **{"linux_temp_script_path": linux_temp_script_path})
                         mkdir_obj = remote.ServerByPara(mkdir_cmd, ip, username, password, system_tag)
                         mkdir_result = mkdir_obj.run("")
 
-                        # Linux系统创建文件夹失败
-                        if mkdir_result["exec_tag"] == 1:
-                            script.runlog = mkdir_result['log']  # 写入错误类型
-                            script.explain = mkdir_result['data']
-                            print("强制执行脚本时，Linux系统创建文件夹失败,结束任务!")
-                            script.state = "ERROR"
-                            script.save()
-                            steprun.state = "ERROR"
-                            steprun.save()
-
-                        linux_temp_script_name = "tmp_script_{scriptrun_id}.sh".format(**{"scriptrun_id": script.id})
+                        linux_temp_script_name = "tmp_script_{scriptrun_id}.sh".format(**{"scriptrun_id": script_run.id})
                         linux_temp_script_file = linux_temp_script_path + "/" + linux_temp_script_name
 
-                        tmp_cmd = r"cat > {0} << \EOH".format(
-                            linux_temp_script_file) + "\n" + script.script.script_text + "\nEOH"
-                        tmp_obj = remote.ServerByPara(tmp_cmd, ip, username, password, system_tag)
-                        tmp_result = tmp_obj.run("")
+                        # 写入本地文件
+                        script_path = os.path.join(
+                            os.path.join(
+                                os.path.join(settings.BASE_DIR, "faconstor"), 
+                                "upload"
+                            ),
+                            "script"
+                        )
 
-                        if tmp_result["exec_tag"] == 1:
-                            script.runlog = "强制执行脚本时，上传Linux脚本文件失败。"  # 写入错误类型
-                            script.explain = "强制执行脚本时，上传Linux脚本文件失败：{0}。".format(tmp_result["data"])
-                            script.state = "ERROR"
-                            script.save()
+                        local_file = script_path + os.sep + "{0}_local_script.sh".format(processrun.process.name)
+
+                        try:
+                            # 处理脚本内容
+                            script_text = content_load_params(script_instance)
+                            with open(local_file, "w") as f:
+                                f.write(script_text)
+                        except FileNotFoundError as e:
+                            script_run.runlog = "Linux脚本写入本地失败。"  # 写入错误类型
+                            script_run.explain = "Linux脚本写入本地失败：{0}。".format(e)
+                            script_run.state = "ERROR"
+                            script_run.save()
                             steprun.state = "ERROR"
                             steprun.save()
 
-                        exe_cmd = "chmod 777 {0}&&{0}".format(linux_temp_script_file)
+                            # script_name = script.script.name if script.script.name else ""
+                            # myprocesstask = ProcessTask()
+                            # myprocesstask.processrun = steprun.processrun
+                            # myprocesstask.starttime = datetime.datetime.now()
+                            # myprocesstask.senduser = steprun.processrun.creatuser
+                            # myprocesstask.receiveauth = steprun.step.group
+                            # myprocesstask.type = "ERROR"
+                            # myprocesstask.state = "0"
+                            # myprocesstask.content = "Linux脚本" + script_name + "内容写入失败，请处理。"
+                            # myprocesstask.steprun_id = steprun.id
+                            # myprocesstask.save()
+                        else:
+                            # 上传Linux服务器
+                            try:
+                                ssh = paramiko.Transport((ip, 22))
+                                ssh.connect(username=username, password=password)
+                                sftp = paramiko.SFTPClient.from_transport(ssh)
+                            except paramiko.ssh_exception.SSHException as e:
+                                script_run.runlog = "连接服务器失败。"  # 写入错误类型
+                                script_run.explain = "连接服务器失败：{0}。".format(e)  # 写入错误类型
+                                script_run.state = "ERROR"
+                                script_run.save()
+                                steprun.state = "ERROR"
+                                steprun.save()
+
+                                # script_name = script.script.name if script.script.name else ""
+                                # myprocesstask = ProcessTask()
+                                # myprocesstask.processrun = steprun.processrun
+                                # myprocesstask.starttime = datetime.datetime.now()
+                                # myprocesstask.senduser = steprun.processrun.creatuser
+                                # myprocesstask.receiveauth = steprun.step.group
+                                # myprocesstask.type = "ERROR"
+                                # myprocesstask.state = "0"
+                                # myprocesstask.content = "上传" + script_name + "脚本时，连接服务器失败。"
+                                # myprocesstask.steprun_id = steprun.id
+                                # myprocesstask.save()
+                            else:
+                                try:
+                                    sftp.put(local_file, linux_temp_script_file)
+                                except FileNotFoundError as e:
+                                    script_run.runlog = "上传linux脚本文件失败。"  # 写入错误类型
+                                    script_run.explain = "上传linux脚本文件失败：{0}。".format(e)  # 写入错误类型
+                                    script_run.state = "ERROR"
+                                    script_run.save()
+                                    steprun.state = "ERROR"
+                                    steprun.save()
+                                    #
+                                    # script_name = script.script.name if script.script.name else ""
+                                    # myprocesstask = ProcessTask()
+                                    # myprocesstask.processrun = steprun.processrun
+                                    # myprocesstask.starttime = datetime.datetime.now()
+                                    # myprocesstask.senduser = steprun.processrun.creatuser
+                                    # myprocesstask.receiveauth = steprun.step.group
+                                    # myprocesstask.type = "ERROR"
+                                    # myprocesstask.state = "0"
+                                    # myprocesstask.content = "脚本" + script_name + "上传失败：{0}。".format(e)
+                                    # myprocesstask.steprun_id = steprun.id
+                                    # myprocesstask.save()
+                                else:
+                                    sftp.chmod(linux_temp_script_file, int("755", 8))
+
+                                ssh.close()
+
+                            # 执行脚本(上传文件(dos格式>>shell))
+                            exe_cmd = r"sed -i 's/\r$//' {0}&&{0}".format(linux_temp_script_file)
                     else:
                         ############################
                         # 创建windows下目录:       #
@@ -121,19 +247,13 @@ def force_exec_script(processrunid):
                         mkdir_obj = remote.ServerByPara(mkdir_cmd, ip, username, password, system_tag)
                         mkdir_result = mkdir_obj.run("")
 
-                        # Windows系统创建文件夹失败
-                        if mkdir_result["exec_tag"] == 1:
-                            script.runlog = mkdir_result['log']  # 写入错误类型
-                            script.explain = mkdir_result['data']
-                            print("强制执行脚本时，Windows系统创建文件夹失败,结束任务!")
-                            script.state = "ERROR"
-                            script.save()
-                            steprun.state = "ERROR"
-                            steprun.save()
-
-                        windows_temp_script_name = "tmp_script_{scriptrun_id}.bat".format(**{"scriptrun_id": script.id})
+                        windows_temp_script_name = "tmp_script_{scriptrun_id}.bat".format(**{"scriptrun_id": script_run.id})
                         windows_temp_script_file = windows_temp_script_path + r"\\" + windows_temp_script_name
-                        para_list = script.script.script_text.split("\n")
+
+                        # 处理脚本内容
+                        script_text = content_load_params(script_instance)
+
+                        para_list = script_text.split("\n")
                         for num, content in enumerate(para_list):
                             tmp_cmd = ""
                             if num == 0:
@@ -145,38 +265,60 @@ def force_exec_script(processrunid):
                             tmp_result = tmp_obj.run("")
 
                             if tmp_result["exec_tag"] == 1:
-                                script.runlog = "强制执行脚本时，上传windows脚本文件失败。"  # 写入错误类型
-                                script.explain = "强制执行脚本时，上传windows脚本文件失败：{0}。".format(tmp_result["data"])
-                                script.state = "ERROR"
-                                script.save()
+                                script_run.runlog = "上传windows脚本文件失败。"  # 写入错误类型
+                                script_run.explain = "上传windows脚本文件失败：{0}。".format(tmp_result["data"])
+                                script_run.state = "ERROR"
+                                script_run.save()
                                 steprun.state = "ERROR"
                                 steprun.save()
+                                #
+                                # script_name = script.script.name if script.script.name else ""
+                                # myprocesstask = ProcessTask()
+                                # myprocesstask.processrun = steprun.processrun
+                                # myprocesstask.starttime = datetime.datetime.now()
+                                # myprocesstask.senduser = steprun.processrun.creatuser
+                                # myprocesstask.receiveauth = steprun.step.group
+                                # myprocesstask.type = "ERROR"
+                                # myprocesstask.state = "0"
+                                # myprocesstask.content = "脚本" + script_name + "上传windows脚本文件失败，请处理。"
+                                # myprocesstask.steprun_id = steprun.id
+                                # myprocesstask.save()
 
                         exe_cmd = windows_temp_script_file
 
                     # 执行文件
                     rm_obj = remote.ServerByPara(exe_cmd, ip, username, password, system_tag)
-                    result = rm_obj.run(script.script.succeedtext)
+                    result = rm_obj.run(script.succeedtext)
 
-                    script.endtime = datetime.datetime.now()
-                    script.result = result['exec_tag']
-                    script.explain = result['data']
+                    script_run.endtime = datetime.datetime.now()
+                    script_run.result = result['exec_tag']
+                    script_run.explain = result['data']
 
                     # 处理脚本执行失败问题
                     if result["exec_tag"] == 1:
-                        script.runlog = result['log']  # 写入错误类型
-                        script.explain = result['data']
+                        script_run.runlog = result['log']  # 写入错误类型
+                        script_run.explain = result['data']
                         print("当前脚本执行失败,结束任务!")
-                        script.state = "ERROR"
-                        script.save()
+                        script_run.state = "ERROR"
+                        script_run.save()
                         steprun.state = "ERROR"
                         steprun.save()
-                    else:
-                        script.endtime = datetime.datetime.now()
-                        script.state = "DONE"
-                        script.save()
 
-                        script_name = script.script.name if script.script.name else ""
+                        # script_name = script.script.name if script.script.name else ""
+                        # myprocesstask = ProcessTask()
+                        # myprocesstask.processrun = steprun.processrun
+                        # myprocesstask.starttime = datetime.datetime.now()
+                        # myprocesstask.senduser = steprun.processrun.creatuser
+                        # myprocesstask.receiveauth = steprun.step.group
+                        # myprocesstask.type = "ERROR"
+                        # myprocesstask.state = "0"
+                        # myprocesstask.content = "脚本" + script_name + "执行错误，请处理。"
+                        # myprocesstask.steprun_id = steprun.id
+                        # myprocesstask.save()
+                    else:
+                        script_run.endtime = datetime.datetime.now()
+                        script_run.state = "DONE"
+                        script_run.save()
 
                         myprocesstask = ProcessTask()
                         myprocesstask.processrun = steprun.processrun
@@ -185,7 +327,7 @@ def force_exec_script(processrunid):
                         myprocesstask.type = "INFO"
                         myprocesstask.logtype = "SCRIPT"
                         myprocesstask.state = "1"
-                        myprocesstask.content = "强制执行脚本" + script_name + "完成。"
+                        myprocesstask.content = "脚本" + script_name + "完成。"
                         myprocesstask.save()
 
 
@@ -234,90 +376,139 @@ def runstep(steprun, if_repeat=False):
                         if childreturn == 2:
                             return 2
             scriptruns = steprun.scriptrun_set.exclude(Q(state__in=("9", "DONE", "IGNORE")) | Q(result=0))
-            for script in scriptruns:
+            for scriptrun in scriptruns:
                 # 目的：不在服务器存放脚本；
                 #   Linux：通过ssh上传文件至服务器端；执行脚本；删除脚本；
                 #   Windows：通过>/>> 逐行重定向字符串至服务端文件；执行脚本；删除脚本；
-                script.starttime = datetime.datetime.now()
-                script.result = ""
-                script.state = "RUN"
-                script.save()
 
-                if script.script.interface_type == "脚本":
+                scriptrun.starttime = datetime.datetime.now()
+                scriptrun.result = ""
+                scriptrun.state = "RUN"
+                scriptrun.save()
+
+                script_instance = scriptrun.script
+                script = script_instance.script
+                origin = script_instance.origin
+                script_name = script_instance.name if script_instance.name else ""
+                if script.interface_type in ["Linux", "Windows"]:
                     # HostsManage
-                    cur_host_manage = script.script.hosts_manage
+                    cur_host_manage = script_instance.hosts_manage
                     ip = cur_host_manage.host_ip
                     username = cur_host_manage.username
                     password = cur_host_manage.password
-                    system_tag = cur_host_manage.os
+                    script_type = cur_host_manage.type
 
-                    if system_tag in ["Linux", "AIX"]:
-                        ############################
-                        # 创建windows下目录:       #
-                        #   先判断文件是否存在，再  #
-                        #   mkdir/md path 创建文件 #
-                        ############################
+                    system_tag = ""
+                    if script_type == "SSH":
+                        system_tag = "Linux"
+                    if script_type == "BAT":
+                        system_tag = "Windows"
+
+                    # linux_temp_script_file = "/tmp/tmp_script.sh"
+                    # windows_temp_script_file = "C:/tmp_script.bat"
+
+                    if system_tag == "Linux":
+                        ###########################
+                        # 创建linux下目录:         #
+                        #   mkdir path -p 覆盖路径 #
+                        ###########################
                         linux_temp_script_path = "/tmp/drm/{processrunid}".format(**{"processrunid": processrun.id})
-                        mkdir_cmd = "mkdir -p {linux_temp_script_path}".format(
+                        mkdir_cmd = "mkdir {linux_temp_script_path} -p".format(
                             **{"linux_temp_script_path": linux_temp_script_path})
                         mkdir_obj = remote.ServerByPara(mkdir_cmd, ip, username, password, system_tag)
                         mkdir_result = mkdir_obj.run("")
 
-                        # Linux系统创建文件夹失败
-                        if mkdir_result["exec_tag"] == 1:
-                            script.runlog = mkdir_result['log']  # 写入错误类型
-                            script.explain = mkdir_result['data']
-                            print("Linux系统创建文件夹失败,结束任务!")
-                            script.state = "ERROR"
-                            script.save()
-                            steprun.state = "ERROR"
-                            steprun.save()
-
-                            script_name = script.script.name if script.script.name else ""
-                            myprocesstask = ProcessTask()
-                            myprocesstask.processrun = steprun.processrun
-                            myprocesstask.starttime = datetime.datetime.now()
-                            myprocesstask.senduser = steprun.processrun.creatuser
-                            myprocesstask.receiveauth = steprun.step.group
-                            myprocesstask.type = "ERROR"
-                            myprocesstask.logtype = "SCRIPT"
-                            myprocesstask.state = "0"
-                            myprocesstask.content = "脚本" + script_name + "执行前创建文件夹失败，请处理。"
-                            myprocesstask.steprun_id = steprun.id
-                            myprocesstask.save()
-                            return 0
-
-                        linux_temp_script_name = "tmp_script_{scriptrun_id}.sh".format(**{"scriptrun_id": script.id})
+                        linux_temp_script_name = "tmp_script_{scriptrun_id}.sh".format(**{"scriptrun_id": scriptrun.id})
                         linux_temp_script_file = linux_temp_script_path + "/" + linux_temp_script_name
 
-                        tmp_cmd = r"cat > {0} << \EOH".format(
-                            linux_temp_script_file) + "\n" + script.script.script_text + "\nEOH"
-                        tmp_obj = remote.ServerByPara(tmp_cmd, ip, username, password, system_tag)
-                        tmp_result = tmp_obj.run("")
+                        # 写入本地文件
+                        script_path = os.path.join(
+                            os.path.join(
+                                os.path.join(settings.BASE_DIR, "faconstor"), 
+                                "upload"
+                            ),
+                            "script"
+                        )
 
-                        if tmp_result["exec_tag"] == 1:
-                            script.runlog = "上传Linux脚本文件失败。"  # 写入错误类型
-                            script.explain = "上传Linux脚本文件失败：{0}。".format(tmp_result["data"])
-                            script.state = "ERROR"
-                            script.save()
-                            steprun.state = "ERROR"
-                            steprun.save()
+                        local_file = script_path + os.sep + "{0}_local_script.sh".format(processrun.process.name)
 
-                            script_name = script.script.name if script.script.name else ""
+                        try:
+                            with open(local_file, "w") as f:
+                                # 处理脚本内容
+                                script_text = content_load_params(script_instance)  # 待修改
+                                f.write(script_text)
+                        except FileNotFoundError as e:
+                            scriptrun.runlog = "Linux脚本写入本地失败。"  # 写入错误类型
+                            scriptrun.explain = "Linux脚本写入本地失败：{0}。".format(e)
+                            scriptrun.state = "ERROR"
+                            scriptrun.save()
+                            scriptrun.state = "ERROR"
+                            scriptrun.save()
+
                             myprocesstask = ProcessTask()
                             myprocesstask.processrun = steprun.processrun
                             myprocesstask.starttime = datetime.datetime.now()
                             myprocesstask.senduser = steprun.processrun.creatuser
                             myprocesstask.receiveauth = steprun.step.group
                             myprocesstask.type = "ERROR"
-                            myprocesstask.logtype = "SCRIPT"
                             myprocesstask.state = "0"
-                            myprocesstask.content = "脚本" + script_name + "内容写入失败，请处理。"
+                            myprocesstask.content = "Linux脚本" + script_name + "内容写入失败，请处理。"
                             myprocesstask.steprun_id = steprun.id
                             myprocesstask.save()
                             return 0
 
-                        exe_cmd = "chmod 777 {0}&&{0}".format(linux_temp_script_file)
+                        # 上传Linux服务器
+                        try:
+                            ssh = paramiko.Transport((ip, 22))
+                            ssh.connect(username=username, password=password)
+                            sftp = paramiko.SFTPClient.from_transport(ssh)
+                        except paramiko.ssh_exception.SSHException as e:
+                            scriptrun.runlog = "连接服务器失败。"  # 写入错误类型
+                            scriptrun.explain = "连接服务器失败：{0}。".format(e)  # 写入错误类型
+                            scriptrun.state = "ERROR"
+                            scriptrun.save()
+                            steprun.state = "ERROR"
+                            steprun.save()
+
+                            myprocesstask = ProcessTask()
+                            myprocesstask.processrun = steprun.processrun
+                            myprocesstask.starttime = datetime.datetime.now()
+                            myprocesstask.senduser = steprun.processrun.creatuser
+                            myprocesstask.receiveauth = steprun.step.group
+                            myprocesstask.type = "ERROR"
+                            myprocesstask.state = "0"
+                            myprocesstask.content = "上传" + script_name + "脚本时，连接服务器失败。"
+                            myprocesstask.steprun_id = steprun.id
+                            myprocesstask.save()
+                            return 0
+                        else:
+                            try:
+                                sftp.put(local_file, linux_temp_script_file)
+                            except FileNotFoundError as e:
+                                scriptrun.runlog = "上传linux脚本文件失败。"  # 写入错误类型
+                                scriptrun.explain = "上传linux脚本文件失败：{0}。".format(e)  # 写入错误类型
+                                scriptrun.state = "ERROR"
+                                scriptrun.save()
+                                steprun.state = "ERROR"
+                                steprun.save()
+
+                                myprocesstask = ProcessTask()
+                                myprocesstask.processrun = steprun.processrun
+                                myprocesstask.starttime = datetime.datetime.now()
+                                myprocesstask.senduser = steprun.processrun.creatuser
+                                myprocesstask.receiveauth = steprun.step.group
+                                myprocesstask.type = "ERROR"
+                                myprocesstask.state = "0"
+                                myprocesstask.content = "脚本" + script_name + "上传失败：{0}。".format(e)
+                                myprocesstask.steprun_id = steprun.id
+                                myprocesstask.save()
+                                return 0
+                            else:
+                                sftp.chmod(linux_temp_script_file, int("755", 8))
+
+                            ssh.close()
+                        # 执行脚本(上传文件(dos格式>>shell))
+                        exe_cmd = r"sed -i 's/\r$//' {0}&&sed -i 's/\r$//' {0}&&sh {0}".format(linux_temp_script_file)
                     else:
                         ############################
                         # 创建windows下目录:       #
@@ -330,34 +521,10 @@ def runstep(steprun, if_repeat=False):
                         mkdir_obj = remote.ServerByPara(mkdir_cmd, ip, username, password, system_tag)
                         mkdir_result = mkdir_obj.run("")
 
-                        # Windows系统创建文件夹失败
-                        if mkdir_result["exec_tag"] == 1:
-                            script.runlog = mkdir_result['log']  # 写入错误类型
-                            script.explain = mkdir_result['data']
-                            print("Windows系统创建文件夹失败,结束任务!")
-                            script.state = "ERROR"
-                            script.save()
-                            steprun.state = "ERROR"
-                            steprun.save()
-
-                            script_name = script.script.name if script.script.name else ""
-                            myprocesstask = ProcessTask()
-                            myprocesstask.processrun = steprun.processrun
-                            myprocesstask.starttime = datetime.datetime.now()
-                            myprocesstask.senduser = steprun.processrun.creatuser
-                            myprocesstask.receiveauth = steprun.step.group
-                            myprocesstask.type = "ERROR"
-                            myprocesstask.logtype = "SCRIPT"
-                            myprocesstask.state = "0"
-                            myprocesstask.content = "脚本" + script_name + "执行前创建文件夹失败，请处理。"
-                            myprocesstask.steprun_id = steprun.id
-                            myprocesstask.save()
-                            return 0
-
-                        windows_temp_script_name = "tmp_script_{scriptrun_id}.bat".format(**{"scriptrun_id": script.id})
+                        windows_temp_script_name = "tmp_script_{scriptrun_id}.bat".format(**{"scriptrun_id": scriptrun.id})
                         windows_temp_script_file = windows_temp_script_path + r"\\" + windows_temp_script_name
-
-                        para_list = script.script.script_text.split("\n")
+                        script_text = content_load_params(script_instance)
+                        para_list = script_text.split("\n")
                         for num, content in enumerate(para_list):
                             tmp_cmd = ""
                             if num == 0:
@@ -369,23 +536,21 @@ def runstep(steprun, if_repeat=False):
                             tmp_result = tmp_obj.run("")
 
                             if tmp_result["exec_tag"] == 1:
-                                script.runlog = "上传windows脚本文件失败。"  # 写入错误类型
-                                script.explain = "上传windows脚本文件失败：{0}。".format(tmp_result["data"])
-                                script.state = "ERROR"
-                                script.save()
+                                scriptrun.runlog = "上传windows脚本文件失败。"  # 写入错误类型
+                                scriptrun.explain = "上传windows脚本文件失败：{0}。".format(tmp_result["data"])
+                                scriptrun.state = "ERROR"
+                                scriptrun.save()
                                 steprun.state = "ERROR"
                                 steprun.save()
 
-                                script_name = script.script.name if script.script.name else ""
                                 myprocesstask = ProcessTask()
                                 myprocesstask.processrun = steprun.processrun
                                 myprocesstask.starttime = datetime.datetime.now()
                                 myprocesstask.senduser = steprun.processrun.creatuser
                                 myprocesstask.receiveauth = steprun.step.group
                                 myprocesstask.type = "ERROR"
-                                myprocesstask.logtype = "SCRIPT"
                                 myprocesstask.state = "0"
-                                myprocesstask.content = "脚本" + script_name + "内容写入失败，请处理。"
+                                myprocesstask.content = "脚本" + script_name + "上传windows脚本文件失败，请处理。"
                                 myprocesstask.steprun_id = steprun.id
                                 myprocesstask.save()
                                 return 0
@@ -394,107 +559,91 @@ def runstep(steprun, if_repeat=False):
 
                     # 执行文件
                     rm_obj = remote.ServerByPara(exe_cmd, ip, username, password, system_tag)
-                    result = rm_obj.run(script.script.succeedtext)
-                    script.endtime = datetime.datetime.now()
-                    script.result = result['exec_tag']
-                    script.explain = result['data']
-
-                    # 处理脚本执行失败问题
-                    if result["exec_tag"] == 1:
-                        script.runlog = result['log']  # 写入错误类型
-                        script.explain = result['data']
-                        print("当前脚本执行失败,结束任务!")
-                        script.state = "ERROR"
-                        script.save()
-                        steprun.state = "ERROR"
-                        steprun.save()
-
-                        script_name = script.script.name if script.script.name else ""
-                        myprocesstask = ProcessTask()
-                        myprocesstask.processrun = steprun.processrun
-                        myprocesstask.starttime = datetime.datetime.now()
-                        myprocesstask.senduser = steprun.processrun.creatuser
-                        myprocesstask.receiveauth = steprun.step.group
-                        myprocesstask.type = "ERROR"
-                        myprocesstask.logtype = "SCRIPT"
-                        myprocesstask.state = "0"
-                        myprocesstask.content = "脚本" + script_name + "执行错误，请处理。"
-                        myprocesstask.steprun_id = steprun.id
-                        myprocesstask.save()
-                        return 0
-
+                    result = rm_obj.run(script.succeedtext)
                 else:
                     result = {}
-                    commvault_api_path = os.path.join(os.path.join(settings.BASE_DIR, "drm"),
-                                                      "commvault_api") + os.sep + script.script.commv_interface
-                    ret = ""
-                    print("################### %s" % commvault_api_path)
-                    origin = script.script.origin.client_name if script.script.origin else ""
-                    target = ""
-                    if script.steprun.processrun.target:
-                        target = script.steprun.processrun.target.client_name if script.steprun.processrun.target else ""
-                    else:
-                        target = script.script.target.client_name if script.script.target else ""
-                    oracle_info = json.loads(script.script.origin.info)
+                    commvault_api_path = os.path.join(os.path.join(settings.BASE_DIR, "faconstor"),
+                                                      "commvault_api") + os.sep + "{0}.py".format(script.commv_interface)
 
-                    instance = ""
-                    if oracle_info:
-                        instance = oracle_info["instance"]
-
-                    oracle_param = "%s %s %s %d" % (origin, target, instance, processrun.id)
-                    print("################### %s" % oracle_param)
-                    try:
-                        ret = subprocess.getstatusoutput(commvault_api_path + " %s" % oracle_param)
-                        exec_status, recover_job_id = ret
-                    except Exception as e:
+                    # 判断接口文件是否存在
+                    interface_existed = os.path.exists(commvault_api_path)
+                    if not interface_existed:
                         result["exec_tag"] = 1
-                        result["data"] = "执行commvault接口出现异常{0}。".format(e)
-                        result["log"] = "执行commvault接口出现异常{0}。".format(e)
+                        result["data"] = "Commvault接口文件不存在。"
+                        result["log"] = "Commvault接口文件不存在。"
                     else:
-                        if exec_status == 0:
-                            result["exec_tag"] = 0
-                            result["data"] = "调用commvault接口成功。"
-                            result["log"] = "调用commvault接口成功。"
-                        elif exec_status == 2:
-                            #######################################
-                            # ret=2时，查看任务错误信息写入日志    #
-                            # Oracle恢复出错                      #
-                            #######################################
+                        ret = ""
 
-                            # 查看Oracle恢复错误信息
-                            dm = SQLApi.CustomFilter(settings.sql_credit)
-                            job_controller = dm.get_job_controller()
+                        target_id = processrun.target.id if processrun.target else ""
+                        origin_id = processrun.origin.id if processrun.origin else ""
 
-                            recover_error = "无"
+                        oracle_info = json.loads(origin.info)
 
-                            for jc in job_controller:
-                                if str(recover_job_id) == str(jc["jobID"]):
-                                    recover_error = jc["delayReason"]
-                                    break
+                        instance = ""
+                        if oracle_info:
+                            instance = oracle_info["instance"]
 
-                            result["exec_tag"] = 2
-                            # 查看任务错误信息写入>>result["data"]
-                            result["data"] = recover_error
-                            result["log"] = "Oracle恢复出错。"
-                        else:
+                        oracle_param = "{0} {1} {2} {3}".format(origin_id, target_id, instance, processrun.id)
+                        try:
+                            ret = subprocess.getstatusoutput(commvault_api_path + " {0}".format(oracle_param))
+                            exec_status, recover_job_id = ret
+                        except Exception as e:
                             result["exec_tag"] = 1
-                            result["data"] = recover_job_id
-                            result["log"] = recover_job_id
+                            result["data"] = "执行commvault接口出现异常{0}。".format(e)
+                            result["log"] = "执行commvault接口出现异常{0}。".format(e)
+                        else:
+                            if exec_status == 0:
+                                result["exec_tag"] = 0
+                                result["data"] = "调用commvault接口成功。"
+                                result["log"] = "调用commvault接口成功。"
+                            elif exec_status == 2:
+                                #######################################
+                                # ret=2时，查看任务错误信息写入日志       #
+                                # Oracle恢复出错                      #
+                                #######################################
+                                recover_error = "无"
+                                from faconstor.views import get_credit_info
 
-                script.endtime = datetime.datetime.now()
-                script.result = result['exec_tag']
-                script.explain = result['data']
+                                try:
+                                    utils_manage = origin.utils_manage
+                                    _, sqlserver_credit = get_credit_info(utils_manage.content)
+                                    # 查看Oracle恢复错误信息
+                                    dm = SQLApi.CVApi(sqlserver_credit)
+                                    job_controller = dm.get_job_controller()
+                                    dm.close()
 
+                                    for jc in job_controller:
+                                        if str(recover_job_id) == str(jc["jobID"]):
+                                            recover_error = jc["delayReason"]
+                                            break
+                                except Exception as e:
+                                    recover_error = e
+
+                                result["exec_tag"] = 2
+                                # 查看任务错误信息写入>>result["data"]
+                                result["data"] = recover_error
+                                result["log"] = "Oracle恢复出错。"
+                            elif exec_status == 3:
+                                result["exec_tag"] = 3
+                                # 查看任务错误信息写入>>result["data"]
+                                result["data"] = "长时间未获取到Commvault状态，请检查Commvault恢复情况。"
+                                result["log"] = "长时间未获取到Commvault状态，请检查Commvault恢复情况。"
+                            else:
+                                result["exec_tag"] = 1
+                                result["data"] = recover_job_id
+                                result["log"] = recover_job_id
+
+                scriptrun.result = result['exec_tag']
+                scriptrun.explain = result['data']
                 # 处理接口调用执行失败问题
                 if result["exec_tag"] == 1:
-                    script.runlog = result['log']  # 写入错误类型
-                    script.explain = result['data']
-                    script.state = "ERROR"
-                    script.save()
+                    scriptrun.runlog = result['log']  # 写入错误类型
+                    scriptrun.explain = result['data']
+                    scriptrun.state = "ERROR"
+                    scriptrun.save()
                     steprun.state = "ERROR"
                     steprun.save()
 
-                    script_name = script.script.name if script.script.name else ""
                     myprocesstask = ProcessTask()
                     myprocesstask.processrun = steprun.processrun
                     myprocesstask.starttime = datetime.datetime.now()
@@ -508,16 +657,14 @@ def runstep(steprun, if_repeat=False):
                     myprocesstask.save()
                     return 0
                 # Oracle恢复失败问题
-                if result["exec_tag"] == 2:
-                    script.runlog = result['log']  # 写入错误类型
-                    script.explain = result['data']
-                    print("Oracle恢复失败,结束任务!")
-                    script.state = "ERROR"
-                    script.save()
+                if result["exec_tag"] in [2, 3]:
+                    scriptrun.runlog = result['log']  # 写入错误类型
+                    scriptrun.explain = result['data']
+                    scriptrun.state = "ERROR"
+                    scriptrun.save()
                     steprun.state = "ERROR"
                     steprun.save()
 
-                    script_name = script.script.name if script.script.name else ""
                     myprocesstask = ProcessTask()
                     myprocesstask.processrun = steprun.processrun
                     myprocesstask.starttime = datetime.datetime.now()
@@ -526,16 +673,36 @@ def runstep(steprun, if_repeat=False):
                     myprocesstask.type = "ERROR"
                     myprocesstask.logtype = "SCRIPT"
                     myprocesstask.state = "0"
-                    myprocesstask.content = "接口" + script_name + "调用过程中，Oracle恢复异常。"
                     myprocesstask.steprun_id = steprun.id
-                    myprocesstask.save()
+                    if result["exec_tag"] == 2:
+                        myprocesstask.content = "接口" + script_name + "调用过程中，Oracle恢复异常。"
+                        myprocesstask.save()
+                        # 辅助拷贝未完成
+                        if "RMAN Script execution failed  with error [RMAN-03002" in result['data']:
+                            # 终止commvault作业
+                            if recover_job_id != '':
+                                try:
+                                    utils_manage = origin.utils_manage
+                                    commvault_credit, _ = get_credit_info(utils_manage.content)
+                                    cvToken = CV_RestApi_Token()
+                                    cvToken.login(commvault_credit)
+                                    cvOperate = CV_OperatorInterFace(cvToken)
+                                    cvOperate.kill_job(recover_job_id)
+                                except Exception as e:
+                                    pass
+
+                            myprocesstask.logtype = "STOP"
+                            myprocesstask.content = "由于辅助拷贝未完成，本次演练中止。"
+                            myprocesstask.save()
+                            return 5
+                    if result["exec_tag"] == 3:
+                        myprocesstask.content = "接口" + script_name + "调用过程中，长时间未获取到Commvault状态，请检查Commvault恢复情况。"
+                        myprocesstask.save()
                     return 0
 
-                script.endtime = datetime.datetime.now()
-                script.state = "DONE"
-                script.save()
-
-                script_name = script.script.name if script.script.name else ""
+                scriptrun.endtime = datetime.datetime.now()
+                scriptrun.state = "DONE"
+                scriptrun.save()
 
                 myprocesstask = ProcessTask()
                 myprocesstask.processrun = steprun.processrun
@@ -544,7 +711,7 @@ def runstep(steprun, if_repeat=False):
                 myprocesstask.type = "INFO"
                 myprocesstask.logtype = "SCRIPT"
                 myprocesstask.state = "1"
-                myprocesstask.content = "接口" + script_name + "完成。"
+                myprocesstask.content = "脚本" + script_name + "完成。"
                 myprocesstask.save()
 
             if steprun.step.approval == "1" or steprun.verifyitemsrun_set.all():
@@ -558,7 +725,6 @@ def runstep(steprun, if_repeat=False):
                 myprocesstask.starttime = datetime.datetime.now()
                 myprocesstask.senduser = steprun.processrun.creatuser
                 myprocesstask.receiveauth = steprun.step.group
-                myprocesstask.logtype = "STEP"
                 myprocesstask.type = "RUN"
                 myprocesstask.state = "0"
                 task_content = "步骤" + steprun_name + "等待确认，请处理。"
@@ -617,21 +783,80 @@ def exec_process(processrunid, if_repeat=False):
     end_step_tag = 0
     processrun = ProcessRun.objects.filter(id=processrunid)
     processrun = processrun[0]
+    process = processrun.process
 
-    # nextSCN-1
-    # 获取流程客户端
+    # Commvault流程恢复 nextSCN选项
+    # 流程恢复 ...ProcessRun>>copy_priority
+    # 计划流程 ...Origin>>copy_priority
+    #   先获取优先级 再获取nextSCN选项(主拷贝、辅助拷贝) 
+    if processrun.process.type.upper() == "COMMVAULT":
+        # nextSCN-1
+        # 获取流程客户端
+        origin = processrun.origin
+        utils = origin.utils
 
-    cur_client = processrun.origin
-    dm = SQLApi.CustomFilter(settings.sql_credit)
-    ret = dm.get_oracle_backup_job_list(cur_client)
-    curSCN = None
-    for i in ret:
-        if i["subclient"] == "default":
-            curSCN = i["cur_SCN"]
-            break
-    processrun.curSCN = curSCN
-    processrun.save()
+        from .viewset.config_views import get_credit_info
+        _, sqlserver_credit = get_credit_info(utils.content if utils else None)
+        dm = SQLApi.CVApi(sqlserver_credit)
+        ret = dm.get_oracle_backup_job_list(origin.client_name)
 
+        # 无联机全备记录，请修改配置，完成联机全备后，待辅助拷贝结束后重启
+        if not ret:
+            dm.close()
+            end_step_tag = 0
+            myprocesstask = ProcessTask()
+            myprocesstask.processrun = processrun
+            myprocesstask.starttime = datetime.datetime.now()
+            myprocesstask.senduser = processrun.creatuser
+            myprocesstask.receiveuser = processrun.creatuser
+            myprocesstask.type = "ERROR"
+            myprocesstask.state = "0"
+            myprocesstask.content = "无联机全备记录，请修改配置，完成联机全备后，待辅助拷贝结束后重启。"
+            myprocesstask.save()
+        else:
+            curSCN = None
+
+            # ** 获取 主拷贝 辅助拷贝优先级
+            copy_priority = processrun.copy_priority
+
+            # ** 获得SCN号
+            # 指定时间 匹配该时间点的SCN
+            # 最新时间 匹配最新的SCN号
+            recover_time = '{:%Y-%m-%d %H:%M:%S}'.format(processrun.recover_time) if processrun.recover_time else ""
+            if recover_time:
+                for i in ret:
+                    if i["subclient"] == "default" and i['LastTime'] == recover_time:
+                        curSCN = i["cur_SCN"]
+                        break
+            else:
+                # 当前时间点，选择最新的SCN号
+                for i in ret:
+                    if i["subclient"] == "default":
+                        curSCN = i["cur_SCN"]
+                        break
+
+            # 辅助拷贝优先的恢复 最新
+            if copy_priority == 2:
+                if not recover_time:
+                    tmp_tag = 0
+                    for orcl_copy in ret:
+                        if orcl_copy["idataagent"] == "Oracle Database":
+                            if dm.has_auxiliary_job(orcl_copy['jobId']):
+                                orcl_copy_starttime = datetime.datetime.strptime(orcl_copy['StartTime'], "%Y-%m-%d %H:%M:%S")
+                                curSCN = orcl_copy['cur_SCN']
+                                processrun.recover_time = orcl_copy_starttime if orcl_copy_starttime else None
+
+                                if tmp_tag > 0:
+                                    break
+                                tmp_tag += 1
+                        else:
+                            break
+
+            dm.close()
+
+            processrun.curSCN = curSCN
+            processrun.save()
+ 
     steprunlist = StepRun.objects.exclude(state="9").filter(processrun=processrun, step__last=None, step__pnode=None)
     if len(steprunlist) > 0:
         end_step_tag = runstep(steprunlist[0], if_repeat)
@@ -649,6 +874,8 @@ def exec_process(processrunid, if_repeat=False):
         processrun.state = "ERROR"
         processrun.save()
     if end_step_tag == 1:
+        processrun = ProcessRun.objects.filter(id=processrunid)
+        processrun = processrun[0]
         processrun.state = "DONE"
         processrun.endtime = datetime.datetime.now()
         processrun.save()
@@ -661,39 +888,8 @@ def exec_process(processrunid, if_repeat=False):
         myprocesstask.state = "1"
         myprocesstask.content = "流程结束。"
         myprocesstask.save()
-
-        # ************************ 写入RTO *************************
-        cur_process = processrun.process
-
-        # 正确顺序的父级Step
-        all_pnode_steps = cur_process.step_set.exclude(state="9").filter(pnode_id=None).order_by("sort")
-
-        correct_step_id_list = []
-
-        for pnode_step in all_pnode_steps:
-            correct_step_id_list.append(pnode_step)
-
-        # 正确顺序的父级StepRun
-        correct_step_run_list = []
-
-        for pnode_step in correct_step_id_list:
-            current_step_run = pnode_step.steprun_set.filter(processrun_id=processrun.id)
-            if current_step_run.exists():
-                current_step_run = current_step_run[0]
-                correct_step_run_list.append(current_step_run)
-        starttime = processrun.starttime
-        rtoendtime = processrun.starttime
-
-        for c_step_run in reversed(correct_step_run_list):
-            if c_step_run.step.rto_count_in == "1":
-                rtoendtime = c_step_run.endtime
-                break
-
-        delta_time = 0
-        if rtoendtime:
-            delta_time = (rtoendtime - starttime).total_seconds()
-
-        processrun.rto = delta_time
+    if end_step_tag == 5:
+        processrun.state = "STOP"
         processrun.save()
 
 
@@ -706,7 +902,6 @@ def create_process_run(*args, **kwargs):
     """
     # exec_process.delay(processrunid)
     # data_path/target/origin/
-    origin_name, target_id, data_path, copy_priority, db_open = "", None, "", 1, 1
     try:
         process_id = int(kwargs["cur_process"])
     except ValueError as e:
@@ -715,23 +910,8 @@ def create_process_run(*args, **kwargs):
         try:
             cur_process = Process.objects.get(id=process_id)
         except Process.DoesNotExist as e:
-            pass
+            print(e)
         else:
-            # 过滤所有脚本
-            all_steps = cur_process.step_set.exclude(state="9")
-            for cur_step in all_steps:
-                all_scripts = cur_step.script_set.exclude(state="9")
-                for cur_script in all_scripts:
-                    if cur_script.origin:
-                        origin_name = cur_script.origin.client_name
-                        data_path = cur_script.origin.data_path
-                        copy_priority = cur_script.origin.copy_priority
-                        db_open = cur_script.origin.db_open
-                        if cur_script.origin.target:
-                            target_id = cur_script.origin.target.id
-                        break
-
-            # running_process = ProcessRun.objects.filter(process=cur_process, state__in=["RUN", "ERROR"])
             running_process = ProcessRun.objects.filter(process=cur_process, state__in=["RUN"])
             if running_process.exists():
                 myprocesstask = ProcessTask()
@@ -740,20 +920,18 @@ def create_process_run(*args, **kwargs):
                 myprocesstask.logtype = "END"
                 myprocesstask.state = "0"
                 myprocesstask.processrun = running_process[0]
-                myprocesstask.content = "计划流程({0})已运行或者错误流程未处理，无法按计划创建恢复流程任务。".format(running_process[0].process.name)
+                myprocesstask.content = "计划流程({0})已运行，无法按计划创建恢复流程任务。".format(running_process[0].process.name)
                 myprocesstask.save()
-                # result["res"] = '流程启动失败，该流程正在进行中，请勿重复启动。'
             else:
                 myprocessrun = ProcessRun()
                 myprocessrun.creatuser = kwargs["creatuser"]
                 myprocessrun.process = cur_process
                 myprocessrun.starttime = datetime.datetime.now()
                 myprocessrun.state = "RUN"
-                myprocessrun.target_id = target_id
-                myprocessrun.data_path = data_path
-                myprocessrun.copy_priority = copy_priority
-                myprocessrun.db_open = db_open
-                myprocessrun.origin = origin_name
+                process_type = myprocessrun.process.type
+                if process_type.upper() == "COMMVAULT":
+                    cv_oracle_restore_params_save(myprocessrun)
+
                 myprocessrun.save()
                 mystep = cur_process.step_set.exclude(state="9")
                 if not mystep.exists():
@@ -765,7 +943,6 @@ def create_process_run(*args, **kwargs):
                     myprocesstask.processrun = myprocessrun
                     myprocesstask.content = "计划流程({0})不存在可运行步骤，无法按计划创建恢复流程任务。".format(myprocessrun.process.name)
                     myprocesstask.save()
-                    # result["res"] = '流程启动失败，没有找到可用步骤。'
                 else:
                     for step in mystep:
                         mysteprun = StepRun()
@@ -792,3 +969,42 @@ def create_process_run(*args, **kwargs):
                     myprocesstask.save()
 
                     exec_process.delay(myprocessrun.id)
+
+
+def cv_oracle_restore_params_save(processrun):
+    """
+    保存 Commvault Oracle 恢复需要的参数
+    Args:
+        processrun 流程对象
+    """
+    # 计划流程用的是默认 恢复选项
+    # 计划流程如果是Commvault 在流程中首个 客户端 对应的 恢复选项 写到ProcessRun
+    try:
+        origin_id, target_id, data_path, copy_priority, db_open, log_restore = "", None, "", 1, 1, 1
+        process = processrun.process
+
+        # 过滤所有脚本
+        all_steps = process.step_set.exclude(state="9")
+        for cur_step in all_steps:
+            script_instances = cur_step.scriptinstance_set.exclude(state="9")
+            for script_instance in script_instances:
+                if script_instance.origin:
+                    origin_id = script_instance.origin.id
+                    data_path = script_instance.origin.data_path
+                    copy_priority = script_instance.origin.copy_priority
+                    db_open = script_instance.origin.db_open
+                    log_restore = script_instance.origin.log_restore
+                    if script_instance.origin.target:
+                        target_id = script_instance.origin.target.id
+                    break
+        
+        processrun.target_id = target_id
+        processrun.data_path = data_path
+        processrun.copy_priority = copy_priority
+        processrun.db_open = db_open
+        processrun.origin_id = origin_id
+        processrun.log_restore = log_restore
+        processrun.save()
+    except:
+        pass
+    

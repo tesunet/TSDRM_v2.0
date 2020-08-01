@@ -781,7 +781,7 @@ def getchildrensteps(processrun, curstep):
             except:
                 pass
         scripts = []
-        scriptlist = Script.objects.exclude(
+        scriptlist = ScriptInstance.objects.exclude(
             state="9").filter(step=step).order_by("sort")
         for script in scriptlist:
             runscriptid = 0
