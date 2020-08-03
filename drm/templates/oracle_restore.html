@@ -224,7 +224,7 @@
                                     <input type="text" id="std_selected" name="std_selected" value="{{ orcl_params.std_id }}" hidden>
                                     <select name="std" id="std" class="form-control">
                                         {% for std in cv_clients %}
-                                            <option value="{{ std.id }}">{{ std.client_name }}</option>
+                                            <option value="{{ std.id }}" {{std.selected}}>{{ std.client_name }}({{std.utils_name}})</option>
                                         {% endfor %}
                                     </select>
                                     <div class="form-control-focus"></div>

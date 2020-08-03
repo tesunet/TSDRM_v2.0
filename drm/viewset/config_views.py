@@ -865,13 +865,11 @@ def processconfig(request, funid):
     all_hosts_manage = HostsManage.objects.exclude(state="9")
 
     # commvault源端客户端
-    cv_clients = CvClient.objects.exclude(state="9").order_by("utils__name")
-
     # 工具
     cv_client_data = []
     utils = UtilsManage.objects.exclude(state="9").filter(util_type="Commvault")
     for u in utils:
-        cv_client_list = u.cvclient_set.exclude(state="9").values("id", "client_name")
+        cv_client_list = u.cvclient_set.exclude(state="9").filter(type=1).values("id", "client_name")
         cv_client_data.append({
             "utils_id": u.id,
             "utils_name": u.name,
@@ -909,7 +907,7 @@ def processconfig(request, funid):
     return render(request, 'processconfig.html',
                   {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request),
                    "processlist": processlist, "process_id": process_id, "all_hosts_manage": all_hosts_manage,
-                   "cv_clients": cv_clients, "tree_data": tree_data, "cv_client_data": cv_client_data})
+                   "tree_data": tree_data, "cv_client_data": cv_client_data})
 
 
 @login_required

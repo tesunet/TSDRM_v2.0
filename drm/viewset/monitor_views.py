@@ -142,7 +142,7 @@ def oracle_restore(request, process_id):
             "db_open": "",
             "log_restore": "",
         }
-
+        std_id = ""
         all_steps = Step.objects.exclude(state="9").filter(process_id=process_id)
         if_break = False
         for cur_step in all_steps:
@@ -150,15 +150,15 @@ def oracle_restore(request, process_id):
             for cur_scriptinstance in all_scriptinstances:
                 pri = cur_scriptinstance.primary
                 if pri:
-                    info = {}
                     info = etree.XML(pri.info)
                     params = info.xpath("//param")
 
                     if params:
                         param = params[0]
+                        std_id = pri.destination.id if pri.destination else ""
                         orcl_params["pri_id"] = pri.id
                         orcl_params["pri_name"] = pri.client_name
-                        orcl_params["std_id"] = pri.destination.client_id if pri.destination else ""
+                        orcl_params["std_id"] = std_id
                         orcl_params["data_path"] = param.attrib.get("data_path", "")
                         orcl_params["copy_priority"] = param.attrib.get("copy_priority", "")
                         orcl_params["db_open"] = param.attrib.get("db_open", "")
@@ -168,12 +168,28 @@ def oracle_restore(request, process_id):
             if if_break:
                 break
         
-        cv_clients = CvClient.objects.exclude(state="9").values("id", "client_name")
+        cv_clients = CvClient.objects.exclude(state="9").exclude(type=1).values("id", "client_name", "utils__name")
 
+        cv_clients_list = []
+        for cc in cv_clients:
+            if cc["id"] == std_id:
+                cv_clients_list.append({
+                    "id": cc["id"],
+                    "client_name": cc["client_name"],
+                    "utils_name": cc["utils__name"],
+                    "selected": "selected"
+                })
+            else:
+                cv_clients_list.append({
+                    "id": cc["id"],
+                    "client_name": cc["client_name"],
+                    "utils_name": cc["utils__name"],
+                    "selected": ""
+                })
         return render(request, 'oracle_restore.html',
                       {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request),
                        "wrapper_step_list": wrapper_step_list, "process_id": process_id,  "plan_process_run_id": plan_process_run_id, 
-                       "orcl_params": orcl_params, "cv_clients": cv_clients})
+                       "orcl_params": orcl_params, "cv_clients": cv_clients_list})
     else:
         return HttpResponseRedirect("/login")
 

@@ -148,8 +148,6 @@ $(document).ready(function () {
         // 写入当前时间
         var myDate = new Date();
         $("#run_time").val(myDate.toLocaleString());
-
-        $("#std").val("")
     });
 
     $('#start_date').datetimepicker({

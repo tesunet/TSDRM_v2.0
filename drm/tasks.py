@@ -973,13 +973,13 @@ def cv_oracle_restore_params_save(processrun):
         try:
             cv_client_info = etree.XML(cv_client_info)
             node = cv_client_info.xpath("//param")[0]
-            node.attrib["pri_id"] = pri_id
-            node.attrib["std_id"] = std_id
+            node.attrib["pri_id"] = str(pri_id)
+            node.attrib["std_id"] = str(std_id)
             content = etree.tounicode(node)
             processrun.info = content
             processrun.save()
-        except Exception:
-            pass
-    except:
-        pass
+        except Exception as e:
+            logger.info(str(e))
+    except Exception as e:
+        logger.info(str(e))
     
