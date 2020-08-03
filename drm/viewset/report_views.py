@@ -336,7 +336,7 @@ def restore_search(request, funid):
         nowtime = datetime.datetime.now()
         endtime = nowtime.strftime("%Y-%m-%d")
         starttime = (nowtime - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
-        all_processes = Process.objects.exclude(state="9").filter(type="cv_oracle").order_by("sort")
+        all_processes = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).order_by("sort")
         processname_list = []
         for process in all_processes:
             processname_list.append(process.name)
@@ -478,7 +478,7 @@ def tasksearch(request, funid):
         nowtime = datetime.datetime.now()
         endtime = nowtime.strftime("%Y-%m-%d")
         starttime = (nowtime - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
-        all_processes = Process.objects.exclude(state="9").filter(type="cv_oracle")
+        all_processes = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type=""))
         processname_list = []
         for process in all_processes:
             processname_list.append(process.name)

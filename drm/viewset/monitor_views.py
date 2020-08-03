@@ -156,7 +156,7 @@ def oracle_restore(request, process_id):
 
                     if params:
                         param = params[0]
-                        orcl_params["pri_id"] = pri.client_id
+                        orcl_params["pri_id"] = pri.id
                         orcl_params["pri_name"] = pri.client_name
                         orcl_params["std_id"] = pri.destination.client_id if pri.destination else ""
                         orcl_params["data_path"] = param.attrib.get("data_path", "")
@@ -205,22 +205,21 @@ def oracle_restore_data(request):
         cursor.execute(exec_sql)
         rows = cursor.fetchall()
         for processrun_obj in rows:
-            if processrun_obj[9] == "cv_oracle":
-                create_users = processrun_obj[2] if processrun_obj[2] else ""
-                create_user_objs = User.objects.filter(username=create_users)
-                create_user_fullname = create_user_objs[0].userinfo.fullname if create_user_objs else ""
+            create_users = processrun_obj[2] if processrun_obj[2] else ""
+            create_user_objs = User.objects.filter(username=create_users)
+            create_user_fullname = create_user_objs[0].userinfo.fullname if create_user_objs else ""
 
-                result.append({
-                    "starttime": processrun_obj[0].strftime('%Y-%m-%d %H:%M:%S') if processrun_obj[0] else "",
-                    "endtime": processrun_obj[1].strftime('%Y-%m-%d %H:%M:%S') if processrun_obj[1] else "",
-                    "createuser": create_user_fullname,
-                    "state": state_dict["{0}".format(processrun_obj[3])] if processrun_obj[3] else "",
-                    "process_id": processrun_obj[4] if processrun_obj[4] else "",
-                    "processrun_id": processrun_obj[5] if processrun_obj[5] else "",
-                    "run_reason": processrun_obj[6][:20] if processrun_obj[6] else "",
-                    "process_name": processrun_obj[7] if processrun_obj[7] else "",
-                    "process_url": processrun_obj[8] if processrun_obj[8] else ""
-                })
+            result.append({
+                "starttime": processrun_obj[0].strftime('%Y-%m-%d %H:%M:%S') if processrun_obj[0] else "",
+                "endtime": processrun_obj[1].strftime('%Y-%m-%d %H:%M:%S') if processrun_obj[1] else "",
+                "createuser": create_user_fullname,
+                "state": state_dict["{0}".format(processrun_obj[3])] if processrun_obj[3] else "",
+                "process_id": processrun_obj[4] if processrun_obj[4] else "",
+                "processrun_id": processrun_obj[5] if processrun_obj[5] else "",
+                "run_reason": processrun_obj[6][:20] if processrun_obj[6] else "",
+                "process_name": processrun_obj[7] if processrun_obj[7] else "",
+                "process_url": processrun_obj[8] if processrun_obj[8] else ""
+            })
 
         return JsonResponse({"data": result})
 
@@ -251,7 +250,10 @@ def cv_oracle_run(request):
             db_open = int(db_open)
         except ValueError as e:
             db_open = 1
-
+        try:
+            log_restore = int(log_restore)
+        except ValueError as e:
+            log_restore = 1
         try:
             processid = int(processid)
         except:
@@ -267,7 +269,7 @@ def cv_oracle_run(request):
         except:
             return JsonResponse({"res": "目标客户端未选择。"})
 
-        process = Process.objects.filter(id=processid).exclude(state="9").filter(type="cv_oracle")
+        process = Process.objects.filter(id=processid).exclude(state="9").exclude(Q(type=None) | Q(type=""))
         if (len(process) <= 0):
             result["res"] = '流程启动失败，该流程不存在。'
         else:
@@ -292,13 +294,13 @@ def cv_oracle_run(request):
                     # xml
                     root = etree.Element("root")
                     param_node = etree.SubElement(root, "param")
-                    param_node.attrib["copy_priority"] = copy_priority
-                    param_node.attrib["db_open"] = db_open
-                    param_node.attrib["log_restore"] = log_restore
+                    param_node.attrib["copy_priority"] = str(copy_priority)
+                    param_node.attrib["db_open"] = str(db_open)
+                    param_node.attrib["log_restore"] = str(log_restore)
                     param_node.attrib["data_path"] = data_path
-                    param_node.attrib["pri_id"] = pri
-                    param_node.attrib["std_id"] = std
-                    param_node.attrib["browse_job_id"] = browseJobId
+                    param_node.attrib["pri_id"] = str(pri)
+                    param_node.attrib["std_id"] = str(std)
+                    param_node.attrib["browse_job_id"] = str(browseJobId)
                     info = etree.tounicode(root)
                     myprocessrun.info = info
 
@@ -702,7 +704,7 @@ def get_current_scriptinfo(request):
             script = script_instance.script
             steprun = scriptrun.steprun
             processrun = steprun.processrun
-            origin = script_instance.origin
+            pri = script_instance.primary
             
             state_dict = {
                 "DONE": "已完成",
@@ -716,10 +718,20 @@ def get_current_scriptinfo(request):
             starttime = '{0:%Y-%m-%d %H:%M:%S}'.format(scriptrun.starttime) if scriptrun.starttime else ""
             endtime = '{0:%Y-%m-%d %H:%M:%S}'.format(scriptrun.endtime) if scriptrun.endtime else ""
 
-            # 目标客户端
-            target = ""
-            if script.interface_type == "Commvault":
-                target = processrun.target.client_name if processrun.target else ""
+            cur_info = processrun.info
+            std_name = ""
+            try:
+                cur_info = etree.XML(cur_info)
+            except Exception:
+                pass
+            else:
+                std_id = cur_info.xpath("//param")[0].attrib.get("std_id")
+                try:
+                    std = CvClient.objects.get(id=int(std_id))
+                except Exception:
+                    pass
+                else:
+                    std_name = std.client_name
 
             # 状态
             state = ""
@@ -739,8 +751,8 @@ def get_current_scriptinfo(request):
                 "explain": scriptrun.explain,
                 "step_id_from_script": steprun.step_id,
                 "show_log_btn": "1" if script_instance.log_address else "0",
-                "origin": origin.client_name if origin else "",
-                "target": target,
+                "pri": pri.client_name if pri else "",
+                "std": std_name,
                 "interface_type": script.interface_type,
             }
         except Exception as e:
@@ -1399,7 +1411,7 @@ def get_force_script_info(request):
 ######################
 def process_schedule(request, funid):
     if request.user.is_authenticated():
-        all_process = Process.objects.exclude(state="9").filter(type="cv_oracle").order_by("sort").only("id", "name")
+        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).order_by("sort").only("id", "name")
 
         return render(request, 'process_schedule.html', {'username': request.user.userinfo.fullname,
                                                          "pagefuns": getpagefuns(funid, request=request),
@@ -1699,7 +1711,7 @@ def invite(request):
         nowtime = datetime.datetime.now()
         invite_time = nowtime.strftime("%Y-%m-%d")
 
-        current_processes = Process.objects.filter(id=process_id).filter(type="cv_oracle")
+        current_processes = Process.objects.filter(id=process_id).exclude(Q(type=None) | Q(type=""))
         process_name = current_processes[0].name if current_processes else ""
         allgroup = current_processes[0].step_set.exclude(state="9").exclude(Q(group="") | Q(group=None)).values(
             "group").distinct()

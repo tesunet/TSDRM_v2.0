@@ -1,46 +1,56 @@
 from __future__ import absolute_import
-from celery import shared_task
-from . import remote
-from .models import *
-import datetime
+from os import makedirs
+# from drm.api.commvault.RestApi import ret
 from django.db.models import Q
+
+from celery import shared_task
+import datetime
 import os
-from TSDRM import settings
 import json
-from .api.commvault import SQLApi
 import subprocess
 import uuid
 import paramiko
+from lxml import etree
+import re
+import logging
+
+from . import remote
+from .models import *
+from TSDRM import settings
+from .api.commvault import SQLApi
+from .CVApi import *
+
+logger = logging.getLogger('tasks')
 
 
-@shared_task
-def get_disk_space_crond():
-    """
-    一周获取一次Commvault磁盘信息
-        工具ID MediaID 可用容量、保留空间、总容量、取数时间
+# @shared_task
+# def get_disk_space_crond():
+#     """
+#     一周获取一次Commvault磁盘信息
+#         工具ID MediaID 可用容量、保留空间、总容量、取数时间
 
-    """
-    from .viewset.config_views import get_credit_info
-    commvaul_utils = UtilsManage.objects.exclude(state="9").filter(util_type="Commvault")
-    point_tag = uuid.uuid1()
-    for cu in commvaul_utils:
-        _, sqlserver_credit = get_credit_info(cu.content)
-        dm = SQLApi.CVApi(sqlserver_credit)
-        disk_space = dm.get_library_space_info()
+#     """
+#     from .viewset.config_views import get_credit_info
+#     commvaul_utils = UtilsManage.objects.exclude(state="9").filter(util_type="Commvault")
+#     point_tag = uuid.uuid1()
+#     for cu in commvaul_utils:
+#         _, sqlserver_credit = get_credit_info(cu.content)
+#         dm = SQLApi.CVApi(sqlserver_credit)
+#         disk_space = dm.get_library_space_info()
 
-        for ds in disk_space:
-            disk_space_save_data = dict()
-            disk_space_save_data["utils_id"] = cu.id
-            disk_space_save_data["media_id"] = int(ds["MediaID"]) if ds["MediaID"] else 0
-            disk_space_save_data["capacity_avaible"] = int(ds["CapacityAvailable"]) if ds["CapacityAvailable"] else 0
-            disk_space_save_data["space_reserved"] = int(ds["SpaceReserved"]) if ds["SpaceReserved"] else 0
-            disk_space_save_data["total_space"] = int(ds["TotalSpaceMB"]) if ds["TotalSpaceMB"] else 0
-            disk_space_save_data["extract_time"] = datetime.datetime.now()
-            disk_space_save_data["point_tag"] = point_tag
-            try:
-                DiskSpaceWeeklyData.objects.create(**disk_space_save_data)
-            except Exception as e:
-                print(e)
+#         for ds in disk_space:
+#             disk_space_save_data = dict()
+#             disk_space_save_data["utils_id"] = cu.id
+#             disk_space_save_data["media_id"] = int(ds["MediaID"]) if ds["MediaID"] else 0
+#             disk_space_save_data["capacity_avaible"] = int(ds["CapacityAvailable"]) if ds["CapacityAvailable"] else 0
+#             disk_space_save_data["space_reserved"] = int(ds["SpaceReserved"]) if ds["SpaceReserved"] else 0
+#             disk_space_save_data["total_space"] = int(ds["TotalSpaceMB"]) if ds["TotalSpaceMB"] else 0
+#             disk_space_save_data["extract_time"] = datetime.datetime.now()
+#             disk_space_save_data["point_tag"] = point_tag
+#             try:
+#                 DiskSpaceWeeklyData.objects.create(**disk_space_save_data)
+#             except Exception as e:
+#                 print(e)
 
 
 def content_load_params(script_instance):
@@ -149,7 +159,7 @@ def force_exec_script(processrunid):
                         # 写入本地文件
                         script_path = os.path.join(
                             os.path.join(
-                                os.path.join(settings.BASE_DIR, "faconstor"), 
+                                os.path.join(settings.BASE_DIR, "drm"), 
                                 "upload"
                             ),
                             "script"
@@ -169,18 +179,6 @@ def force_exec_script(processrunid):
                             script_run.save()
                             steprun.state = "ERROR"
                             steprun.save()
-
-                            # script_name = script.script.name if script.script.name else ""
-                            # myprocesstask = ProcessTask()
-                            # myprocesstask.processrun = steprun.processrun
-                            # myprocesstask.starttime = datetime.datetime.now()
-                            # myprocesstask.senduser = steprun.processrun.creatuser
-                            # myprocesstask.receiveauth = steprun.step.group
-                            # myprocesstask.type = "ERROR"
-                            # myprocesstask.state = "0"
-                            # myprocesstask.content = "Linux脚本" + script_name + "内容写入失败，请处理。"
-                            # myprocesstask.steprun_id = steprun.id
-                            # myprocesstask.save()
                         else:
                             # 上传Linux服务器
                             try:
@@ -194,18 +192,6 @@ def force_exec_script(processrunid):
                                 script_run.save()
                                 steprun.state = "ERROR"
                                 steprun.save()
-
-                                # script_name = script.script.name if script.script.name else ""
-                                # myprocesstask = ProcessTask()
-                                # myprocesstask.processrun = steprun.processrun
-                                # myprocesstask.starttime = datetime.datetime.now()
-                                # myprocesstask.senduser = steprun.processrun.creatuser
-                                # myprocesstask.receiveauth = steprun.step.group
-                                # myprocesstask.type = "ERROR"
-                                # myprocesstask.state = "0"
-                                # myprocesstask.content = "上传" + script_name + "脚本时，连接服务器失败。"
-                                # myprocesstask.steprun_id = steprun.id
-                                # myprocesstask.save()
                             else:
                                 try:
                                     sftp.put(local_file, linux_temp_script_file)
@@ -216,18 +202,6 @@ def force_exec_script(processrunid):
                                     script_run.save()
                                     steprun.state = "ERROR"
                                     steprun.save()
-                                    #
-                                    # script_name = script.script.name if script.script.name else ""
-                                    # myprocesstask = ProcessTask()
-                                    # myprocesstask.processrun = steprun.processrun
-                                    # myprocesstask.starttime = datetime.datetime.now()
-                                    # myprocesstask.senduser = steprun.processrun.creatuser
-                                    # myprocesstask.receiveauth = steprun.step.group
-                                    # myprocesstask.type = "ERROR"
-                                    # myprocesstask.state = "0"
-                                    # myprocesstask.content = "脚本" + script_name + "上传失败：{0}。".format(e)
-                                    # myprocesstask.steprun_id = steprun.id
-                                    # myprocesstask.save()
                                 else:
                                     sftp.chmod(linux_temp_script_file, int("755", 8))
 
@@ -271,18 +245,6 @@ def force_exec_script(processrunid):
                                 script_run.save()
                                 steprun.state = "ERROR"
                                 steprun.save()
-                                #
-                                # script_name = script.script.name if script.script.name else ""
-                                # myprocesstask = ProcessTask()
-                                # myprocesstask.processrun = steprun.processrun
-                                # myprocesstask.starttime = datetime.datetime.now()
-                                # myprocesstask.senduser = steprun.processrun.creatuser
-                                # myprocesstask.receiveauth = steprun.step.group
-                                # myprocesstask.type = "ERROR"
-                                # myprocesstask.state = "0"
-                                # myprocesstask.content = "脚本" + script_name + "上传windows脚本文件失败，请处理。"
-                                # myprocesstask.steprun_id = steprun.id
-                                # myprocesstask.save()
 
                         exe_cmd = windows_temp_script_file
 
@@ -303,18 +265,6 @@ def force_exec_script(processrunid):
                         script_run.save()
                         steprun.state = "ERROR"
                         steprun.save()
-
-                        # script_name = script.script.name if script.script.name else ""
-                        # myprocesstask = ProcessTask()
-                        # myprocesstask.processrun = steprun.processrun
-                        # myprocesstask.starttime = datetime.datetime.now()
-                        # myprocesstask.senduser = steprun.processrun.creatuser
-                        # myprocesstask.receiveauth = steprun.step.group
-                        # myprocesstask.type = "ERROR"
-                        # myprocesstask.state = "0"
-                        # myprocesstask.content = "脚本" + script_name + "执行错误，请处理。"
-                        # myprocesstask.steprun_id = steprun.id
-                        # myprocesstask.save()
                     else:
                         script_run.endtime = datetime.datetime.now()
                         script_run.state = "DONE"
@@ -331,12 +281,18 @@ def force_exec_script(processrunid):
                         myprocesstask.save()
 
 
-def runstep(steprun, if_repeat=False):
+def runstep(steprun, if_repeat=False, processrun_params={}):
     """
     执行当前步骤下的所有脚本
     返回值0,：错误，1：完成，2：确认，3：流程已结束
     if_repeat用于避免已执行步骤重复执行。
     """
+    pri = processrun_params.get("pri", None)
+    pri_id = processrun_params.get("pri_id", None)
+    std_id = processrun_params.get("std_id", None)
+    utils_content = processrun_params.get("utils_content", "")
+    instance_name = pri.instanceName if pri else ""
+
     # 判断该步骤是否已完成，如果未完成，先执行当前步骤
     processrun = ProcessRun.objects.filter(id=steprun.processrun.id)
     processrun = processrun[0]
@@ -370,7 +326,7 @@ def runstep(steprun, if_repeat=False):
                             if_repeat = True
                         else:
                             if_repeat = False
-                        childreturn = runstep(childsteprun, if_repeat)
+                        childreturn = runstep(childsteprun, if_repeat, processrun_params)
                         if childreturn == 0:
                             return 0
                         if childreturn == 2:
@@ -388,7 +344,6 @@ def runstep(steprun, if_repeat=False):
 
                 script_instance = scriptrun.script
                 script = script_instance.script
-                origin = script_instance.origin
                 script_name = script_instance.name if script_instance.name else ""
                 if script.interface_type in ["Linux", "Windows"]:
                     # HostsManage
@@ -396,14 +351,8 @@ def runstep(steprun, if_repeat=False):
                     ip = cur_host_manage.host_ip
                     username = cur_host_manage.username
                     password = cur_host_manage.password
-                    script_type = cur_host_manage.type
 
-                    system_tag = ""
-                    if script_type == "SSH":
-                        system_tag = "Linux"
-                    if script_type == "BAT":
-                        system_tag = "Windows"
-
+                    system_tag = script.interface_type
                     # linux_temp_script_file = "/tmp/tmp_script.sh"
                     # windows_temp_script_file = "C:/tmp_script.bat"
 
@@ -415,6 +364,7 @@ def runstep(steprun, if_repeat=False):
                         linux_temp_script_path = "/tmp/drm/{processrunid}".format(**{"processrunid": processrun.id})
                         mkdir_cmd = "mkdir {linux_temp_script_path} -p".format(
                             **{"linux_temp_script_path": linux_temp_script_path})
+
                         mkdir_obj = remote.ServerByPara(mkdir_cmd, ip, username, password, system_tag)
                         mkdir_result = mkdir_obj.run("")
 
@@ -424,7 +374,7 @@ def runstep(steprun, if_repeat=False):
                         # 写入本地文件
                         script_path = os.path.join(
                             os.path.join(
-                                os.path.join(settings.BASE_DIR, "faconstor"), 
+                                os.path.join(settings.BASE_DIR, "drm"), 
                                 "upload"
                             ),
                             "script"
@@ -562,7 +512,7 @@ def runstep(steprun, if_repeat=False):
                     result = rm_obj.run(script.succeedtext)
                 else:
                     result = {}
-                    commvault_api_path = os.path.join(os.path.join(settings.BASE_DIR, "faconstor"),
+                    commvault_api_path = os.path.join(os.path.join(settings.BASE_DIR, "drm"),
                                                       "commvault_api") + os.sep + "{0}.py".format(script.commv_interface)
 
                     # 判断接口文件是否存在
@@ -574,16 +524,7 @@ def runstep(steprun, if_repeat=False):
                     else:
                         ret = ""
 
-                        target_id = processrun.target.id if processrun.target else ""
-                        origin_id = processrun.origin.id if processrun.origin else ""
-
-                        oracle_info = json.loads(origin.info)
-
-                        instance = ""
-                        if oracle_info:
-                            instance = oracle_info["instance"]
-
-                        oracle_param = "{0} {1} {2} {3}".format(origin_id, target_id, instance, processrun.id)
+                        oracle_param = "{0} {1} {2} {3}".format(pri_id, std_id, instance_name, processrun.id)
                         try:
                             ret = subprocess.getstatusoutput(commvault_api_path + " {0}".format(oracle_param))
                             exec_status, recover_job_id = ret
@@ -602,11 +543,10 @@ def runstep(steprun, if_repeat=False):
                                 # Oracle恢复出错                      #
                                 #######################################
                                 recover_error = "无"
-                                from faconstor.views import get_credit_info
+                                from .viewset.config_views import get_credit_info
 
                                 try:
-                                    utils_manage = origin.utils_manage
-                                    _, sqlserver_credit = get_credit_info(utils_manage.content)
+                                    _, sqlserver_credit = get_credit_info(utils_content)
                                     # 查看Oracle恢复错误信息
                                     dm = SQLApi.CVApi(sqlserver_credit)
                                     job_controller = dm.get_job_controller()
@@ -681,9 +621,9 @@ def runstep(steprun, if_repeat=False):
                         if "RMAN Script execution failed  with error [RMAN-03002" in result['data']:
                             # 终止commvault作业
                             if recover_job_id != '':
+                                from .viewset.config_views import get_credit_info
                                 try:
-                                    utils_manage = origin.utils_manage
-                                    commvault_credit, _ = get_credit_info(utils_manage.content)
+                                    commvault_credit, _ = get_credit_info(utils_content)
                                     cvToken = CV_RestApi_Token()
                                     cvToken.login(commvault_credit)
                                     cvOperate = CV_OperatorInterFace(cvToken)
@@ -763,7 +703,7 @@ def runstep(steprun, if_repeat=False):
                 else:
                     if_repeat = False
 
-                nextreturn = runstep(nextsteprun, if_repeat)
+                nextreturn = runstep(nextsteprun, if_repeat, processrun_params)
 
                 if nextreturn == 0:
                     return 0
@@ -783,22 +723,50 @@ def exec_process(processrunid, if_repeat=False):
     end_step_tag = 0
     processrun = ProcessRun.objects.filter(id=processrunid)
     processrun = processrun[0]
-    process = processrun.process
+
+    # processrun_params 流程参数 传递
+    processrun_params = {}
 
     # Commvault流程恢复 nextSCN选项
-    # 流程恢复 ...ProcessRun>>copy_priority
-    # 计划流程 ...Origin>>copy_priority
     #   先获取优先级 再获取nextSCN选项(主拷贝、辅助拷贝) 
     if processrun.process.type.upper() == "COMMVAULT":
-        # nextSCN-1
-        # 获取流程客户端
-        origin = processrun.origin
-        utils = origin.utils
+        # 获取流程参数
+        # utils.content copy_priority pri
+        # 工具认证信息，恢复优先级，源客户端名称
+        copy_priority = 1
+        utils_content = ""
+        pri_client_name = ""
+        std_id = None
+        pri = None
+        info = processrun.info
 
+        try:
+            info = etree.XML(info)
+        except Exception:
+            pass
+        else:
+            pri_id = info.xpath("//param")[0].attrib.get("pri_id")
+            try:
+                pri = CvClient.objects.get(id=int(pri_id))
+                pri_client_name = pri.client_name
+                std_id = pri.destination_id
+                utils_content = pri.utils.content if pri.utils else None
+            except Exception:
+                pass
+
+            copy_priority = info.xpath("//param")[0].attrib.get("copy_priority")
+
+            processrun_params["pri_id"] = pri_id
+            processrun_params["pri"] = pri
+            processrun_params["std_id"] = std_id
+            processrun_params["utils_content"] = utils_content
+
+        # nextSCN-1
         from .viewset.config_views import get_credit_info
-        _, sqlserver_credit = get_credit_info(utils.content if utils else None)
+        _, sqlserver_credit = get_credit_info(utils_content)
+
         dm = SQLApi.CVApi(sqlserver_credit)
-        ret = dm.get_oracle_backup_job_list(origin.client_name)
+        ret = dm.get_oracle_backup_job_list(pri_client_name)
 
         # 无联机全备记录，请修改配置，完成联机全备后，待辅助拷贝结束后重启
         if not ret:
@@ -815,9 +783,6 @@ def exec_process(processrunid, if_repeat=False):
             myprocesstask.save()
         else:
             curSCN = None
-
-            # ** 获取 主拷贝 辅助拷贝优先级
-            copy_priority = processrun.copy_priority
 
             # ** 获得SCN号
             # 指定时间 匹配该时间点的SCN
@@ -854,12 +819,23 @@ def exec_process(processrunid, if_repeat=False):
 
             dm.close()
 
-            processrun.curSCN = curSCN
-            processrun.save()
+            # 保存curSCN号至info
+            # 修改xml
+            info = processrun.info
+            try:
+                info = etree.XML(info)
+                node = info.xpath("//param")[0]
+                node.attrib["curSCN"] = str(curSCN)
+                content = etree.tounicode(node)
+            except Exception:
+                pass
+            else:
+                processrun.info = content
+                processrun.save()
  
     steprunlist = StepRun.objects.exclude(state="9").filter(processrun=processrun, step__last=None, step__pnode=None)
     if len(steprunlist) > 0:
-        end_step_tag = runstep(steprunlist[0], if_repeat)
+        end_step_tag = runstep(steprunlist[0], if_repeat, processrun_params)
     else:
         myprocesstask = ProcessTask()
         myprocesstask.processrun = processrun
@@ -951,7 +927,7 @@ def create_process_run(*args, **kwargs):
                         mysteprun.state = "EDIT"
                         mysteprun.save()
 
-                        myscript = step.script_set.exclude(state="9")
+                        myscript = step.scriptinstance_set.exclude(state="9")
                         for script in myscript:
                             myscriptrun = ScriptRun()
                             myscriptrun.script = script
@@ -980,7 +956,7 @@ def cv_oracle_restore_params_save(processrun):
     # 计划流程用的是默认 恢复选项
     # 计划流程如果是Commvault 在流程中首个 客户端 对应的 恢复选项 写到ProcessRun
     try:
-        origin_id, target_id, data_path, copy_priority, db_open, log_restore = "", None, "", 1, 1, 1
+        pri_id, std_id, cv_client_info = "", "", ""
         process = processrun.process
 
         # 过滤所有脚本
@@ -988,23 +964,22 @@ def cv_oracle_restore_params_save(processrun):
         for cur_step in all_steps:
             script_instances = cur_step.scriptinstance_set.exclude(state="9")
             for script_instance in script_instances:
-                if script_instance.origin:
-                    origin_id = script_instance.origin.id
-                    data_path = script_instance.origin.data_path
-                    copy_priority = script_instance.origin.copy_priority
-                    db_open = script_instance.origin.db_open
-                    log_restore = script_instance.origin.log_restore
-                    if script_instance.origin.target:
-                        target_id = script_instance.origin.target.id
+                if script_instance.primary:
+                    pri = script_instance.primary
+                    pri_id = pri.id
+                    std_id = pri.destination.id if pri.destination else ""
+                    cv_client_info = pri.info
                     break
-        
-        processrun.target_id = target_id
-        processrun.data_path = data_path
-        processrun.copy_priority = copy_priority
-        processrun.db_open = db_open
-        processrun.origin_id = origin_id
-        processrun.log_restore = log_restore
-        processrun.save()
+        try:
+            cv_client_info = etree.XML(cv_client_info)
+            node = cv_client_info.xpath("//param")[0]
+            node.attrib["pri_id"] = pri_id
+            node.attrib["std_id"] = std_id
+            content = etree.tounicode(node)
+            processrun.info = content
+            processrun.save()
+        except Exception:
+            pass
     except:
         pass
     

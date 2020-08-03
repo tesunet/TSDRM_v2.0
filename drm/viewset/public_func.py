@@ -812,7 +812,7 @@ def getchildrensteps(processrun, curstep):
                     scriptrunresult = scriptrunlist[0].result
                     scriptexplain = scriptrunlist[0].explain
                     scriptstate = scriptrunlist[0].state
-            scripts.append({"id": script.id, "code": script.code, "name": script.name, "runscriptid": runscriptid,
+            scripts.append({"id": script.id, "name": script.name, "runscriptid": runscriptid,
                             "scriptstarttime": scriptstarttime,
                             "scriptendtime": scriptendtime, "scriptoperator": scriptoperator,
                             "scriptrunresult": scriptrunresult, "scriptexplain": scriptexplain,

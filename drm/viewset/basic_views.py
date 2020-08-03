@@ -497,16 +497,28 @@ def get_process_index_data(request):
                         # 获取当前运行的流程对应的源客户端，     #
                         # 获取其最近一次作业控制器中的恢复记录。 #
                         ########################################
-                        origin = current_processrun.origin
-                        if origin:
-                            dm = SQLApi.CustomFilter(settings.sql_credit)
-                            all_jobs = dm.get_job_controller()
-                            dm.close()
-                            for job in all_jobs:
-                                if origin.upper() == job["clientComputer"].upper():
-                                    inner_step_run_percent = job["progress"]
-                                    break
+                        info = current_processrun.info
 
+                        try:
+                            info = etree.XML(info)
+                        except Exception:
+                            pass
+                        else:
+                            pri_id = info.xpath("//param")[0].attrib.get("pri_id")
+                            try:
+                                pri = CvClient.objects.get(id=int(pri_id))
+                                utils_content = pri.utils.content if pri.utils else None
+                            except Exception:
+                                pass
+                            else:
+                                _, sqlserver_credit = get_credit_info(utils_content)
+                                dm = SQLApi.CVApi(sqlserver_credit)
+                                all_jobs = dm.get_job_controller()
+                                dm.close()
+                                for job in all_jobs:
+                                    if pri.client_name.upper() == job["clientComputer"].upper():
+                                        inner_step_run_percent = job["progress"]
+                                        break
                     else:
                         c_tag = "no"
                     c_step_run_dict = {
@@ -838,11 +850,25 @@ def index(request, funid):
         pre_client = ""
         for processrun_obj in all_processrun_objs:
             if today_date == processrun_obj.starttime.date():
-                if pre_client == processrun_obj.origin:
-                    continue
-                today_process_run_length += 1
+                info = processrun_obj.info
 
-                pre_client = processrun_obj.origin
+                try:
+                    info = etree.XML(info)
+                except Exception:
+                    pass
+                else:
+                    pri_id = info.xpath("//param")[0].attrib.get("pri_id")
+                    try:
+                        pri = CvClient.objects.get(id=int(pri_id))
+                        pri_client_name = pri.client_name
+                    except Exception:
+                        pass
+                    else:
+                        if pre_client == pri_client_name:
+                            continue
+                        today_process_run_length += 1
+
+                        pre_client = pri_client_name
 
         all_process = Process.objects.exclude(state="9").filter(type="cv_oracle")
         # 右上角消息任务
@@ -1208,7 +1234,7 @@ def get_monitor_data(request):
 def get_clients_status(request):
     if request.user.is_authenticated():
         # 客户端状态
-        dm = SQLApi.CustomFilter(settings.sql_credit)
+        dm = SQLApi.CVApi(settings.sql_credit)
 
         if dm.msg == "链接数据库失败。":
             service_status = "中断"
