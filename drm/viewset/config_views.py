@@ -869,7 +869,7 @@ def processconfig(request, funid):
     cv_client_data = []
     utils = UtilsManage.objects.exclude(state="9").filter(util_type="Commvault")
     for u in utils:
-        cv_client_list = u.cvclient_set.exclude(state="9").filter(type=1).values("id", "client_name")
+        cv_client_list = u.cvclient_set.exclude(state="9").exclude(type=2).values("id", "client_name")
         cv_client_data.append({
             "utils_id": u.id,
             "utils_name": u.name,
