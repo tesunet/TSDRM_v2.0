@@ -2032,6 +2032,7 @@ def get_client_detail(request):
                 cvinfo["destPath"] = ""
                 cvinfo["sourcePaths"] =""
                 # SQL Server
+                cvinfo["mssqlOverWrite"] = ""
 
 
                 try:
@@ -2046,6 +2047,8 @@ def get_client_detail(request):
                         cvinfo["overWrite"] = param_el[0].attrib.get("overWrite", "")
                         cvinfo["destPath"] = param_el[0].attrib.get("destPath", "")
                         cvinfo["sourcePaths"] = eval(param_el[0].attrib.get("sourcePaths", "[]")) 
+
+                        cvinfo["mssqlOverWrite"] = param_el[0].attrib.get("mssqlOverWrite", "")
                 except:
                     pass
 
@@ -2215,6 +2218,7 @@ def client_cv_save(request):
     cv_selectedfile = request.POST.get("cv_selectedfile", "")
 
     # SQL Server
+    mssql_iscover = request.POST.get("mssql_iscover", "")
 
     def custom_cv_params(**kwargs):
         """构造参数xml
@@ -2265,8 +2269,12 @@ def client_cv_save(request):
                             "OSRestore": False
                         }
                     elif "SQL Server"in cvclient_agentType:
-                        pass 
-
+                        mssqlOverWrite = False
+                        if mssql_iscover == "TRUE":
+                            mssqlOverWrite = True
+                        cv_params = {
+                            "mssqlOverWrite": mssqlOverWrite,
+                        }
                     # 新增
                     if cv_id == 0:
                         try:
@@ -2520,12 +2528,12 @@ def client_cv_recovery(request):
                 else:
                     return HttpResponse(u"恢复任务启动失败。" + cvAPI.msg.decode('gbk'))
             elif "SQL Server" in agent:
-                iscover = request.POST.get('iscover', '')
-                overWrite = False
-                if iscover == "TRUE":
-                    overWrite = True
+                mssql_iscover = request.POST.get('mssql_iscover', '')
+                mssqlOverWrite = False
+                if mssql_iscover == "TRUE":
+                    mssqlOverWrite = True
 
-                mssqlRestoreOperator = {"restoreTime": restoreTime, "overWrite": overWrite}
+                mssqlRestoreOperator = {"restoreTime": restoreTime, "overWrite": mssqlOverWrite}
                 cvToken = CV_RestApi_Token()
                 cvToken.login(commvault_credit)
                 cvAPI = CV_API(cvToken)

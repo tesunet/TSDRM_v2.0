@@ -295,7 +295,14 @@ function getClientree() {
                                             for (var i=0; i<sourcePaths.length; i++){
                                                 $('#cv_fs_se_1').append("<option value='" + sourcePaths[i] + "'>" + sourcePaths[i] + "</option>");
                                             }
-                                            
+                                            // SQL Server
+                                            var mssqlOverWrite = data.cvinfo.mssqlOverWrite;
+                                            if (mssqlOverWrite == "True"){
+                                                $('#cv_isoverwrite').prop("checked", true);
+                                            } else {
+                                                $('#cv_isoverwrite').prop("checked", false);
+                                            }
+
                                             get_cv_detail();
                                             if ($("#cvclient_type").val() == "1" || $("#cvclient_type").val() == "3") {
                                                 $("#tabcheck2_2").parent().show();
@@ -429,6 +436,11 @@ function get_cv_detail() {
     $('#cv_r_data_path').val($('#cvclient_data_path').val());
 
     // SQL Server
+    if ($('#cv_isoverwrite').is(':checked')){
+        $('#cv_r_isoverwrite').prop("checked", true);
+    } else {
+        $('#cv_r_isoverwrite').prop("checked", false);
+    }
 
     // File System
     // cv_overwrite cv_path  cv_mypath cv_fs_se_1
@@ -944,6 +956,10 @@ $(document).ready(function () {
             var txt = $(this).val();
             cv_selectedfile = cv_selectedfile + txt + "*!-!*"
         });
+        var mssql_iscover = "FALSE"
+        if ($('#isoverwrite').is(':checked')){
+            mssql_iscover = "TRUE"
+        }
         $.ajax({
             type: "POST",
             dataType: 'json',
@@ -971,7 +987,7 @@ $(document).ready(function () {
                 cv_selectedfile: cv_selectedfile,
 
                 // SQL Server
-
+                mssql_iscover: mssql_iscover
             },
             success: function (data) {
                 if (data.ret == 1) {
@@ -1230,7 +1246,32 @@ $(document).ready(function () {
                         });
                     }
                 } else if (agent.indexOf('SQL Server')!=-1) {
+                    var mssql_iscover = "FALSE"
+                    if ($('#cv_r_isoverwrite').is(':checked')){
+                        mssql_iscover = "TRUE"
+                    }
+                    $.ajax({
+                        type: "POST",
+                        url: "../../client_cv_recovery/",
+                        data: {
+                            cv_id: $('#cv_id').val(),
+                            sourceClient: $('#cv_r_sourceClient').val(),
+                            destClient: destClient,
+                            restoreTime: myrestoreTime,
+                            browseJobId: $("#cv_r_browseJobId").val(),
+                            agent: agent,
 
+                            mssql_iscover: mssql_iscover,
+                        },
+                        success: function (data) {
+                            alert(data);
+                            var table1 = $('#cv_restore_his').DataTable();
+                            table1.ajax.reload();
+                        },
+                        error: function (e) {
+                            alert("恢复失败，请于客服联系。");
+                        }
+                    });
                 }
 
 
