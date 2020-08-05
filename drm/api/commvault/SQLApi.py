@@ -612,11 +612,11 @@ class CVApi(DataMonitor):
             })
         return oracle_backuplist
 
-    def get_all_backup_job_list(self, client_name,agentType,instanceName):
+    def get_all_backup_job_list(self, client_name, agentType, instanceName):
         backup_sql = """SELECT DISTINCT [jobid],[backuplevel],[startdate],[enddate],[instance], [nextSCN], [idataagent], [subclient]
                             FROM [CommServ].[dbo].[CommCellOracleBackupInfo] 
                             WHERE [jobstatus]='Success' AND [clientname]='{0}'  AND [idataagent]='{1}'  AND [instance]='{2}' ORDER BY [startdate] DESC;""".format(
-            client_name,agentType,instanceName)
+            client_name, agentType, instanceName)
         content = self.fetch_all(backup_sql)
         backuplist = []
         for i in content:

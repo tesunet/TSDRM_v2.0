@@ -220,6 +220,7 @@ urlpatterns = [
     url(r'^get_adg_status/$', get_adg_status),
     url(r'^client_dbcopy_get_adg_his/$', client_dbcopy_get_adg_his),
 
+    url(r'^get_file_tree/$', get_file_tree),
 
 
     url(r'^host_save/$', host_save),
