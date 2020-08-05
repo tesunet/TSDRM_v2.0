@@ -186,10 +186,19 @@ def oracle_restore(request, process_id):
                     "utils_name": cc["utils__name"],
                     "selected": ""
                 })
+
+        # 预案类型
+        type = ''
+        try:
+            process = Process.objects.get(id=process_id)
+        except Process.DoesNotExist as e:
+            print(e)
+        else:
+            type = process.type
         return render(request, 'oracle_restore.html',
                       {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request),
                        "wrapper_step_list": wrapper_step_list, "process_id": process_id,  "plan_process_run_id": plan_process_run_id, 
-                       "orcl_params": orcl_params, "cv_clients": cv_clients_list})
+                       "orcl_params": orcl_params, "cv_clients": cv_clients_list, "type": type})
     else:
         return HttpResponseRedirect("/login")
 
@@ -307,18 +316,19 @@ def cv_oracle_run(request):
                     ) if recovery_time else None
                     myprocessrun.state = "RUN"
 
-                    # xml
-                    root = etree.Element("root")
-                    param_node = etree.SubElement(root, "param")
-                    param_node.attrib["copy_priority"] = str(copy_priority)
-                    param_node.attrib["db_open"] = str(db_open)
-                    param_node.attrib["log_restore"] = str(log_restore)
-                    param_node.attrib["data_path"] = data_path
-                    param_node.attrib["pri_id"] = str(pri)
-                    param_node.attrib["std_id"] = str(std)
-                    param_node.attrib["browse_job_id"] = str(browseJobId)
-                    info = etree.tounicode(root)
-                    myprocessrun.info = info
+                    if process[0].type.upper() == 'COMMVAULT':
+                        # xml
+                        root = etree.Element("root")
+                        param_node = etree.SubElement(root, "param")
+                        param_node.attrib["copy_priority"] = str(copy_priority)
+                        param_node.attrib["db_open"] = str(db_open)
+                        param_node.attrib["log_restore"] = str(log_restore)
+                        param_node.attrib["data_path"] = data_path
+                        param_node.attrib["pri_id"] = str(pri)
+                        param_node.attrib["std_id"] = str(std)
+                        param_node.attrib["browse_job_id"] = str(browseJobId)
+                        info = etree.tounicode(root)
+                        myprocessrun.info = info
 
                     myprocessrun.save()
                     mystep = process[0].step_set.exclude(state="9").order_by("sort")

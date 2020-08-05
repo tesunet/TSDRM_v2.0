@@ -145,92 +145,95 @@
 
                                 </div>
                             </div>
-                            <!-- 选择时间点/选择恢复终端 -->
-                            <div class="form-group">
-                                <label class="col-md-2 control-label"><span style="color:red; ">*</span>恢复时间点</label>
-                                <div class="col-md-10">
-                                    <div class="input-group" id="recovery_time_redio_group">
-                                    <span class="input-group-addon">
-                                        <input type="radio" name="recovery_time_redio" value="1" checked> 最新时间点
-                                        <input type="radio" name="recovery_time_redio" value="2">选择时间
-                                    </span>
-                                        <input id="recovery_time" autocomplete="off" type="datetime"
-                                               name="recovery_time"
-                                               class="form-control">
+                            {% if type == 'Commvault' %}
+                            <div id="Commvault">
+                                <!-- 选择时间点/选择恢复终端 -->
+                                <div class="form-group">
+                                    <label class="col-md-2 control-label"><span style="color:red; ">*</span>恢复时间点</label>
+                                    <div class="col-md-10">
+                                        <div class="input-group" id="recovery_time_redio_group">
+                                        <span class="input-group-addon">
+                                            <input type="radio" name="recovery_time_redio" value="1" checked> 最新时间点
+                                            <input type="radio" name="recovery_time_redio" value="2">选择时间
+                                        </span>
+                                            <input id="recovery_time" autocomplete="off" type="datetime"
+                                                name="recovery_time"
+                                                class="form-control">
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="col-md-2 control-label"><span style="color:red; "></span>数据重定向路径</label>
-                                <div class="col-md-10">
-                                    <input id="data_path" type="text" name="data_path" class="form-control" value="{{ orcl_params.data_path }}">
-                                    <div class="form-control-focus"></div>
+                                <div class="form-group">
+                                    <label class="col-md-2 control-label"><span style="color:red; "></span>数据重定向路径</label>
+                                    <div class="col-md-10">
+                                        <input id="data_path" type="text" name="data_path" class="form-control" value="{{ orcl_params.data_path }}">
+                                        <div class="form-control-focus"></div>
 
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="form-body">
+                                <div class="form-body">
+                                    <div class="form-group">
+                                        <label class="col-md-2 control-label"><span
+                                                style="color:red; "></span>选择拷贝优先级</label>
+                                        <div class="col-md-10">
+                                            <input type="text" id="copy_priority_hidden" name="copy_priority_hidden" value="{{ orcl_params.copy_priority }}" hidden>
+                                            <select name="copy_priority" id="copy_priority" class="form-control">
+                                                <option value="1">主拷贝</option>
+                                                <option value="2">辅助拷贝</option>
+                                            </select>
+                                            <div class="form-control-focus"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-body">
+                                    <div class="form-group">
+                                        <label class="col-md-2 control-label"><span
+                                                style="color:red; "></span>是否开启数据库</label>
+                                        <div class="col-md-10">
+                                            <input type="text" id="db_open_hidden" name="db_open_hidden" value="{{ orcl_params.db_open }}" hidden>
+                                            <select name="db_open" id="db_open" class="form-control">
+                                                <option value="1">是</option>
+                                                <option value="2">否</option>
+                                            </select>
+                                            <div class="form-control-focus"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-body">
+                                    <div class="form-group">
+                                        <label class="col-md-2 control-label"><span
+                                                style="color:red; "></span>是否回滚日志</label>
+                                        <div class="col-md-10">
+                                            <input type="text" id="log_restore_hidden" name="log_restore_hidden" value="{{ orcl_params.log_restore }}" hidden>
+                                            <select name="log_restore" id="log_restore" class="form-control">
+                                                <option value="1">是</option>
+                                                <option value="2">否</option>
+                                            </select>
+                                            <div class="form-control-focus"></div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="form-group">
-                                    <label class="col-md-2 control-label"><span
-                                            style="color:red; "></span>选择拷贝优先级</label>
+                                    <label class="col-md-2 control-label"><span style="color:red; ">*</span>源客户端</label>
                                     <div class="col-md-10">
-                                        <input type="text" id="copy_priority_hidden" name="copy_priority_hidden" value="{{ orcl_params.copy_priority }}" hidden>
-                                        <select name="copy_priority" id="copy_priority" class="form-control">
-                                            <option value="1">主拷贝</option>
-                                            <option value="2">辅助拷贝</option>
+                                        <input id="pri" type="text" hidden name="pri" value="{{ orcl_params.pri_id }}">
+                                        <input id="pri_name" autocomplete="off" type="text" readonly name="pri_name" class="form-control" value="{{ orcl_params.pri_name }}">
+                                        <div class="form-control-focus"></div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-2 control-label"><span style="color:red; ">*</span>选择目标客户端</label>
+                                    <div class="col-md-10">
+                                        <input type="text" id="std_selected" name="std_selected" value="{{ orcl_params.std_id }}" hidden>
+                                        <select name="std" id="std" class="form-control">
+                                            {% for std in cv_clients %}
+                                                <option value="{{ std.id }}" {{std.selected}}>{{ std.client_name }}({{std.utils_name}})</option>
+                                            {% endfor %}
                                         </select>
                                         <div class="form-control-focus"></div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="form-body">
-                                <div class="form-group">
-                                    <label class="col-md-2 control-label"><span
-                                            style="color:red; "></span>是否开启数据库</label>
-                                    <div class="col-md-10">
-                                        <input type="text" id="db_open_hidden" name="db_open_hidden" value="{{ orcl_params.db_open }}" hidden>
-                                        <select name="db_open" id="db_open" class="form-control">
-                                            <option value="1">是</option>
-                                            <option value="2">否</option>
-                                        </select>
-                                        <div class="form-control-focus"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-body">
-                                <div class="form-group">
-                                    <label class="col-md-2 control-label"><span
-                                            style="color:red; "></span>是否回滚日志</label>
-                                    <div class="col-md-10">
-                                        <input type="text" id="log_restore_hidden" name="log_restore_hidden" value="{{ orcl_params.log_restore }}" hidden>
-                                        <select name="log_restore" id="log_restore" class="form-control">
-                                            <option value="1">是</option>
-                                            <option value="2">否</option>
-                                        </select>
-                                        <div class="form-control-focus"></div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="col-md-2 control-label"><span style="color:red; ">*</span>源客户端</label>
-                                <div class="col-md-10">
-                                    <input id="pri" type="text" hidden name="pri" value="{{ orcl_params.pri_id }}">
-                                    <input id="pri_name" autocomplete="off" type="text" readonly name="pri_name" class="form-control" value="{{ orcl_params.pri_name }}">
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="col-md-2 control-label"><span style="color:red; ">*</span>选择目标客户端</label>
-                                <div class="col-md-10">
-                                    <input type="text" id="std_selected" name="std_selected" value="{{ orcl_params.std_id }}" hidden>
-                                    <select name="std" id="std" class="form-control">
-                                        {% for std in cv_clients %}
-                                            <option value="{{ std.id }}" {{std.selected}}>{{ std.client_name }}({{std.utils_name}})</option>
-                                        {% endfor %}
-                                    </select>
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
-
+                            {% endif %}
                             <div class="form-group">
                                 <label class="col-md-2 control-label">启动原因</label>
                                 <div class="col-md-10">
