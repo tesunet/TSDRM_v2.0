@@ -133,15 +133,25 @@ def oracle_restore(request, process_id):
         # 2.所有客户端ID与名称
         # 3.Oracle恢复需要的参数
         # pri, std, data_path, copy_priority, db_open, log_restore
-        orcl_params = {
+        cv_params = {
             "pri_id": "",
             "pri_name": "",
-            "std_id": "",
+            "std_id": "", 
+            # Oracle
             "data_path": "",
             "copy_priority": "",
             "db_open": "",
             "log_restore": "",
+            # File System
+            "destPath": "",
+            "overWrite": "",
+            "inPlace": "",
+            "OSRestore": "",
+            "sourcePaths": "",
+            # SQL Server
+            "mssqlOverWrite": "",
         }
+        agent_type = ""
         std_id = ""
         all_steps = Step.objects.exclude(state="9").filter(process_id=process_id)
         if_break = False
@@ -150,19 +160,31 @@ def oracle_restore(request, process_id):
             for cur_scriptinstance in all_scriptinstances:
                 pri = cur_scriptinstance.primary
                 if pri:
+                    agent_type = pri.agentType
                     info = etree.XML(pri.info)
                     params = info.xpath("//param")
 
                     if params:
                         param = params[0]
                         std_id = pri.destination.id if pri.destination else ""
-                        orcl_params["pri_id"] = pri.id
-                        orcl_params["pri_name"] = pri.client_name
-                        orcl_params["std_id"] = std_id
-                        orcl_params["data_path"] = param.attrib.get("data_path", "")
-                        orcl_params["copy_priority"] = param.attrib.get("copy_priority", "")
-                        orcl_params["db_open"] = param.attrib.get("db_open", "")
-                        orcl_params["log_restore"] = param.attrib.get("log_restore", "")
+                        cv_params["pri_id"] = pri.id
+                        cv_params["pri_name"] = pri.client_name
+                        cv_params["std_id"] = std_id
+                        # Oracle
+                        cv_params["data_path"] = param.attrib.get("data_path", "")
+                        cv_params["copy_priority"] = param.attrib.get("copy_priority", "")
+                        cv_params["db_open"] = param.attrib.get("db_open", "")
+                        cv_params["log_restore"] = param.attrib.get("log_restore", "")
+                        # File System
+                        cv_params["destPath"] = param.attrib.get("destPath", "")
+                        cv_params["overWrite"] = param.attrib.get("overWrite", "")
+                        cv_params["inPlace"] = param.attrib.get("inPlace", "")
+                        cv_params["OSRestore"] = param.attrib.get("OSRestore", "")
+                        cv_params["sourcePaths"] = eval(param.attrib.get("sourcePaths", "[]"))
+                        
+                        # SQL Server
+                        cv_params["mssqlOverWrite"] = param.attrib.get("mssqlOverWrite", "")
+                        
                     if_break = True
                     break
             if if_break:
@@ -188,17 +210,17 @@ def oracle_restore(request, process_id):
                 })
 
         # 预案类型
-        type = ''
+        process_type = ''
         try:
             process = Process.objects.get(id=process_id)
         except Process.DoesNotExist as e:
             print(e)
         else:
-            type = process.type
+            process_type = process.type
         return render(request, 'oracle_restore.html',
                       {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request),
                        "wrapper_step_list": wrapper_step_list, "process_id": process_id,  "plan_process_run_id": plan_process_run_id, 
-                       "orcl_params": orcl_params, "cv_clients": cv_clients_list, "type": type})
+                       "cv_params": cv_params, "cv_clients": cv_clients_list, "process_type": process_type, "agent_type": agent_type})
     else:
         return HttpResponseRedirect("/login")
 
@@ -256,43 +278,28 @@ def cv_oracle_run(request):
         run_person = request.POST.get('run_person', '')
         run_time = request.POST.get('run_time', '')
         run_reason = request.POST.get('run_reason', '')
-
+        # Commvault
+        pri = request.POST.get('pri', '')
+        std = request.POST.get('std', '')
+        agent_type = request.POST.get('agent_type', '')
         recovery_time = request.POST.get('recovery_time', '')
         browseJobId = request.POST.get('browseJobId', '')
+        # Oracle
         data_path = request.POST.get('data_path', '')
         copy_priority = request.POST.get('copy_priority', '')
         db_open = request.POST.get('db_open', '')
         log_restore = request.POST.get('log_restore', '')
-
-        pri = request.POST.get('pri', '')
-        std = request.POST.get('std', '')
-
-        try:
-            copy_priority = int(copy_priority)
-        except ValueError as e:
-            copy_priority = 1
-        try:
-            db_open = int(db_open)
-        except ValueError as e:
-            db_open = 1
-        try:
-            log_restore = int(log_restore)
-        except ValueError as e:
-            log_restore = 1
+        # File System
+        mypath = request.POST.get("mypath", "")
+        iscover = request.POST.get("iscover", "")
+        selectedfile = request.POST.get("selectedfile", "")
+        # SQL Server
+        mssql_iscover = request.POST.get("mssql_iscover", "")
+        
         try:
             processid = int(processid)
         except:
             return JsonResponse({"res": "当前流程不存在。"})
-
-        try:
-            pri = int(pri)
-        except Exception:
-            return JsonResponse({"res": "流程步骤中未添加Commvault接口，导致源客户端未空。"})
-
-        try:
-            std = int(std)
-        except:
-            return JsonResponse({"res": "目标客户端未选择。"})
 
         process = Process.objects.filter(id=processid).exclude(state="9").exclude(Q(type=None) | Q(type=""))
         if (len(process) <= 0):
@@ -317,19 +324,76 @@ def cv_oracle_run(request):
                     myprocessrun.state = "RUN"
 
                     if process[0].type.upper() == 'COMMVAULT':
-                        # xml
-                        root = etree.Element("root")
-                        param_node = etree.SubElement(root, "param")
-                        param_node.attrib["copy_priority"] = str(copy_priority)
-                        param_node.attrib["db_open"] = str(db_open)
-                        param_node.attrib["log_restore"] = str(log_restore)
-                        param_node.attrib["data_path"] = data_path
-                        param_node.attrib["pri_id"] = str(pri)
-                        param_node.attrib["std_id"] = str(std)
-                        param_node.attrib["browse_job_id"] = str(browseJobId)
-                        info = etree.tounicode(root)
-                        myprocessrun.info = info
+                        try:
+                            pri = int(pri)
+                        except Exception:
+                            return JsonResponse({"res": "流程步骤中未添加Commvault接口，导致源客户端未空。"})
 
+                        try:
+                            std = int(std)
+                        except:
+                            return JsonResponse({"res": "目标客户端未选择。"})
+                        
+                        if "Oracle" in agent_type:
+                            try:
+                                copy_priority = int(copy_priority)
+                            except ValueError as e:
+                                copy_priority = 1
+                            try:
+                                db_open = int(db_open)
+                            except ValueError as e:
+                                db_open = 1
+                            try:
+                                log_restore = int(log_restore)
+                            except ValueError as e:
+                                log_restore = 1
+                            cv_params = {
+                                "pri_id": str(pri),
+                                "std_id": str(std),
+                                "browse_job_id": str(browseJobId),
+                                
+                                "copy_priority": str(copy_priority),
+                                "db_open": str(db_open),
+                                "log_restore": str(log_restore),
+                                "data_path": data_path
+                            }
+                        elif "File System" in agent_type:
+                            inPlace = True
+                            if mypath != "same":
+                                inPlace = False
+                            overWrite = False
+                            if iscover == "True":
+                                overWrite = True
+                            
+                            sourceItemlist = selectedfile.split("*!-!*")
+                            for sourceItem in sourceItemlist:
+                                if sourceItem == "":
+                                    sourceItemlist.remove(sourceItem)
+                            cv_params = {
+                                "pri_id": str(pri),
+                                "std_id": str(std),
+                                "browse_job_id": str(browseJobId),
+                                
+                                "overWrite": overWrite,
+                                "inPlace": inPlace,
+                                "destPath": mypath,
+                                "sourcePaths": sourceItemlist,
+                                "OSRestore": False
+                            }
+                        elif "SQL Server" in agent_type:
+                            mssqlOverWrite = False
+                            if mssql_iscover == "TRUE":
+                                mssqlOverWrite = True
+                            cv_params = {
+                                "mssqlOverWrite": mssqlOverWrite,
+                            }
+                        else:
+                            return JsonResponse({"res": "其他应用正在开发中"})
+                        
+                        config = custom_cv_params(**cv_params)
+                        myprocessrun.info = config
+
+                    return 
                     myprocessrun.save()
                     mystep = process[0].step_set.exclude(state="9").order_by("sort")
                     if (len(mystep) <= 0):

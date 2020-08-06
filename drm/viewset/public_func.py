@@ -852,3 +852,14 @@ def if_contains_sign(file_name):
         if i in file_name:
             return True
     return False
+
+
+def custom_cv_params(**kwargs):
+    """构造参数xml
+    """
+    root = etree.Element("root")
+    param_node = etree.SubElement(root, "param")
+    for k, v in kwargs.items():
+        param_node.attrib['{0}'.format(k)] = str(v)
+    config = etree.tounicode(root)
+    return config

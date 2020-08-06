@@ -297,7 +297,7 @@ function getClientree() {
                                             }
                                             // SQL Server
                                             var mssqlOverWrite = data.cvinfo.mssqlOverWrite;
-                                            if (mssqlOverWrite == "True"){
+                                            if (mssqlOverWrite == "False"){
                                                 $('#cv_isoverwrite').prop("checked", true);
                                             } else {
                                                 $('#cv_isoverwrite').prop("checked", false);

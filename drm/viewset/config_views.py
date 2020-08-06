@@ -2220,16 +2220,6 @@ def client_cv_save(request):
     # SQL Server
     mssql_iscover = request.POST.get("mssql_iscover", "")
 
-    def custom_cv_params(**kwargs):
-        """构造参数xml
-        """
-        root = etree.Element("root")
-        param_node = etree.SubElement(root, "param")
-        for k, v in kwargs.items():
-            param_node.attrib['{0}'.format(k)] = str(v)
-        config = etree.tounicode(root)
-        return config
-
     try:
         id = int(id)
         cv_id = int(cv_id)
