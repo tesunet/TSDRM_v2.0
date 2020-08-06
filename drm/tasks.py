@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+from logging import log
 from os import makedirs
 # from drm.api.commvault.RestApi import ret
 from django.db.models import Q
@@ -345,6 +346,7 @@ def runstep(steprun, if_repeat=False, processrun_params={}):
                 script_instance = scriptrun.script
                 script = script_instance.script
                 script_name = script_instance.name if script_instance.name else ""
+                recover_job_id = ""
                 if script.interface_type in ["Linux", "Windows"]:
                     # HostsManage
                     cur_host_manage = script_instance.hosts_manage
@@ -540,14 +542,14 @@ def runstep(steprun, if_repeat=False, processrun_params={}):
                             elif exec_status == 2:
                                 #######################################
                                 # ret=2时，查看任务错误信息写入日志       #
-                                # Oracle恢复出错                      #
+                                # 恢复出错                      #
                                 #######################################
                                 recover_error = "无"
                                 from .viewset.config_views import get_credit_info
 
                                 try:
                                     _, sqlserver_credit = get_credit_info(utils_content)
-                                    # 查看Oracle恢复错误信息
+                                    # 查看恢复错误信息
                                     dm = SQLApi.CVApi(sqlserver_credit)
                                     job_controller = dm.get_job_controller()
                                     dm.close()
@@ -562,7 +564,7 @@ def runstep(steprun, if_repeat=False, processrun_params={}):
                                 result["exec_tag"] = 2
                                 # 查看任务错误信息写入>>result["data"]
                                 result["data"] = recover_error
-                                result["log"] = "Oracle恢复出错。"
+                                result["log"] = "应用恢复出错。"
                             elif exec_status == 3:
                                 result["exec_tag"] = 3
                                 # 查看任务错误信息写入>>result["data"]
@@ -596,7 +598,7 @@ def runstep(steprun, if_repeat=False, processrun_params={}):
                     myprocesstask.steprun_id = steprun.id
                     myprocesstask.save()
                     return 0
-                # Oracle恢复失败问题
+                # 应用恢复失败问题
                 if result["exec_tag"] in [2, 3]:
                     scriptrun.runlog = result['log']  # 写入错误类型
                     scriptrun.explain = result['data']
@@ -615,7 +617,7 @@ def runstep(steprun, if_repeat=False, processrun_params={}):
                     myprocesstask.state = "0"
                     myprocesstask.steprun_id = steprun.id
                     if result["exec_tag"] == 2:
-                        myprocesstask.content = "接口" + script_name + "调用过程中，Oracle恢复异常。"
+                        myprocesstask.content = "接口" + script_name + "调用过程中，应用恢复异常。"
                         myprocesstask.save()
                         # 辅助拷贝未完成
                         if "RMAN Script execution failed  with error [RMAN-03002" in result['data']:
@@ -739,7 +741,8 @@ def exec_process(processrunid, if_repeat=False):
         std_id = None
         pri = None
         info = processrun.info
-
+        agent_type = ""
+        instance_name = ""
         try:
             info = etree.XML(info)
         except Exception:
@@ -751,88 +754,93 @@ def exec_process(processrunid, if_repeat=False):
                 pri_client_name = pri.client_name
                 std_id = pri.destination_id
                 utils_content = pri.utils.content if pri.utils else None
+                agent_type = pri.agentType
+                instance_name = pri.instanceName
             except Exception:
                 pass
-
-            copy_priority = info.xpath("//param")[0].attrib.get("copy_priority")
-
             processrun_params["pri_id"] = pri_id
             processrun_params["pri"] = pri
             processrun_params["std_id"] = std_id
             processrun_params["utils_content"] = utils_content
+            
+            if "Oracle" in agent_type:
+                # 辅助拷贝暂时仅用在Oracle
+                copy_priority = info.xpath("//param")[0].attrib.get("copy_priority")
 
-        # nextSCN-1
-        from .viewset.config_views import get_credit_info
-        _, sqlserver_credit = get_credit_info(utils_content)
+                # nextSCN-1
+                from .viewset.config_views import get_credit_info
+                _, sqlserver_credit = get_credit_info(utils_content)
 
-        dm = SQLApi.CVApi(sqlserver_credit)
-        ret = dm.get_oracle_backup_job_list(pri_client_name)
+                dm = SQLApi.CVApi(sqlserver_credit)
+                ret = dm.get_all_backup_job_list(pri_client_name, agent_type, instance_name)
+                logger.info("%s %s %s" % (pri_client_name, agent_type, instance_name))
+                logger.info(str(ret))
+                
+                # 无联机全备记录，请修改配置，完成联机全备后，待辅助拷贝结束后重启
+                if not ret:
+                    dm.close()
+                    end_step_tag = 0
+                    myprocesstask = ProcessTask()
+                    myprocesstask.processrun = processrun
+                    myprocesstask.starttime = datetime.datetime.now()
+                    myprocesstask.senduser = processrun.creatuser
+                    myprocesstask.receiveuser = processrun.creatuser
+                    myprocesstask.type = "ERROR"
+                    myprocesstask.state = "0"
+                    myprocesstask.content = "无联机全备记录，请修改配置，完成联机全备后，待辅助拷贝结束后重启。"
+                    myprocesstask.save()
+                else:
+                    curSCN = None
 
-        # 无联机全备记录，请修改配置，完成联机全备后，待辅助拷贝结束后重启
-        if not ret:
-            dm.close()
-            end_step_tag = 0
-            myprocesstask = ProcessTask()
-            myprocesstask.processrun = processrun
-            myprocesstask.starttime = datetime.datetime.now()
-            myprocesstask.senduser = processrun.creatuser
-            myprocesstask.receiveuser = processrun.creatuser
-            myprocesstask.type = "ERROR"
-            myprocesstask.state = "0"
-            myprocesstask.content = "无联机全备记录，请修改配置，完成联机全备后，待辅助拷贝结束后重启。"
-            myprocesstask.save()
-        else:
-            curSCN = None
+                    # ** 获得SCN号
+                    # 指定时间 匹配该时间点的SCN
+                    # 最新时间 匹配最新的SCN号
+                    recover_time = '{:%Y-%m-%d %H:%M:%S}'.format(processrun.recover_time) if processrun.recover_time else ""
+                    if recover_time:
+                        for i in ret:
+                            if i["subclient"] == "default" and i['LastTime'] == recover_time:
+                                curSCN = i["cur_SCN"]
+                                break
+                    else:
+                        # 当前时间点，选择最新的SCN号
+                        for i in ret:
+                            if i["subclient"] == "default":
+                                curSCN = i["cur_SCN"]
+                                break
 
-            # ** 获得SCN号
-            # 指定时间 匹配该时间点的SCN
-            # 最新时间 匹配最新的SCN号
-            recover_time = '{:%Y-%m-%d %H:%M:%S}'.format(processrun.recover_time) if processrun.recover_time else ""
-            if recover_time:
-                for i in ret:
-                    if i["subclient"] == "default" and i['LastTime'] == recover_time:
-                        curSCN = i["cur_SCN"]
-                        break
-            else:
-                # 当前时间点，选择最新的SCN号
-                for i in ret:
-                    if i["subclient"] == "default":
-                        curSCN = i["cur_SCN"]
-                        break
+                    # 辅助拷贝优先的恢复 最新
+                    if copy_priority == 2:
+                        if not recover_time:
+                            tmp_tag = 0
+                            for orcl_copy in ret:
+                                if orcl_copy["idataagent"] == "Oracle Database":
+                                    if dm.has_auxiliary_job(orcl_copy['jobId']):
+                                        orcl_copy_starttime = datetime.datetime.strptime(orcl_copy['StartTime'], "%Y-%m-%d %H:%M:%S")
+                                        curSCN = orcl_copy['cur_SCN']
+                                        processrun.recover_time = orcl_copy_starttime if orcl_copy_starttime else None
 
-            # 辅助拷贝优先的恢复 最新
-            if copy_priority == 2:
-                if not recover_time:
-                    tmp_tag = 0
-                    for orcl_copy in ret:
-                        if orcl_copy["idataagent"] == "Oracle Database":
-                            if dm.has_auxiliary_job(orcl_copy['jobId']):
-                                orcl_copy_starttime = datetime.datetime.strptime(orcl_copy['StartTime'], "%Y-%m-%d %H:%M:%S")
-                                curSCN = orcl_copy['cur_SCN']
-                                processrun.recover_time = orcl_copy_starttime if orcl_copy_starttime else None
-
-                                if tmp_tag > 0:
+                                        if tmp_tag > 0:
+                                            break
+                                        tmp_tag += 1
+                                else:
                                     break
-                                tmp_tag += 1
-                        else:
-                            break
 
-            dm.close()
+                    dm.close()
 
-            # 保存curSCN号至info
-            # 修改xml
-            info = processrun.info
-            try:
-                info = etree.XML(info)
-                node = info.xpath("//param")[0]
-                node.attrib["curSCN"] = str(curSCN)
-                content = etree.tounicode(node)
-            except Exception:
-                pass
-            else:
-                processrun.info = content
-                processrun.save()
- 
+                    # 保存curSCN号至info
+                    # 修改xml
+                    info = processrun.info
+                    try:
+                        info = etree.XML(info)
+                        node = info.xpath("//param")[0]
+                        node.attrib["curSCN"] = str(curSCN)
+                        content = etree.tounicode(node)
+                    except Exception:
+                        pass
+                    else:
+                        processrun.info = content
+                        processrun.save()
+        
     steprunlist = StepRun.objects.exclude(state="9").filter(processrun=processrun, step__last=None, step__pnode=None)
     if len(steprunlist) > 0:
         end_step_tag = runstep(steprunlist[0], if_repeat, processrun_params)
@@ -906,7 +914,7 @@ def create_process_run(*args, **kwargs):
                 myprocessrun.state = "RUN"
                 process_type = myprocessrun.process.type
                 if process_type.upper() == "COMMVAULT":
-                    cv_oracle_restore_params_save(myprocessrun)
+                    cv_restore_params_save(myprocessrun)
 
                 myprocessrun.save()
                 mystep = cur_process.step_set.exclude(state="9")
@@ -947,7 +955,7 @@ def create_process_run(*args, **kwargs):
                     exec_process.delay(myprocessrun.id)
 
 
-def cv_oracle_restore_params_save(processrun):
+def cv_restore_params_save(processrun):
     """
     保存 Commvault Oracle 恢复需要的参数
     Args:

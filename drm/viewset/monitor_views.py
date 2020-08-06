@@ -394,6 +394,7 @@ def cv_oracle_run(request):
                         myprocessrun.info = config
 
                     myprocessrun.save()
+                    
                     mystep = process[0].step_set.exclude(state="9").order_by("sort")
                     if (len(mystep) <= 0):
                         result["res"] = '流程启动失败，没有找到可用步骤。'
