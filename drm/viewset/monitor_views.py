@@ -393,7 +393,6 @@ def cv_oracle_run(request):
                         config = custom_cv_params(**cv_params)
                         myprocessrun.info = config
 
-                    return 
                     myprocessrun.save()
                     mystep = process[0].step_set.exclude(state="9").order_by("sort")
                     if (len(mystep) <= 0):
