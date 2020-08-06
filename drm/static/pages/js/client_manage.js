@@ -925,9 +925,15 @@ $(document).ready(function () {
     $("#cvclient_utils_manage").change(function () {
         getCvClient();
         getCvDestination();
+        // 应用类型 -> 参数展示
+        var cv_agent = $('#cvclient_agentType').val();
+        displayAgentParams(cv_agent);
     });
     $("#cvclient_source").change(function () {
         getCvAgenttype();
+        // 应用类型 -> 参数展示
+        var cv_agent = $('#cvclient_agentType').val();
+        displayAgentParams(cv_agent);
     });
     $("#cvclient_agentType").change(function () {
         getCvInstance();
