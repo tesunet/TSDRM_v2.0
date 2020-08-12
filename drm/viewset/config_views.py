@@ -2055,8 +2055,8 @@ def get_client_detail(request):
             dc = DbCopyClient.objects.exclude(state="9").filter(hostsmanage_id=id)
             if len(dc) >0:
                 dbcopyinfo["id"] = dc[0].id
-                # dbcopyinfo["type"] = dc[0].type
-                dbcopyinfo["dbType"] = dc[0].dbtype
+                dbcopyinfo["hosttype"] = dc[0].hosttype
+                dbcopyinfo["dbtype"] = dc[0].dbtype
                 dbcopyinfo["std_id"] = dc[0].std_id
                 dbcopyinfo["dbusername"] = ""
                 dbcopyinfo["dbpassowrd"] = ""

@@ -325,57 +325,52 @@ function getClientree() {
 
                                         //dbcopy信息
                                         if (JSON.stringify(data.dbcopyinfo) != '{}') {
+                                            $("#dbcopy_dbtype").prop("disabled","disabled");
                                             $("#tabcheck3_1").click();
                                             $("#div_creatdbcopy").hide();
                                             $("#div_dbcopy").show();
-                                            $("#dbcopy_del").show();
                                             $("#dbcopy_id").val(data.dbcopyinfo.id);
                                             $("#dbcopy_dbtype").val(data.dbcopyinfo.dbtype);
                                             $("#dbcopy_hosttype").val(data.dbcopyinfo.hosttype);
-                                            if ($("#dbcopy_hosttype").val() == "1") {
-                                                $("#dbcopy_std_div").show();
-                                            } else {
-                                                $("#dbcopy_std_div").hide();
-                                            }
-                                            $("#dbcopy_std").empty();
-                                            var std = JSON.parse($("#dbcopy_u_std").val());
-                                            for (var i = 0; i < std.length; i++) {
-                                                if (std[i].type == $("#dbcopy_dbtype").val()) {
-                                                    $("#dbcopy_std").append('<option value="' + std[i].id + '">' + std[i].name + '</option>');
-                                                }
-                                            }
-                                            $("#dbcopy_std").append('<option value="none">' + "无" + '</option>');
-                                            if (data.dbcopyinfo.std_id != null) {
-                                                $("#dbcopy_std").val(data.dbcopyinfo.std_id);
-                                            } else {
-                                                $("#dbcopy_std").val("none");
-                                            }
-
+                                            //oracle
                                             if ($("#dbcopy_dbtype").val() == "1") {
                                                 $("#mysqldiv").hide();
                                                 $("#oraclediv").show();
+                                                $("#dbcopy_oracle_del").show();
                                                 $("#dbcopy_oracleusername").val(data.dbcopyinfo.dbusername);
                                                 $("#dbcopy_oraclepassword").val(data.dbcopyinfo.dbpassowrd);
                                                 $("#dbcopy_oracleinstance").val(data.dbcopyinfo.dbinstance);
+                                                if (data.dbcopyinfo.std_id != null) {
+                                                    $("#dbcopy_std").val(data.dbcopyinfo.std_id);
+                                                } else {
+                                                    $("#dbcopy_std").val("none");
+                                                }
+                                                if ($("#dbcopy_hosttype").val() == "1") {
+                                                    $("#dbcopy_std_div").show();
+                                                    $("#tabcheck3_2").parent().show();
+                                                    $("#tabcheck3_3").parent().show();
+                                                    get_dbcopy_oracle_detail();
+                                                } else {
+                                                    $("#dbcopy_std_div").hide();
+                                                    $("#tabcheck3_2").parent().hide();
+                                                    $("#tabcheck3_3").parent().hide();
+                                                }
                                             }
+                                            else{
+                                                $("#dbcopy_oracleusername").val("");
+                                                $("#dbcopy_oraclepassword").val("");
+                                                $("#dbcopy_oracleinstance").val("");
+                                                $("#dbcopy_std").val("none");
+                                            }
+                                            //mysql
                                             if ($("#dbcopy_dbtype").val() == "2") {
                                                 $("#mysqldiv").show();
                                                 $("#oraclediv").hide();
-                                            }
-                                            if ($("#dbcopy_hosttype").val() == "1") {
-                                                $("#tabcheck3_2").parent().show();
-                                                $("#tabcheck3_3").parent().show();
-                                                get_dbcopy_detail();
-                                            }
-                                            else {
-                                                $("#tabcheck3_2").parent().hide();
-                                                $("#tabcheck3_3").parent().hide();
                                             }
                                         }
                                         else {
                                             $("#div_creatdbcopy").show();
                                             $("#div_dbcopy").hide();
-                                            $("#dbcopy_del").hide();
                                         }
                                     }
                                     else {
@@ -557,7 +552,7 @@ function getCvinfo() {
 }
 
 //数据库复制
-function get_dbcopy_detail() {
+function get_dbcopy_oracle_detail() {
     var table = $('#dbcopy_adg_his').DataTable();
     table.ajax.url("../client_dbcopy_get_adg_his?id=" + $('#id').val()
     ).load();
@@ -1363,17 +1358,31 @@ $(document).ready(function () {
 
     //db复制
     getDbcopyinfo();
+    $("#dbcopy_dbtype").change(function () {
+        if ($("#dbcopy_dbtype").val() == "1") {
+            $("#oraclediv").show();
+             $("#mysqldiv").hide();
+        }
+        if ($("#dbcopy_dbtype").val() == "2") {
+            $("#mysqldiv").show();
+             $("#oraclediv").hide();
+        }
+    });
     $("#dbcopy_hosttype").change(function () {
         if ($("#dbcopy_hosttype").val() == "1") {
             $("#dbcopy_std_div").show();
+            $("#dbcopy_mysql_std_div").show();
         } else {
             $("#dbcopy_std_div").hide();
+            $("#dbcopy_mysql_std_div").hide();
         }
     });
     $('#creatdbcopy').click(function () {
         $("#div_creatdbcopy").hide();
         $("#div_dbcopy").show();
-        $("#dbcopy_del").hide();
+        $("#dbcopy_oracle_del").hide();
+        $("#dbcopy_mysql_del").hide();
+        $("#dbcopy_dbtype").removeProp("disabled");
         $("#tabcheck3_1").click();
         $("#tabcheck3_2").parent().hide();
         $("#tabcheck3_3").parent().hide();
@@ -1384,7 +1393,10 @@ $(document).ready(function () {
         $("#dbcopy_oracleusername").val("");
         $("#dbcopy_oraclepassword").val("");
         $("#dbcopy_oracleinstance").val("");
+        $("#mysqldiv").hide();
+        $("#oraclediv").show();
         $("#dbcopy_std_div").show();
+        $("#dbcopy_mysql_std_div").show();
 
     });
     $('#dbcopy_oracle_save').click(function () {
@@ -1449,12 +1461,14 @@ $(document).ready(function () {
                     if ($("#dbcopy_hosttype").val() == "1") {
                         $("#tabcheck3_2").parent().show();
                         $("#tabcheck3_3").parent().show();
-                        get_dbcopy_detail();
+                        get_dbcopy_oracle_detail();
                     }
                     else {
                         $("#tabcheck3_2").parent().hide();
                         $("#tabcheck3_3").parent().hide();
                     }
+                    $("#dbcopy_oracle_del").show();
+                    $("#dbcopy_dbtype").prop("disabled","disabled");
                 }
                 alert(data.info);
             },
@@ -1476,7 +1490,7 @@ $(document).ready(function () {
                     if (data == 1) {
                         $("#div_creatdbcopy").show();
                         $("#div_dbcopy").hide();
-                        $("#dbcopy_del").hide();
+                        $("#dbcopy_oracle_del").hide();
 
                         var curnode = $('#tree_client').jstree('get_node', $("#id").val());
                         var newtext = curnode
