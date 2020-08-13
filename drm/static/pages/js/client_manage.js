@@ -99,6 +99,7 @@ function getClientree() {
                                         $("#tabcheck2").parent().attr("style", "pointer-events:none;");
                                         $('#tabcheck3').attr("style", "color: #cbd5dd");
                                         $("#tabcheck3").parent().attr("style", "pointer-events:none;");
+                                        $("#tabcheck1").click();
                                         $("#title").text("新建")
                                         $("#pname").val(obj.data["name"])
                                         $("#id").val("0");
@@ -366,6 +367,27 @@ function getClientree() {
                                             if ($("#dbcopy_dbtype").val() == "2") {
                                                 $("#mysqldiv").show();
                                                 $("#oraclediv").hide();
+                                                $("#dbcopy_mysql_del").show();
+                                                $("#dbcopy_mysqlusername").val(data.dbcopyinfo.dbusername);
+                                                $("#dbcopy_mysqlpassword").val(data.dbcopyinfo.dbpassowrd);
+                                                $("#dbcopy_mysqlcopyusername").val(data.dbcopyinfo.copyusername);
+                                                $("#dbcopy_mysqlcopypassword").val(data.dbcopyinfo.copypassowrd);
+                                                $("#dbcopy_mysqlbinlog").val(data.dbcopyinfo.binlog);
+                                                $("#dbcopy_mysql_std").val(data.dbcopyinfo.std_id);
+                                                $("#dbcopy_mysql_std").select2({
+                                                    width: null
+                                                });
+
+                                                if ($("#dbcopy_hosttype").val() == "1") {
+                                                    $("#dbcopy_mysql_std_div").show();
+                                                    $("#tabcheck3_2").parent().show();
+                                                    $("#tabcheck3_3").parent().show();
+                                                    get_dbcopy_mysql_detail();
+                                                } else {
+                                                    $("#dbcopy_mysql_std_div").hide();
+                                                    $("#tabcheck3_2").parent().hide();
+                                                    $("#tabcheck3_3").parent().hide();
+                                                }
                                             }
                                         }
                                         else {
@@ -553,9 +575,11 @@ function getCvinfo() {
 
 //数据库复制
 function get_dbcopy_oracle_detail() {
-    var table = $('#dbcopy_adg_his').DataTable();
-    table.ajax.url("../client_dbcopy_get_adg_his?id=" + $('#id').val()
+    var table = $('#dbcopy_his').DataTable();
+    table.ajax.url("../client_dbcopy_get_his?id=" + $('#id').val() + "&type=ADG"
     ).load();
+    $('#adgstate_div').show();
+    $('#mysqlstate_div').hide();
     $.ajax({
         type: "POST",
         dataType: 'json',
@@ -627,8 +651,72 @@ function get_dbcopy_oracle_detail() {
             }
             $("#processdiv").empty();
             $("#processdiv").append(processtext);
-            l_host_name = data["data"][0].host_name;
-            //$("#test").val(JSON.stringify(data["data"]) + "\n" + "host_status:主机状态,host_ip:主机IP，switchover_status:切换状态,database_role:切换角色,host_name:主机名称,db_status:数据库状态");
+        },
+        error: function (e) {
+            ;
+        }
+    });
+}
+function get_dbcopy_mysql_detail() {
+    var table = $('#dbcopy_his').DataTable();
+    table.ajax.url("../client_dbcopy_get_his?id=" + $('#id').val() + "&type=MYSQL"
+    ).load();
+    $('#adgstate_div').hide();
+    $('#mysqlstate_div').show();
+    $.ajax({
+        type: "POST",
+        dataType: 'json',
+        url: "../get_mysql_status/",
+        data:
+        {
+            id: $("#id").val(),
+            dbcopy_id: $("#dbcopy_id").val(),
+            dbcopy_mysql_std: JSON.stringify($("#dbcopy_mysql_std").val()),
+        },
+        success: function (data) {
+            //数据库状态
+            $(".mysqlcount").hide();
+            $(".mysqlsync").hide();
+            $(".mysqlsync").attr("src", "/static/pages/images/adg/sync_r.png");
+            $(".mysqlhost").attr("src", "/static/pages/images/adg/db3.png");
+            $(".mysqltest").text("")
+            var hostcount=data["data"].length;
+            $("#mysql_count_" + hostcount.toString()).show();
+            if(hostcount>4){
+                $("#mysql_count_4").show();
+            }
+            for (var i = 0; i < data["data"].length; i++) {
+                num = data["data"][i].num;
+                conn_status = data["data"][i].conn_status;
+                host_name = data["data"][i].host_name;
+                host_ip = data["data"][i].host_ip;
+                io_state = data["data"][i].io_state;
+                sql_state = data["data"][i].sql_state;
+                masternum = data["data"][i].masternum;
+
+                $("#dbhost_" + hostcount.toString() + "_" + num.toString()).text(host_name);
+                $("#dbip_" + hostcount.toString() + "_" + num.toString()).text(host_ip);
+                if(conn_status==1){
+                     $("#mysqlimg_" + hostcount.toString() + "_" + num.toString()).attr("src", "/static/pages/images/adg/db1.png");
+                }
+                $("#sync_" + hostcount.toString() + "_" + masternum.toString()+ "_" + num.toString()).show();
+                if(io_state=="Yes" && sql_state=="Yes" ){
+                    $("#sync_" + hostcount.toString() + "_" + masternum.toString()+ "_" + num.toString()).attr("src", "/static/pages/images/adg/sync_r.gif");
+                }
+
+            }
+
+            //流程
+            var processtext = ""
+            for (var i = 0; i < data["process"].length; i++) {
+                processtext += "<div  class='form-group'><button onclick=\"runprocess(" + data["process"][i].process_id + ",'1')\"  type='button' class=' btn  green'>切换:" + data["process"][i].process_name + "</button> ";
+                if (data["process"][i].back_id != null && data["process"][i].back_id != "") {
+                    processtext += "<button onclick=\"runprocess(" + data["process"][i].process_id + ",'2')\" type='button' class='backprocessbtn btn  green'>回切</button>";
+                }
+                processtext += "</div>"
+            }
+            $("#processdiv").empty();
+            $("#processdiv").append(processtext);
         },
         error: function (e) {
             ;
@@ -641,12 +729,27 @@ function getDbcopyStd() {
 
     var stddata = JSON.parse($("#dbcopy_u_std").val());
     for (var i = 0; i < stddata.length; i++) {
-        if (stddata[i].type == $("#dbcopy_dbtype").val()) {
+        if (stddata[i].type == "1") {
             $("#dbcopy_std").append('<option value="' + stddata[i].id + '">' + stddata[i].name + '</option>');
         }
     }
     $("#dbcopy_std").append('<option value="none">' + "无" + '</option>');
 }
+function getDbcopyMysqlStd() {
+    $("#dbcopy_mysql_std").empty();
+
+    var stddata = JSON.parse($("#dbcopy_u_std").val());
+    for (var i = 0; i < stddata.length; i++) {
+        if (stddata[i].type == "2") {
+            $("#dbcopy_mysql_std").append('<option value="' + stddata[i].id + '">' + stddata[i].name + '</option>');
+        }
+    }
+
+    $("#dbcopy_mysql_std").select2({
+        width: null
+    });
+}
+
 
 function getDbcopyinfo() {
     $.ajax({
@@ -656,6 +759,7 @@ function getDbcopyinfo() {
         success: function (data) {
             $("#dbcopy_u_std").val(JSON.stringify(data.u_std));
             getDbcopyStd();
+            getDbcopyMysqlStd();
         }
     });
 
@@ -1393,6 +1497,11 @@ $(document).ready(function () {
         $("#dbcopy_oracleusername").val("");
         $("#dbcopy_oraclepassword").val("");
         $("#dbcopy_oracleinstance").val("");
+        $("#dbcopy_mysqlusername").val("");
+        $("#dbcopy_mysqlpassword").val("");
+        $("#dbcopy_mysqlcopyusername").val("");
+        $("#dbcopy_mysqlcopypassword").val("");
+        $("#dbcopy_mysqlbinlog").val("");
         $("#mysqldiv").hide();
         $("#oraclediv").show();
         $("#dbcopy_std_div").show();
@@ -1430,9 +1539,7 @@ $(document).ready(function () {
                         }
                         var curnode = $('#tree_client').jstree('get_node', $("#id").val());
                         var newtext = curnode
-                        if ($("#dbcopy_dbtype").val() == "1") {
-                            newtext = "<img src = '/static/pages/images/oracle.png' height='24px'> " + curnode.text
-                        }
+                        newtext = "<img src = '/static/pages/images/oracle.png' height='24px'> " + curnode.text
                         $('#tree_client').jstree('set_text', $("#id").val(), newtext);
                     }
                     //刷新备库下拉菜单
@@ -1468,6 +1575,89 @@ $(document).ready(function () {
                         $("#tabcheck3_3").parent().hide();
                     }
                     $("#dbcopy_oracle_del").show();
+                    $("#dbcopy_dbtype").prop("disabled","disabled");
+                }
+                alert(data.info);
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+            }
+        });
+    });
+    $('#dbcopy_mysql_save').click(function () {
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../client_dbcopy_mysql_save/",
+            data: {
+
+                id: $("#id").val(),
+                dbcopy_id: $("#dbcopy_id").val(),
+                dbcopy_dbtype: $("#dbcopy_dbtype").val(),
+                dbcopy_hosttype: $("#dbcopy_hosttype").val(),
+                dbcopy_mysqlusername: $("#dbcopy_mysqlusername").val(),
+                dbcopy_mysqlpassword: $("#dbcopy_mysqlpassword").val(),
+                dbcopy_mysqlcopyusername: $("#dbcopy_mysqlcopyusername").val(),
+                dbcopy_mysqlcopypassword: $("#dbcopy_mysqlcopypassword").val(),
+                dbcopy_mysqlbinlog: $("#dbcopy_mysqlbinlog").val(),
+                dbcopy_mysql_std: JSON.stringify($("#dbcopy_mysql_std").val()),
+            },
+            success: function (data) {
+                if (data.ret == 1) {
+                    if ($("#dbcopy_id").val() == "0") {
+                        $("#dbcopy_id").val(data.dbcopy_id);
+                        if ($("#dbcopy_hosttype").val() == "1") {
+                            $("#tabcheck3_2").parent().show();
+                            $("#tabcheck3_3").parent().show();
+                        }
+                        else {
+                            $("#tabcheck3_2").parent().hide();
+                            $("#tabcheck3_3").parent().hide();
+                        }
+                        var curnode = $('#tree_client').jstree('get_node', $("#id").val());
+                        var newtext = curnode
+                        newtext = "<img src = '/static/pages/images/mysql.png' height='24px'> " + curnode.text
+                        $('#tree_client').jstree('set_text', $("#id").val(), newtext);
+                    }
+                    //刷新备库下拉菜单
+                    if ($("#dbcopy_hosttype").val() == "2") {
+                        var std = $("#dbcopy_mysql_std").val();
+                        var stddata = JSON.parse($("#dbcopy_u_std").val());
+                        var cur_std = { "name": $("#host_name").val() + "(" + $("#host_ip").val() + ")", "id": data.dbcopy_id, "type": $("#dbcopy_dbtype").val() }
+                        if (!inArray(cur_std, stddata)) {
+                            stddata.push(cur_std);
+                            $("#dbcopy_u_std").val(JSON.stringify(stddata));
+                        }
+                        getDbcopyMysqlStd();
+                        $("#dbcopy_mysql_std").val(std);
+                        $("#dbcopy_mysql_std").select2({
+                            width: null
+                        });
+                    }
+                    if ($("#dbcopy_hosttype").val() == "1") {
+                        var stddata = JSON.parse($("#dbcopy_u_std").val());
+                        for (var i = 0; i < stddata.length; i++) {
+                            if (stddata[i].id == $("#dbcopy_id").val()) {
+                                stddata.splice(i, 1)
+                                $("#dbcopy_u_std").val(JSON.stringify(stddata));
+                                break;
+                            }
+                        }
+                        $("#dbcopy_mysql_std option[value='" + $("#dbcopy_id").val() + "']").remove();
+                        $("#dbcopy_mysql_std").select2({
+                            width: null
+                        });
+                    }
+                    if ($("#dbcopy_hosttype").val() == "1") {
+                        $("#tabcheck3_2").parent().show();
+                        $("#tabcheck3_3").parent().show();
+                        get_dbcopy_mysql_detail();
+                    }
+                    else {
+                        $("#tabcheck3_2").parent().hide();
+                        $("#tabcheck3_3").parent().hide();
+                    }
+                    $("#dbcopy_mysql_del").show();
                     $("#dbcopy_dbtype").prop("disabled","disabled");
                 }
                 alert(data.info);
@@ -1519,6 +1709,49 @@ $(document).ready(function () {
             });
         }
     })
+    $('#dbcopy_mysql_del').click(function () {
+        if (confirm("确定要删除？删除后不可恢复。")) {
+            $.ajax({
+                type: "POST",
+                url: "../client_dbcopy_del/",
+                data:
+                {
+                    id: $("#dbcopy_id").val(),
+                },
+                success: function (data) {
+                    if (data == 1) {
+                        $("#div_creatdbcopy").show();
+                        $("#div_dbcopy").hide();
+                        $("#dbcopy_oracle_del").hide();
+                        $("#dbcopy_mysql_del").hide();
+
+                        var curnode = $('#tree_client').jstree('get_node', $("#id").val());
+                        var newtext = curnode
+                        if ($("#dbcopy_dbtype").val() == "1") {
+                            newtext = curnode.text.replace("<img src = '/static/pages/images/mysql.png' height='24px'> ", "")
+                        }
+                        $('#tree_client').jstree('set_text', $("#id").val(), newtext);
+                        //刷新备库下拉菜单
+                        var stddata = JSON.parse($("#dbcopy_u_std").val());
+                        for (var i = 0; i < stddata.length; i++) {
+                            if (stddata[i].id == $("#dbcopy_id").val()) {
+                                stddata.splice(i, 1)
+                                $("#dbcopy_u_std").val(JSON.stringify(stddata));
+                                break;
+                            }
+                        }
+                        $("#dbcopy_mysql_std option[value='" + $("#dbcopy_id").val() + "']").remove();
+
+                        alert("删除成功！");
+                    } else
+                        alert("删除失败，请于管理员联系。");
+                },
+                error: function (e) {
+                    alert("删除失败，请于管理员联系。");
+                }
+            });
+        }
+    })
     $("#confirm").click(function () {
         var process_id = $("#process_id").val();
 
@@ -1546,7 +1779,7 @@ $(document).ready(function () {
         //     }
         // });
     });
-    $('#dbcopy_adg_his').dataTable({
+    $('#dbcopy_his').dataTable({
         "bAutoWidth": true,
         "bSort": false,
         "bProcessing": true,
@@ -1608,7 +1841,7 @@ $(document).ready(function () {
         }
     });
 
-    $('#dbcopy_adg_his tbody').on('click', 'button#delrow', function () {
+    $('#dbcopy_his tbody').on('click', 'button#delrow', function () {
         if (confirm("确定要删除该条数据？")) {
             var table = $('#sample_1').DataTable();
             var data = table.row($(this).parents('tr')).data();

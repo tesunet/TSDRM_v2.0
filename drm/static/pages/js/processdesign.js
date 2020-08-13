@@ -97,7 +97,7 @@ $(document).ready(function () {
         $("#process_back").val(data.process_back_id);
 
 
-        if ($("#type").val()=="Oracle ADG"){
+        if ($("#type").val()=="Oracle ADG"||$("#type").val()=="MYSQL"){
             $("#adg_div").show();
         }
         else{
@@ -130,7 +130,7 @@ $(document).ready(function () {
     });
 
     $("#type").change(function () {
-        if ($("#type").val()=="Oracle ADG"){
+        if ($("#type").val()=="Oracle ADG" || $("#type").val()=="MYSQL"){
             $("#adg_div").show();
         }
         else{

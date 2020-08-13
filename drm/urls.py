@@ -218,7 +218,9 @@ urlpatterns = [
     url(r'^client_dbcopy_save/$', client_dbcopy_save),
     url(r'^client_dbcopy_del/$', client_dbcopy_del),
     url(r'^get_adg_status/$', get_adg_status),
-    url(r'^client_dbcopy_get_adg_his/$', client_dbcopy_get_adg_his),
+    url(r'^client_dbcopy_get_his/$', client_dbcopy_get_his),
+    url(r'^client_dbcopy_mysql_save/$', client_dbcopy_mysql_save),
+    url(r'^get_mysql_status/$', get_mysql_status),
 
     url(r'^get_file_tree/$', get_file_tree),
 

@@ -18,6 +18,7 @@ from django.contrib.auth.decorators import login_required
 from lxml import etree
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import cx_Oracle
+import pymysql
 from ..remote import ServerByPara
 
 
@@ -1734,6 +1735,8 @@ def get_client_node(parent, select_id, request):
             if len(db_client) > 0:
                 if db_client[0].dbtype=="1":
                     node["text"] = "<img src = '/static/pages/images/oracle.png' height='24px'> " + node["text"]
+                if db_client[0].dbtype == "2":
+                    node["text"] = "<img src = '/static/pages/images/mysql.png' height='24px'> " + node["text"]
             cv_client = CvClient.objects.exclude(state="9").filter(hostsmanage=child)
             if len(cv_client)>0:
                 node["text"] = "<img src = '/static/pages/images/cv.png' height='24px'> " + node["text"]
@@ -2057,20 +2060,46 @@ def get_client_detail(request):
                 dbcopyinfo["id"] = dc[0].id
                 dbcopyinfo["hosttype"] = dc[0].hosttype
                 dbcopyinfo["dbtype"] = dc[0].dbtype
-                dbcopyinfo["std_id"] = dc[0].std_id
-                dbcopyinfo["dbusername"] = ""
-                dbcopyinfo["dbpassowrd"] = ""
-                dbcopyinfo["dbinstance"] = ""
+                if dc[0].dbtype=="1":
+                    stdclient = DbCopyClient.objects.exclude(state="9").filter(pri=dc[0])
+                    dbcopyinfo["std_id"] = None
+                    if len(stdclient)>0:
+                        dbcopyinfo["std_id"] = stdclient[0].id
+                    dbcopyinfo["dbusername"] = ""
+                    dbcopyinfo["dbpassowrd"] = ""
+                    dbcopyinfo["dbinstance"] = ""
 
-                try:
-                    config = etree.XML(dc[0].info)
-                    param_el = config.xpath("//param")
-                    if len(param_el) >0:
-                        dbcopyinfo["dbusername"] = param_el[0].attrib.get("dbusername", ""),
-                        dbcopyinfo["dbpassowrd"] = param_el[0].attrib.get("dbpassowrd", ""),
-                        dbcopyinfo["dbinstance"] = param_el[0].attrib.get("dbinstance", ""),
-                except:
-                    pass
+                    try:
+                        config = etree.XML(dc[0].info)
+                        param_el = config.xpath("//param")
+                        if len(param_el) >0:
+                            dbcopyinfo["dbusername"] = param_el[0].attrib.get("dbusername", ""),
+                            dbcopyinfo["dbpassowrd"] = param_el[0].attrib.get("dbpassowrd", ""),
+                            dbcopyinfo["dbinstance"] = param_el[0].attrib.get("dbinstance", ""),
+                    except:
+                        pass
+                if dc[0].dbtype == "2":
+                    dbcopyinfo["std_id"] = []
+                    stdclientlist = DbCopyClient.objects.exclude(state="9").filter(pri=dc[0])
+                    for stdclient in stdclientlist:
+                        dbcopyinfo["std_id"].append(str(stdclient.id))
+                    dbcopyinfo["dbusername"] = ""
+                    dbcopyinfo["dbpassowrd"] = ""
+                    dbcopyinfo["copyusername"] = ""
+                    dbcopyinfo["copypassowrd"] = ""
+                    dbcopyinfo["binlog"] = ""
+
+                    try:
+                        config = etree.XML(dc[0].info)
+                        param_el = config.xpath("//param")
+                        if len(param_el) >0:
+                            dbcopyinfo["dbusername"] = param_el[0].attrib.get("dbusername", ""),
+                            dbcopyinfo["dbpassowrd"] = param_el[0].attrib.get("dbpassowrd", ""),
+                            dbcopyinfo["copyusername"] = param_el[0].attrib.get("copyusername", ""),
+                            dbcopyinfo["copypassowrd"] = param_el[0].attrib.get("copypassowrd", ""),
+                            dbcopyinfo["binlog"] = param_el[0].attrib.get("binlog", ""),
+                    except:
+                        pass
     return JsonResponse({
         "ret": ret,
         "info": info,
@@ -2673,9 +2702,10 @@ def get_adg_status(request):
 
 
 @login_required
-def client_dbcopy_get_adg_his(request):
+def client_dbcopy_get_his(request):
     result = []
     id = request.GET.get("id", "")
+    type = request.GET.get("type", "")
     state_dict = {
         "DONE": "已完成",
         "EDIT": "未执行",
@@ -2692,7 +2722,10 @@ def client_dbcopy_get_adg_his(request):
     allprocess = []
     frontprocess = []
     backprocess = []
-    processlist = Process.objects.filter(primary=id,type='Oracle ADG').exclude(state="9")
+    if type=='ADG':
+        type='Oracle ADG'
+
+    processlist = Process.objects.filter(primary=id,type=type).exclude(state="9")
     for process in processlist:
         allprocess.append(process.id)
         frontprocess.append(process.id)
@@ -2701,6 +2734,8 @@ def client_dbcopy_get_adg_his(request):
             backprocess.append(process.backprocess.id)
     allprocess_new = [str(x) for x in allprocess]
     strprocess = ','.join(allprocess_new)
+    if strprocess=="":
+        strprocess="0"
 
     cursor = connection.cursor()
 
@@ -2767,25 +2802,24 @@ def client_dbcopy_save(request):
                                     dbcopy.hostsmanage_id = id
                                     dbcopy.dbtype = dbcopy_dbtype
                                     dbcopy.hosttype = dbcopy_hosttype
-                                    if dbcopy_dbtype =="1":
-                                        root = etree.Element("root")
-                                        param_node = etree.SubElement(root, "param")
-                                        param_node.attrib["dbusername"] = dbcopy_oracleusername
-                                        param_node.attrib["dbpassowrd"] = dbcopy_oraclepassword
-                                        param_node.attrib["dbinstance"] = dbcopy_oracleinstance
-                                        config = etree.tounicode(root)
-                                        dbcopy.info = config
-                                        if dbcopy_hosttype =="1":
-                                            if dbcopy_std!="none":
-                                                try:
-                                                    dbcopy_std = int(dbcopy_std)
-                                                    dbcopy.std_id = dbcopy_std
-                                                except:
-                                                    pass
-                                            else:
-                                                dbcopy.std=None
+                                    root = etree.Element("root")
+                                    param_node = etree.SubElement(root, "param")
+                                    param_node.attrib["dbusername"] = dbcopy_oracleusername
+                                    param_node.attrib["dbpassowrd"] = dbcopy_oraclepassword
+                                    param_node.attrib["dbinstance"] = dbcopy_oracleinstance
+                                    config = etree.tounicode(root)
+                                    dbcopy.info = config
                                     dbcopy.save()
                                     dbcopy_id = dbcopy.id
+                                    if dbcopy_hosttype == "1":
+                                        if dbcopy_std != "none":
+                                            try:
+                                                dbcopy_std = int(dbcopy_std)
+                                                stdclient = DbCopyClient.objects.get(id=dbcopy_std)
+                                                stdclient.pri = dbcopy.id
+                                                stdclient.save()
+                                            except:
+                                                pass
                                 except:
                                     ret = 0
                                     info = "服务器异常。"
@@ -2799,24 +2833,23 @@ def client_dbcopy_save(request):
                                     dbcopy.hostsmanage_id = id
                                     dbcopy.dbtype = dbcopy_dbtype
                                     dbcopy.hosttype = dbcopy_hosttype
-                                    if dbcopy_dbtype == "1":
-                                        root = etree.Element("root")
-                                        param_node = etree.SubElement(root, "param")
-                                        param_node.attrib["dbusername"] = dbcopy_oracleusername
-                                        param_node.attrib["dbpassowrd"] = dbcopy_oraclepassword
-                                        param_node.attrib["dbinstance"] = dbcopy_oracleinstance
-                                        config = etree.tounicode(root)
-                                        dbcopy.info = config
-                                        if dbcopy_hosttype == "1":
-                                            if dbcopy_std != "none":
-                                                try:
-                                                    dbcopy_std = int(dbcopy_std)
-                                                    dbcopy.std_id = dbcopy_std
-                                                except:
-                                                    pass
-                                            else:
-                                                dbcopy.std = None
+                                    root = etree.Element("root")
+                                    param_node = etree.SubElement(root, "param")
+                                    param_node.attrib["dbusername"] = dbcopy_oracleusername
+                                    param_node.attrib["dbpassowrd"] = dbcopy_oraclepassword
+                                    param_node.attrib["dbinstance"] = dbcopy_oracleinstance
+                                    config = etree.tounicode(root)
+                                    dbcopy.info = config
                                     dbcopy.save()
+                                    if dbcopy_hosttype == "1":
+                                        if dbcopy_std != "none":
+                                            try:
+                                                dbcopy_std = int(dbcopy_std)
+                                                stdclient = DbCopyClient.objects.get(id=dbcopy_std)
+                                                stdclient.pri = dbcopy.id
+                                                stdclient.save()
+                                            except:
+                                                pass
                                     ret = 1
                                     info = "数据库复制保护修改成功。"
                                 except:
@@ -2860,6 +2893,237 @@ def client_dbcopy_del(request):
         return HttpResponse(1)
     else:
         return HttpResponse(0)
+
+
+@login_required
+def client_dbcopy_mysql_save(request):
+    id = request.POST.get("id", "")
+    dbcopy_id = request.POST.get("dbcopy_id", "")
+    dbcopy_dbtype = request.POST.get("dbcopy_dbtype", "")
+    dbcopy_hosttype = request.POST.get("dbcopy_hosttype", "")
+    dbcopy_mysqlusername = request.POST.get("dbcopy_mysqlusername", "")
+    dbcopy_mysqlpassword = request.POST.get("dbcopy_mysqlpassword", "")
+    dbcopy_mysqlcopyusername = request.POST.get("dbcopy_mysqlcopyusername", "")
+    dbcopy_mysqlcopypassword = request.POST.get("dbcopy_mysqlcopypassword", "")
+    dbcopy_mysqlbinlog = request.POST.get("dbcopy_mysqlbinlog", "")
+    dbcopy_mysql_std = request.POST.get('dbcopy_mysql_std')
+    dbcopy_mysql_std  = json.loads(dbcopy_mysql_std)
+
+    try:
+        id = int(id)
+        dbcopy_id = int(dbcopy_id)
+    except:
+        ret = 0
+        info = "网络错误。"
+    else:
+        if dbcopy_dbtype.strip():
+            if dbcopy_hosttype.strip():
+                if dbcopy_mysqlusername.strip():
+                    if dbcopy_mysqlpassword.strip():
+                        if dbcopy_mysqlcopyusername.strip():
+                            if dbcopy_mysqlcopypassword.strip():
+                                if dbcopy_mysqlbinlog.strip():
+                                    # 新增
+                                    if dbcopy_id == 0:
+                                        try:
+                                            dbcopy = DbCopyClient()
+                                            dbcopy.hostsmanage_id = id
+                                            dbcopy.dbtype = dbcopy_dbtype
+                                            dbcopy.hosttype = dbcopy_hosttype
+                                            root = etree.Element("root")
+                                            param_node = etree.SubElement(root, "param")
+                                            param_node.attrib["dbusername"] = dbcopy_mysqlusername
+                                            param_node.attrib["dbpassowrd"] = dbcopy_mysqlpassword
+                                            param_node.attrib["copyusername"] = dbcopy_mysqlcopyusername
+                                            param_node.attrib["copypassowrd"] = dbcopy_mysqlcopypassword
+                                            param_node.attrib["binlog"] = dbcopy_mysqlbinlog
+                                            config = etree.tounicode(root)
+                                            dbcopy.info = config
+                                            dbcopy.save()
+                                            dbcopy_id = dbcopy.id
+                                            if dbcopy_hosttype == "1":
+                                                if len(dbcopy_mysql_std)>0:
+                                                    for std in dbcopy_mysql_std:
+                                                        try:
+                                                            std = int(std)
+                                                            stdclient = DbCopyClient.objects.get(id=std)
+                                                            stdclient.pri = dbcopy
+                                                            stdclient.save()
+                                                        except:
+                                                            pass
+
+                                        except:
+                                            ret = 0
+                                            info = "服务器异常。"
+                                        else:
+                                            ret = 1
+                                            info = "数据库复制保护创建成功。"
+                                    else:
+                                        # 修改
+                                        try:
+                                            dbcopy = DbCopyClient.objects.get(id=dbcopy_id)
+                                            dbcopy.hostsmanage_id = id
+                                            dbcopy.dbtype = dbcopy_dbtype
+                                            dbcopy.hosttype = dbcopy_hosttype
+                                            root = etree.Element("root")
+                                            param_node = etree.SubElement(root, "param")
+                                            param_node.attrib["dbusername"] = dbcopy_mysqlusername
+                                            param_node.attrib["dbpassowrd"] = dbcopy_mysqlpassword
+                                            param_node.attrib["copyusername"] = dbcopy_mysqlcopyusername
+                                            param_node.attrib["copypassowrd"] = dbcopy_mysqlcopypassword
+                                            param_node.attrib["binlog"] = dbcopy_mysqlbinlog
+                                            config = etree.tounicode(root)
+                                            dbcopy.info = config
+                                            dbcopy.save()
+                                            if dbcopy_hosttype == "1":
+                                                if len(dbcopy_mysql_std)>0:
+                                                    for std in dbcopy_mysql_std:
+                                                        try:
+                                                            std = int(std)
+                                                            stdclient = DbCopyClient.objects.get(id=std)
+                                                            stdclient.pri = dbcopy
+                                                            stdclient.save()
+                                                        except:
+                                                            pass
+                                            ret = 1
+                                            info = "数据库复制保护修改成功。"
+                                        except:
+                                            ret = 0
+                                            info = "服务器异常。"
+
+                                else:
+                                    ret = 0
+                                    info = "binlog路径不能为空。"
+                            else:
+                                ret = 0
+                                info = "复制密码不能为空。"
+                        else:
+                            ret = 0
+                            info = "复制用户名不能为空。"
+                    else:
+                        ret = 0
+                        info = "mysql密码不能为空。"
+                else:
+                    ret = 0
+                    info = "mysql用户名不能为空。"
+            else:
+                ret = 0
+                info = "主机类型不能为空。"
+        else:
+            ret = 0
+            info = "保护类型不能为空。"
+    return JsonResponse({
+        "ret": ret,
+        "info": info,
+        "dbcopy_id": dbcopy_id
+    })
+
+
+@login_required
+def get_mysql_status(request):
+    id = request.POST.get('id', "")
+    dbcopy_id = request.POST.get('dbcopy_id', "")
+    dbcopy_mysql_std = request.POST.get('dbcopy_mysql_std')
+    dbcopy_mysql_std = json.loads(dbcopy_mysql_std)
+    host_list = []
+    try:
+        id = int(id)
+    except:
+        id = 0
+    try:
+        dbcopy_id = int(dbcopy_id)
+        host_list.append(dbcopy_id)
+    except:
+        pass
+
+    if len(dbcopy_mysql_std) > 0:
+        for std in dbcopy_mysql_std:
+            try:
+                std = int(std)
+                host_list.append(std)
+            except:
+                pass
+
+
+    mysql_info_list = []
+    mysql_process_list = []
+    if len(host_list) > 0:
+        for num,hostid in enumerate(host_list):
+            if hostid !=0:
+                host=DbCopyClient.objects.filter(id=hostid).exclude(state="9")
+                if len(host)>0:
+                    host=host[0]
+                    db_status = ''
+                    database_role = ''
+                    switchover_status = ''
+                    conn_status = 1  # 1为连接，0为断开
+                    host_name = host.hostsmanage.host_name
+                    host_ip = host.hostsmanage.host_ip
+                    # mysql用户名/密码
+                    dbusername = ""
+                    dbpassowrd = ""
+                    # salve复制状态
+                    master_host = ""
+                    io_state = ""
+                    sql_state = ""
+
+                    try:
+                        config = etree.XML(host.info)
+                        param_el = config.xpath("//param")
+                        if len(param_el) > 0:
+                            dbusername =  param_el[0].attrib.get("dbusername", ""),
+                            dbusername=dbusername[0]
+                            dbpassowrd =  param_el[0].attrib.get("dbpassowrd", ""),
+                            dbpassowrd = dbpassowrd[0]
+                    except:
+                        pass
+
+                    try:
+                        conn = pymysql.connect(host_ip, dbusername, dbpassowrd, "mysql")
+                        curs = conn.cursor()
+                        a_db_status_sql = 'show slave status;'
+                        curs.execute(a_db_status_sql)
+                        db_status_row = curs.fetchone()
+                        master_host= db_status_row[1] if db_status_row else ""
+                        io_state = db_status_row[10] if db_status_row else ""
+                        sql_state = db_status_row[11] if db_status_row else ""
+                    except Exception as e:
+                        conn_status = 0
+                    else:
+                        curs.close()
+                        conn.close()
+
+                    mysql_info_list.append({
+                        "num": num+1,
+                        "conn_status": conn_status,
+                        "host_name": host_name,
+                        "host_ip": host_ip,
+                        "master_host": master_host,
+                        "io_state": io_state,
+                        "sql_state": sql_state,
+                        "masternum": 0,
+                    })
+        for host in mysql_info_list:
+            for master_host in mysql_info_list:
+                if host["master_host"] ==master_host["host_ip"] or host["master_host"] == master_host["host_name"]:
+                    host["masternum"]=master_host["num"]
+                    break
+
+
+    if hostid != 0:
+        processlist = Process.objects.filter(primary=id,type='MYSQL').exclude(state="9")
+        for process in processlist:
+            mysql_process_list.append({
+                "process_id": process.id,
+                "back_id": process.backprocess_id,
+                "process_name": process.name
+            })
+
+    return JsonResponse({
+        "ret": 1,
+        "data": mysql_info_list,
+        "process": mysql_process_list
+    })
 
 
 @login_required
