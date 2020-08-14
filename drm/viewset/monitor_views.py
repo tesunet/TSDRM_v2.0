@@ -454,7 +454,6 @@ def cv_oracle_run(request):
                         else:
                             prosssigns = ProcessTask.objects.filter(processrun=myprocessrun, state="0")
                             if len(prosssigns) <= 0:
-                                myprocess = myprocessrun.process
                                 myprocesstask = ProcessTask()
                                 myprocesstask.processrun = myprocessrun
                                 myprocesstask.starttime = datetime.datetime.now()

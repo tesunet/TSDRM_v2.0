@@ -685,6 +685,24 @@ class CVApi(DataMonitor):
             })
         return restorelist
 
+    def has_auxiliary_job(self, backup_job_id):
+        """
+        判断是否可以选择辅助拷贝来恢复
+        :param backup_job_id:
+        :return:
+        """
+        tmp_sql = """
+        SELECT [jobId], [auxCopyJobId], [status], [copiedTime]
+        FROM [commserv].[dbo].[JMJobDataStats]
+        WHERE [jobId] = {backup_job_id}
+        """.format(backup_job_id=backup_job_id)
+        content = self.fetch_all(tmp_sql)
+        ret = False
+        for c in content:
+            if c[1] and c[2] == 100 and c[3]:
+                ret = True
+                break
+        return ret
 
     def get_job_controller(self):
         job_controller_sql = """SELECT [jobID],[operation],[clientComputer],[agentType],[subclient]
