@@ -1952,23 +1952,23 @@ def run(origin, target, instance, processrun_id):
         #################################
 
 
-# if len(sys.argv) == 5:
-#     run(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
-# else:
-#     print("脚本传参出现异常。")
-#     exit(1)
+if len(sys.argv) == 5:
+    run(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+else:
+    print("脚本传参出现异常。")
+    exit(1)
 
-if __name__ == "__main__":
-    info = {"webaddr": "192.168.100.149", "port": "81", "username": "admin", "passwd": "Admin@2017", "token": "",
-            "lastlogin": 0}
+# if __name__ == "__main__":
+#     info = {"webaddr": "192.168.100.149", "port": "81", "username": "admin", "passwd": "Admin@2017", "token": "",
+#             "lastlogin": 0}
 
-    cvToken = CV_RestApi_Token()
-    cvToken.login(info)
+#     cvToken = CV_RestApi_Token()
+#     cvToken.login(info)
 
-    cvAPI = CV_GetAllInformation(cvToken)
-    ret = cvAPI.apitest("/MediaAgent")  # backup status
-    xmlstr = ET.tostring(ret, encoding='utf8', method='xml')
-    print(xmlstr)
+#     cvAPI = CV_GetAllInformation(cvToken)
+#     ret = cvAPI.apitest("/MediaAgent")  # backup status
+#     xmlstr = ET.tostring(ret, encoding='utf8', method='xml')
+#     print(xmlstr)
 
-    client = CV_Client(cvToken)
-    print(client.getClientInfo(2))
+#     client = CV_Client(cvToken)
+#     print(client.getClientInfo(2))
