@@ -1,7 +1,7 @@
 ﻿<!doctype html>
 <meta charset="utf-8">
 <meta http-equiv="refresh" content="60">
-<title>嘉兴银行CommVault自动化恢复演练监控</title>
+<title>CommVault自动化恢复演练监控</title>
 <script src="/static/assets/global/plugins/jquery.min.js" type="text/javascript"></script>
 <link href="/static/pages/css/monitor_style.css" rel="stylesheet" type="text/css" media="all"/>
 <script src="/static/assets/global/plugins/echarts.min.js" charset="utf-8"></script>
@@ -81,7 +81,13 @@
             <!-- lefttoday_number end -->
         </div>
         <div class="aleftboxtmidd">
-            <h2 class="tith2">客户端状态</h2>
+            <h2 class="tith2">客户端状态
+                <select name="utils" id="utils" class="utils">
+                    {% for u in utils_manage %}
+                    <option value="{{ u.id }}">{{ u.name }}</option>
+                    {% endfor %}
+                </select> 
+            </h2>
             <div class="lefttoday_tit"></div>
             <div class="lefttoday_number2">
                 <div class="widget-inline-box text-center fl">
