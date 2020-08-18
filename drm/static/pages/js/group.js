@@ -259,9 +259,8 @@ $(function () {
             success: function (data) {
                 if (data.status == 1){
                     $('#static3').modal('hide');
-                } else {
-                    alert(data.info);
-                }
+                } 
+                alert(data.info);
             },
             error: function (e) {
                 alert("页面出现错误，请于管理员联系。");
