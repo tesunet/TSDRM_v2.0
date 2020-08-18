@@ -174,15 +174,6 @@ $(document).ready(function () {
         $("#run_time").val(myDate.toLocaleString());
     });
 
-    $('#start_date').datetimepicker({
-        autoclose: true,
-        format: 'yyyy-mm-dd hh:ii',
-    });
-    $('#end_date').datetimepicker({
-        autoclose: true,
-        format: 'yyyy-mm-dd hh:ii',
-    });
-
     $("#recovery_time_redio_group").click(function () {
         if ($("input[name='recovery_time_redio']:checked").val() == 2) {
             $("#static02").modal({backdrop: "static"});

@@ -376,38 +376,44 @@ $(document).ready(function () {
             // table.ajax.url("../restore_search_data?runstate=" + $('#runstate').val() + "&startdate=" + $('#startdate').val() + "&enddate=" + $('#enddate').val() + "&processname=" + $('#processname').val() + "&runperson=" + $('#runperson').val()).load();
         },
     });
-    $.ajax({
-        type: "POST",
-        url: "../get_clients_status/",
-        data: {
-            "csrfmiddlewaretoken": csrfToken
-        },
-        success: function (data) {
-            // 客户端状态
-            $("#service_status").text(data.clients_status.service_status);
-            $("#net_status").text(data.clients_status.net_status);
-            $("#all_clients").html('<a href="/backup_status/" target="_blank">' + data.clients_status.all_clients + '</a>');
-            $("#all_clients").find("a").css("color", "#24c9ff");
-            // 报警客户端
-            var warning_client_num = 0;
-            var whole_list = data.clients_status.whole_backup_list;
-
-            for (var i = 0; i < whole_list.length; i++) {
-                var agent_job_list = whole_list[i].agent_job_list;
+    function getClientsStatus() {
+        $.ajax({
+            type: "POST",
+            url: "../get_clients_status/",
+            data: {
+                "csrfmiddlewaretoken": csrfToken,
+                "utils_id": $("#utils").val()
+            },
+            success: function (data) {
+                $("#service_status").text(data.clients_status.service_status);
+                $("#net_status").text(data.clients_status.net_status);
+                $("#all_clients").html('<a href="/backup_status/" target="_blank">' + data.clients_status.all_clients + '</a>');
+                $("#all_clients").find("a").css("color", "#24c9ff");
                 // 报警客户端
-                for (var j = 0; j < agent_job_list.length; j++) {
-                    if (agent_job_list[j].job_backup_status.indexOf("失败") != -1) {
+                var warning_client_num = 0;
+                var whole_list = data.clients_status.whole_backup_list;
+
+                // 客户端下有一个子客户端下备份报错记录 失败
+                var pre_clientname = "";
+                for (var i = 0; i < whole_list.length; i++) {
+                    if (whole_list[i]['bk_status'].indexOf("失败") != -1 && whole_list[i]["clientname"] != pre_clientname) {
                         warning_client_num += 1;
-                        break
                     }
+                    pre_clientname = whole_list[i]["clientname"];
                 }
-            }
-            //'<a href="/backup_status/" target="_blank">' + data.clients_status.all_clients + '</a>'
-            $("#error_clients").html('<a href="/backup_status/" target="_blank">' + warning_client_num + '</a>');
-            if (warning_client_num > 0) {
-                $("#error_clients").find("a").css("color", "red");
-            }
-        },
+                //'<a href="/backup_status/" target="_blank">' + data.clients_status.all_clients + '</a>'
+                $("#error_clients").html('<a href="/backup_status/" target="_blank">' + warning_client_num + '</a>');
+                if (warning_client_num > 0) {
+                    $("#error_clients").find("a").css("color", "red");
+                }
+            },
+        });
+    }
+
+    getClientsStatus();
+
+    $("#utils").change(function () {
+        getClientsStatus();
     });
 });
 

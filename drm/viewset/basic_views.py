@@ -7,6 +7,7 @@ from django.http import HttpResponseRedirect, Http404, HttpResponse, JsonRespons
 from django.http import StreamingHttpResponse
 from django.utils.encoding import escape_uri_path
 from django.core.mail import send_mail
+from django.contrib.auth.decorators import login_required
 
 from TSDRM import settings
 from drm.api.commvault import SQLApi
@@ -988,29 +989,14 @@ def monitor(request):
 
                 curren_processrun_info_list.append(current_processrun_dict)
 
-        ##################################
-        # 今日演练：                      #
-        #   今天演练过的系统个数/总系统数  #
-        ##################################
-        today_process_run_length = 0
-        today_date = datetime.datetime.now().date()
-        pre_client = ""
-        for processrun_obj in all_processrun_objs:
-            if today_date == processrun_obj.starttime.date():
-                if pre_client == processrun_obj.origin:
-                    continue
-                today_process_run_length += 1
-
-                pre_client = processrun_obj.origin
-
-        all_process = Process.objects.exclude(state="9").filter(type="cv_oracle")
+        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type=""))
+        utils_manage = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
         # 右上角消息任务
         return render(request, "monitor.html",
                       {'username': request.user.userinfo.fullname, "alltask": alltask, "homepage": True,
-                       "success_rate": success_rate,
-                       "all_processruns": all_processruns, "last_processrun_time": last_processrun_time,
-                       "curren_processrun_info_list": curren_processrun_info_list,
-                       "today_process_run_length": today_process_run_length, "all_process": all_process})
+                       "success_rate": success_rate, "utils_manage": utils_manage, "all_processruns": all_processruns, 
+                       "last_processrun_time": last_processrun_time, "curren_processrun_info_list": curren_processrun_info_list,
+                       "all_process": all_process})
     else:
         return HttpResponseRedirect("/login")
 
@@ -1065,7 +1051,7 @@ def get_monitor_data(request):
         }
 
         # 系统演练次数TOP5
-        all_process = Process.objects.exclude(state="9").filter(type="cv_oracle")
+        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type=""))
         drill_name = []
         drill_time = []
         for process in all_process:
@@ -1119,7 +1105,7 @@ def get_monitor_data(request):
             })
         # 今日作业
         running_job, success_job, error_job = 0, 0, 0
-        all_processes = Process.objects.exclude(state="9").filter(type="cv_oracle")
+        all_processes = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type=""))
         has_run_process = 0
         for process in all_processes:
             process_run = process.processrun_set.exclude(state__in=["9", "REJECT"]).filter(
@@ -1231,10 +1217,25 @@ def get_monitor_data(request):
         return HttpResponseRedirect("/login")
 
 
+@login_required
 def get_clients_status(request):
-    if request.user.is_authenticated():
+    utils_id = request.POST.get("utils_id", "")
+    try:
+        utils_id = int(utils_id)
+        utils_manage = UtilsManage.objects.get(id=utils_id)
+    except:
+        return JsonResponse({
+            "clients_status": {
+                "service_status": "无",
+                "net_status": "无",
+                "all_clients": 0,
+                "whole_backup_list": []
+            }
+        })
+    else:
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
         # 客户端状态
-        dm = SQLApi.CVApi(settings.sql_credit)
+        dm = SQLApi.CVApi(sqlserver_credit)
 
         if dm.msg == "链接数据库失败。":
             service_status = "中断"
@@ -1244,10 +1245,10 @@ def get_clients_status(request):
             net_status = "正常"
 
         # 客户端列表
-        client_list = Origin.objects.exclude(state=9).values_list("client_name")
+        client_list = CvClient.objects.exclude(state=9).values_list("client_name")
         client_name_list = [client_name[0] for client_name in client_list]
         # 报警客户端
-        whole_backup_list = dm.custom_concrete_job_list(client_name_list)
+        whole_backup_list = dm.get_backup_status(client_name_list)
         dm.close()
         return JsonResponse({
             "clients_status": {
@@ -1257,8 +1258,6 @@ def get_clients_status(request):
                 "whole_backup_list": whole_backup_list
             }
         })
-    else:
-        return HttpResponseRedirect("/login")
 
 
 def get_process_run_facts(request):
@@ -1270,7 +1269,7 @@ def get_process_run_facts(request):
         #######################################################
         cv_oracle_process_list = []
 
-        all_process = Process.objects.exclude(state="9").order_by("sort").filter(type="cv_oracle")
+        all_process = Process.objects.exclude(state="9").order_by("sort").exclude(Q(type=None) | Q(type=""))
 
         for cur_process in all_process:
             # 今日演练(状态)  0/1/2
@@ -1348,7 +1347,7 @@ def get_process_run_facts(request):
 def get_process_rto(request):
     if request.user.is_authenticated():
         # 不同流程最近的12次切换RTO
-        all_processes = Process.objects.exclude(state="9").filter(type="cv_oracle")
+        all_processes = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type=""))
         process_rto_list = []
         if all_processes:
             for process in all_processes:

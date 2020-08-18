@@ -635,7 +635,7 @@ def get_all_client_node(parent, select_hosts):
 @login_required
 def group_save_host_tree(request):
     status = 1
-    info = ""
+    info = "主机权限配置成功。"
     id = request.POST.get('id', '')
     selected_hosts = request.POST.get('selected_hosts', '')
     selected_hosts = selected_hosts.split(',')
