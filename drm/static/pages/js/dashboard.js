@@ -277,12 +277,105 @@ function getdashboard() {
     });
 }
 
+function getDbCopyStatus() {
+    $.ajax({
+        type: "POST",
+        url: "../get_adg_copy_status/",
+        data: {
+            util: $("#util").val(),
+        },
+        success: function(data) {
+            var normalnum = 0,
+                warningnum = 0,
+                errornum = 0;
+
+            if (data.status == 1) {
+                normalnum = data.data.normalnum,
+                    warningnum = data.data.warningnum,
+                    errornum = data.data.errornum;
+            }
+            AmCharts.makeChart("adg_state_container", {
+                "type": "pie",
+                "theme": "light",
+                "fontSize": 15,
+                "fontFamily": 'Open Sans',
+
+                "color": '#000',
+                "colors": ["#32c5d2", "#ffd700", "#e7505a"],
+
+                "dataProvider": [{
+                    "name": "正常",
+                    "value": normalnum
+                }, {
+                    "name": "警告",
+                    "value": warningnum
+                }, {
+                    "name": "错误",
+                    "value": errornum
+                }],
+                "valueField": "value",
+                "titleField": "name",
+                "outlineAlpha": 0.4,
+                "depth3D": 15,
+                "balloonText": "[[title]]<br><span style='font-size:15px'><b>[[value]]</b> ([[percents]]%)</span>",
+                "angle": 30,
+            });
+        }
+    });
+    $.ajax({
+        type: "POST",
+        url: "../get_mysql_copy_status/",
+        data: {
+            util: $("#util").val(),
+        },
+        success: function(data) {
+            var normalnum = 0,
+                warningnum = 0,
+                errornum = 0;
+
+            if (data.status == 1) {
+                normalnum = data.data.normalnum,
+                    warningnum = data.data.warningnum,
+                    errornum = data.data.errornum;
+            }
+            AmCharts.makeChart("mysql_state_container", {
+                "type": "pie",
+                "theme": "light",
+                "fontSize": 15,
+                "fontFamily": 'Open Sans',
+
+                "color": '#000',
+                "colors": ["#32c5d2", "#ffd700", "#e7505a"],
+
+                "dataProvider": [{
+                    "name": "正常",
+                    "value": normalnum
+                }, {
+                    "name": "警告",
+                    "value": warningnum
+                }, {
+                    "name": "错误",
+                    "value": errornum
+                }],
+                "valueField": "value",
+                "titleField": "name",
+                "outlineAlpha": 0.4,
+                "depth3D": 15,
+                "balloonText": "[[title]]<br><span style='font-size:15px'><b>[[value]]</b> ([[percents]]%)</span>",
+                "angle": 30,
+            });
+        }
+    });
+}
+
+
 
 $(document).ready(function () {
     getframeworkstate();
     getclientnum();
     getsla();
     getdashboard();
+    getDbCopyStatus();
     $("#util").change(function () {
         getframeworkstate();
         getclientnum();

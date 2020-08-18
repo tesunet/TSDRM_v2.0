@@ -2816,7 +2816,7 @@ def client_dbcopy_save(request):
                                             try:
                                                 dbcopy_std = int(dbcopy_std)
                                                 stdclient = DbCopyClient.objects.get(id=dbcopy_std)
-                                                stdclient.pri = dbcopy.id
+                                                stdclient.pri = dbcopy
                                                 stdclient.save()
                                             except:
                                                 pass
@@ -2846,7 +2846,7 @@ def client_dbcopy_save(request):
                                             try:
                                                 dbcopy_std = int(dbcopy_std)
                                                 stdclient = DbCopyClient.objects.get(id=dbcopy_std)
-                                                stdclient.pri = dbcopy.id
+                                                stdclient.pri = dbcopy
                                                 stdclient.save()
                                             except:
                                                 pass

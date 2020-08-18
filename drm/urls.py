@@ -200,6 +200,10 @@ urlpatterns = [
     url(r'^get_disk_space_daily/$', get_disk_space_daily),
     url(r'^get_ma_disk_space/$', get_ma_disk_space),
 
+    #数据库复制运行情况
+    url(r'^get_adg_copy_status/$', get_adg_copy_status),
+    url(r'^get_mysql_copy_status/$', get_mysql_copy_status),
+
     # 客户端管理
     url(r'^client_manage/$', client_manage, {'funid': '69'}),
     url(r'^get_client_tree/$', get_client_tree),

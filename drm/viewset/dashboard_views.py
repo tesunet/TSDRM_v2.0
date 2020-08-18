@@ -13,6 +13,8 @@ from drm.api.commvault.RestApi import *
 import datetime
 import pythoncom
 from ping3 import ping
+import cx_Oracle
+import pymysql
 
 pythoncom.CoInitialize()
 import wmi

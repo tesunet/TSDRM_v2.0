@@ -591,6 +591,9 @@ function get_dbcopy_oracle_detail() {
             dbcopy_std: $("#dbcopy_std").val(),
         },
         success: function (data) {
+            $(".ldbimg").attr("src", "/static/pages/images/adg/db3.png");
+            $(".rdbimg").attr("src", "/static/pages/images/adg/db3.png");
+            $(".sync").attr("src", "/static/pages/images/adg/sync_r.png");
             //数据库状态
             l_host_name = data["data"][0].host_name;
             l_db_status = data["data"][0].db_status;

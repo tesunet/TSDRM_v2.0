@@ -21,6 +21,7 @@
                     <option value="{{ util.id }}">{{ util.name }} </option>
                 {% endfor %}
             </select>
+            <span style="float:right;padding-top: 8px">Commvault工具：</span>
         </div>
     </div>
     <div style="height:15px"></div>
@@ -38,7 +39,7 @@
                                 <a id="url_util"><span id="frameworkstate" data-counter="counterup" data-value="0"
                                                        style="color: white"> loading...</span></a>
                             </div>
-                            <div class="desc"> 灾备基础框架</div>
+                            <div class="desc"> Commvault基础框架</div>
                         </div>
                     </div>
                 </div>
@@ -56,7 +57,7 @@
                                 <a id="url_wnclient"><span style="color:white" data-counter="counterup" data-value="0"
                                                            id="warning_client_num">loading...</span></a>
                             </div>
-                            <div class="desc"> 报警客户端</div>
+                            <div class="desc"> Commvault报警客户端</div>
                         </div>
                     </div>
                 </div>
@@ -70,7 +71,7 @@
                                 <a id="url_allclient"><span style="color:white" data-counter="counterup" data-value="0"
                                                             id="all_client_num">loading...</span></a>
                             </div>
-                            <div class="desc"> 总客户端</div>
+                            <div class="desc"> Commvault总客户端</div>
                         </div>
                     </div>
                 </div>
@@ -84,7 +85,7 @@
                                 <a id="url_sla"><span style="color:white" data-counter="counterup" data-value="0"
                                                       id="sla_score">loading...</span></a>
                             </div>
-                            <div class="desc"> 健康度</div>
+                            <div class="desc"> Commvault健康度</div>
                         </div>
                     </div>
                 </div>
@@ -97,7 +98,7 @@
                     <div class="panel-body easypiechart-panel">
                         <div class="col-md-12">
                             <a id="url_cv_joblist"><span class="caption-subject bold uppercase font-green"
-                                                         style="font-size:16px">24小时作业</span></a>
+                                                         style="font-size:16px">CV24小时作业</span></a>
                         </div>
 
 
@@ -159,7 +160,7 @@
                     <div class="panel-body easypiechart-panel">
                         <div class="col-md-12">
                             <a id="url_display_error_job"><span class="caption-subject bold uppercase font-green"
-                                                                style="font-size:16px">告警信息</span></a>
+                                                                style="font-size:16px">CV告警信息</span></a>
                         </div>
 
                         <div class="col-md-12" style="margin-top: 10px">
@@ -182,9 +183,9 @@
                     <div class="panel-body easypiechart-panel">
                         <div class="col-md-12">
                             <div class="col-md-4"><span class="caption-subject bold uppercase font-green"
-                                                        style="font-size:16px"><a href="" target="_blank" style="color:#32c5d2" id="a_bk_space">备份空间使用情况</a></span></div>
+                                                        style="font-size:16px"><a href="" target="_blank" style="color:#32c5d2" id="a_bk_space">CV备份空间使用情况</a></span></div>
                             <div class="col-md-4"><span class="caption-subject bold uppercase font-green"
-                                                        style="font-size:16px"><a href="" target="_blank" style="color:#32c5d2" id="a_top5">TOP 5</a></span></div>
+                                                        style="font-size:16px"><a href="" target="_blank" style="color:#32c5d2" id="a_top5">CV TOP 5</a></span></div>
                             <div class="col-md-4"><span class="caption-subject bold uppercase font-green"
                                                         style="font-size:16px">虚拟化空间</span></div>
                         </div>
@@ -214,7 +215,7 @@
                                     </tr>
                                     </thead>
                                     <tbody id="tb_top5">
-    
+
                                     </tbody>
                                 </table>
                             </div>
@@ -230,6 +231,35 @@
                                 <h4>虚拟化空间</h4>
                                 <h4 class="">45 TB/100 TB </h4>
 
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-12">
+                <div class="panel panel-default">
+                    <div class="panel-body easypiechart-panel">
+                        <div class="col-md-12">
+                            <div class="col-md-6"><span class="caption-subject bold uppercase font-green"
+                                                        style="font-size:16px"><a href="/client_manage/" target="_blank" style="color:#32c5d2" >ORACLE ADG运行情况</a></span></div>
+
+                            <div class="col-md-6"><span class="caption-subject bold uppercase font-green"
+                                                        style="font-size:16px"><a href="/client_manage/" target="_blank" style="color:#32c5d2" >MYSQL复制运行情况</a></span></div>
+                        </div>
+                        <div class="col-md-6" align="center" style="padding-top: 20px;" id="ma_disk_space">
+                            <div style="text-align:center">
+                                <div id="adg_state_container"  class="chart" >
+
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6" align="center" style="padding-top: 20px">
+                            <div style="text-align:center">
+                                <div id="mysql_state_container"  class="chart" >
+
+                                </div>
                             </div>
                         </div>
                     </div>
