@@ -1283,7 +1283,7 @@ $(document).ready(function () {
                 if ($("input[name='optionsRadios']:checked").val() == "2" && $('#cv_r_datetimepicker').val() != "") {
                     myrestoreTime = $('#cv_r_datetimepicker').val();
                 }
-                var destClient = $('#cv_r_destClient').val()
+                var destClient = $('#cv_r_destClient').text().trim();
                 if (destClient == "self") {
                     destClient = $('#cv_r_sourceClient').val()
                 }
