@@ -362,7 +362,7 @@ def cv_oracle_run(request):
                             if mypath != "same":
                                 inPlace = False
                             overWrite = False
-                            if iscover == "True":
+                            if iscover == "TRUE":
                                 overWrite = True
                             
                             sourceItemlist = selectedfile.split("*!-!*")
