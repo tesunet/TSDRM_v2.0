@@ -385,6 +385,9 @@ def cv_oracle_run(request):
                             if mssql_iscover == "TRUE":
                                 mssqlOverWrite = True
                             cv_params = {
+                                "pri_id": str(pri),
+                                "std_id": str(std),
+                                "browse_job_id": str(browseJobId),
                                 "mssqlOverWrite": mssqlOverWrite,
                             }
                         else:
