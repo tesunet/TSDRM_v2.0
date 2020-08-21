@@ -830,3 +830,157 @@ def get_ma_disk_space(request):
         "info": info,
         "data": data
     })
+
+@login_required
+def get_adg_copy_status(request):
+    """
+    获取adg状态
+    :param request:
+    :return:
+    """
+    status = 1
+    info = ''
+    warningnum=0
+    normalnum=0
+    errornum=0
+    prilist=DbCopyClient.objects.filter(dbtype='1',hosttype='1').exclude(state="9")
+    for pri in prilist:
+        hostlist = [pri]
+        for std in pri.std.exclude(state="9"):
+            hostlist.append(std)
+        db_warning = 0
+        for host in hostlist:
+            db_status = ''
+            host_ip = host.hostsmanage.host_ip
+            oracle_name = ""
+            oracle_password = ""
+            oracle_instance = ""
+
+            try:
+                config = etree.XML(host.info)
+                param_el = config.xpath("//param")
+                if len(param_el) > 0:
+                    oracle_name = param_el[0].attrib.get("dbusername", ""),
+                    oracle_name = oracle_name[0]
+                    oracle_password = param_el[0].attrib.get("dbpassowrd", ""),
+                    oracle_password = oracle_password[0]
+                    oracle_instance = param_el[0].attrib.get("dbinstance", ""),
+                    oracle_instance = oracle_instance[0]
+            except:
+                pass
+
+            try:
+                conn = cx_Oracle.connect(
+                    '{oracle_name}/{oracle_password}@{host_ip}/{oracle_instance}'.format(
+                        oracle_name=oracle_name, oracle_password=oracle_password, host_ip=host_ip,
+                        oracle_instance=oracle_instance))
+                curs = conn.cursor()
+                a_db_status_sql = 'select open_mode,switchover_status,database_role from v$database'
+                curs.execute(a_db_status_sql)
+                db_status_row = curs.fetchone()
+                db_status = db_status_row[0] if db_status_row else ""
+            except Exception as e:
+                pass
+            else:
+                curs.close()
+                conn.close()
+
+            if db_status in ["OPEN", "READ ONLY WITH APPLY", "READ WRITE", "READ ONLY"]:
+                pass
+            elif db_status == "MOUNT":
+                db_warning = 1
+            else:
+                db_warning = 2
+                break
+        if db_warning==0:
+            normalnum = normalnum+1
+        if db_warning==1:
+            warningnum = warningnum+1
+        if db_warning==2:
+            errornum = errornum+1
+
+    data = {
+        "normalnum": normalnum,
+        "warningnum": warningnum,
+        "errornum": errornum
+    }
+    return JsonResponse({
+        "status": status,
+        "info": info,
+        "data": data
+    })
+
+
+@login_required
+def get_mysql_copy_status(request):
+    """
+    获取mysql状态
+    :param request:
+    :return:
+    """
+    status = 1
+    info = ''
+    warningnum=0
+    normalnum=0
+    errornum=0
+    prilist=DbCopyClient.objects.filter(dbtype='2',hosttype='1').exclude(state="9")
+    for pri in prilist:
+        hostlist = [pri]
+        stdlist = pri.std.all().exclude(state="9")
+        for std in stdlist:
+            hostlist.append(std)
+        db_warning = 0
+        for host in hostlist:
+            conn_status = 1  # 1为连接，0为断开
+            host_ip = host.hostsmanage.host_ip
+            # mysql用户名/密码
+            dbusername = ""
+            dbpassowrd = ""
+            # salve复制状态
+            io_state = ""
+            sql_state = ""
+
+            try:
+                config = etree.XML(host.info)
+                param_el = config.xpath("//param")
+                if len(param_el) > 0:
+                    dbusername = param_el[0].attrib.get("dbusername", ""),
+                    dbusername = dbusername[0]
+                    dbpassowrd = param_el[0].attrib.get("dbpassowrd", ""),
+                    dbpassowrd = dbpassowrd[0]
+            except:
+                conn_status = 0
+
+            try:
+                conn = pymysql.connect(host_ip, dbusername, dbpassowrd, "mysql")
+                curs = conn.cursor()
+                a_db_status_sql = 'show slave status;'
+                curs.execute(a_db_status_sql)
+                db_status_row = curs.fetchone()
+                io_state = db_status_row[10] if db_status_row else "Yes"
+                sql_state = db_status_row[11] if db_status_row else "Yes"
+            except Exception as e:
+                pass
+            else:
+                curs.close()
+                conn.close()
+            if conn_status == 0 or io_state!="Yes" or  sql_state!="Yes" :
+                db_warning = db_warning+1
+        if db_warning== 0:
+            normalnum = normalnum+1
+        else:
+            if db_warning<=len(hostlist)-2:
+                warningnum = warningnum+1
+            else:
+                errornum = errornum+1
+
+    data = {
+        "normalnum": normalnum,
+        "warningnum": warningnum,
+        "errornum": errornum
+    }
+    return JsonResponse({
+        "status": status,
+        "info": info,
+        "data": data
+    })
