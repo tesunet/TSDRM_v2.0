@@ -19,119 +19,6 @@ from lxml import etree
 
 LOGIN_URL = '/login/'
 
-
-#############################################
-# 从config/db_config.xml中读取数据库认证信息 #
-#############################################
-db_host, db_name, db_user, db_password = '', '', '', ''
-try:
-    db_config_file = os.path.join(os.path.join(os.path.join(os.getcwd(), "drm"), "config"), "db_config.xml")
-    # db_config_file = r'D:\Pros\PRO_JX\TSDRM\drm\config\db_config.xml'
-    with open(db_config_file, "r") as f:
-        content = etree.XML(f.read())
-        db_config = content.xpath('./DB_CONFIG')
-        if db_config:
-            db_config = db_config[0]
-            db_host = db_config.attrib.get("db_host", "")
-            db_name = db_config.attrib.get("db_name", "")
-            db_user = db_config.attrib.get("db_user", "")
-            db_password = db_config.attrib.get("db_password", "")
-except:
-    print("获取数据库信息失败。")
-
-# db_host = '192.168.100.154'
-# db_name = "js_tesudrm"
-# db_user = "root"
-# db_password = "password"
-
-# commvault账户
-connection = pymysql.connect(host=db_host,
-                             user=db_user,
-                             password=db_password,
-                             db=db_name,
-                             charset='utf8mb4',
-                             cursorclass=pymysql.cursors.DictCursor)
-
-result = {}
-try:
-    with connection.cursor() as cursor:
-        # Read a single record
-        sql = "SELECT content FROM drm_vendor;"
-        cursor.execute(sql)
-        result = cursor.fetchone()
-finally:
-    connection.close()
-
-webaddr = ""
-port = ""
-usernm = ""
-passwd = ""
-
-SQLServerHost = ""
-SQLServerUser = ""
-SQLServerPasswd = ""
-SQLServerDataBase = ""
-if result:
-    doc = parseString(result["content"])
-    try:
-        webaddr = (doc.getElementsByTagName("webaddr"))[0].childNodes[0].data
-    except:
-        pass
-    try:
-        port = (doc.getElementsByTagName("port"))[0].childNodes[0].data
-    except:
-        pass
-    try:
-        usernm = (doc.getElementsByTagName("username"))[0].childNodes[0].data
-    except:
-        pass
-    try:
-        passwd = (doc.getElementsByTagName("passwd"))[0].childNodes[0].data
-    except:
-        pass
-
-    # SQLServer
-    try:
-        SQLServerHost = (doc.getElementsByTagName("SQLServerHost"))[0].childNodes[0].data
-    except:
-        pass
-    try:
-        SQLServerUser = (doc.getElementsByTagName("SQLServerUser"))[0].childNodes[0].data
-    except:
-        pass
-    try:
-        SQLServerPasswd = (doc.getElementsByTagName("SQLServerPasswd"))[0].childNodes[0].data
-    except:
-        pass
-    try:
-        SQLServerDataBase = (doc.getElementsByTagName("SQLServerDataBase"))[0].childNodes[0].data
-    except:
-        pass
-
-CVApi_credit = {
-    "webaddr": webaddr,
-    "port": port,
-    "username": usernm,
-    "passwd": passwd,
-    "token": "",
-    "lastlogin": 0
-}
-
-# SQLApi
-sql_credit = {
-    "SQLServerHost": SQLServerHost,
-    "SQLServerUser": SQLServerUser,
-    "SQLServerPasswd": SQLServerPasswd,
-    "SQLServerDataBase": SQLServerDataBase,
-}
-
-# sql_credit = {
-#     "host": "192.168.100.149\COMMVAULT",
-#     "user": "sa_cloud",
-#     "password": "1qaz@WSX",
-#     "database": "CommServ",
-# }
-
 djcelery.setup_loader()
 # BROKER_URL = 'django://'
 # CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
@@ -220,10 +107,11 @@ WSGI_APPLICATION = 'TSDRM.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': db_name,
-        'USER': db_user,
-        'PASSWORD': db_password,
-        'HOST': db_host,
+        'NAME': "tesudrm_v2",
+        'USER': "root",
+        'PASSWORD': "password",
+        # 'HOST': "127.0.0.1",
+        'HOST': "192.168.1.66",
         'PORT': '3306',
     }
 }

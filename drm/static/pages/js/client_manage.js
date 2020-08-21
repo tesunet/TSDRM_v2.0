@@ -297,9 +297,12 @@ function getClientree() {
                                                 $('#cv_fs_se_1').append("<option value='" + sourcePaths[i] + "'>" + sourcePaths[i] + "</option>");
                                             }
                                             // 加载tree
-                                            if ($('#cvclient_agentType').val().indexOf("File System") != -1){
-                                                getFileTree()
-                                            }
+                                            try {
+                                                if ($('#cvclient_agentType').val().indexOf("File System") != -1){
+                                                    getFileTree()
+                                                }
+                                            } catch (e){}
+
                                             // SQL Server
                                             var mssqlOverWrite = data.cvinfo.mssqlOverWrite;
                                             if (mssqlOverWrite == "False"){
@@ -1172,9 +1175,11 @@ $(document).ready(function () {
                     }
                     get_cv_detail();
                     // 加载tree
-                    if ($('#cvclient_agentType').val().indexOf("File System") != -1){
-                        getFileTree()
-                    }
+                    try {
+                        if ($('#cvclient_agentType').val().indexOf("File System") != -1){
+                            getFileTree()
+                        }
+                    } catch(e){}
                 }
                 alert(data.info);
             },
