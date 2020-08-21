@@ -288,88 +288,84 @@ EMAIL_PORT = 25
 #     }
 # }
 
-# # 日志系统
-# # 创建日志的路径
-# LOG_PATH = os.path.join(BASE_DIR, 'log')
-# # 如果地址不存在，则自动创建log文件夹
-# if not os.path.join(LOG_PATH):
-#     os.mkdir(LOG_PATH)
-# LOGGING = {
-#     "version": 1,
-#     # True表示禁用logger
-#     "disable_existing_loggers": False,
-#     'formatters': {
-#         'default': {
-#             'format': '%(levelno)s %(module)s %(asctime)s %(message)s ',
-#             'datefmt': '%Y-%m-%d %A %H:%M:%S',
-#         },
-#     },
-#
-#     'handlers': {
-#         'process_handlers': {
-#             'level': 'DEBUG',
-#             # 日志文件指定为5M, 超过5m重新命名，然后写入新的日志文件
-#             'class': 'logging.handlers.RotatingFileHandler',
-#             # 指定文件大小
-#             'maxBytes': 5 * 1024,
-#             # 指定文件地址
-#             'filename': '%s/process.txt' % LOG_PATH,
-#             'formatter': 'default'
-#         },
-#         'step_handlers': {
-#             'level': 'DEBUG',
-#             # 日志文件指定为5M, 超过5m重新命名，然后写入新的日志文件
-#             'class': 'logging.handlers.RotatingFileHandler',
-#             # 指定文件大小
-#             'maxBytes': 5 * 1024,
-#             # 指定文件地址
-#             'filename': '%s/step.txt' % LOG_PATH,
-#             'formatter': 'default'
-#         },
-#         'script_handlers': {
-#             'level': 'DEBUG',
-#             # 日志文件指定为5M, 超过5m重新命名，然后写入新的日志文件
-#             'class': 'logging.handlers.RotatingFileHandler',
-#             # 指定文件大小
-#             'maxBytes': 5 * 1024,
-#             # 指定文件地址
-#             'filename': '%s/script.txt' % LOG_PATH,
-#             'formatter': 'default',
-#         },
-#     },
-#     'loggers': {
-#         'process': {
-#             'handlers': ['process_handlers'],
-#             'level': 'INFO'
-#         },
-#         'step': {
-#             'handlers': ['step_handlers'],
-#             'level': 'INFO'
-#         },
-#         'script': {
-#             'handlers': ['script_handlers'],
-#             'level': 'INFO'
-#         }
-#     },
-#
-#     'filters': {
-#         # 过滤器
-#     }
-# }
-# LOGGING = {
-#     'version': 1,
-#     'disable_existing_loggers': False,
-#     'handlers': {
-#         'console':{
-#             'level':'DEBUG',
-#             'class':'logging.StreamHandler',
-#         },
-#     },
-#     'loggers': {
-#         'django.db.backends': {
-#             'handlers': ['console'],
-#             'propagate': True,
-#             'level':'DEBUG',
-#         },
-#     }
-# }
+# 日志系统
+# 创建日志的路径
+LOG_PATH = os.path.join(BASE_DIR, 'log')
+# 如果地址不存在，则自动创建log文件夹
+if not os.path.exists(LOG_PATH):
+    os.mkdir(LOG_PATH)
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,  # True表示禁用logger
+    'formatters': {
+        'default': {
+            'format': '%(levelno)s %(module)s %(asctime)s %(message)s ',
+            'datefmt': '%Y-%m-%d %A %H:%M:%S',
+        },
+    },
+
+    'handlers': {
+        'tasks': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',  # 日志文件指定为5M, 超过5m重新命名，然后写入新的日志文件
+            'maxBytes': 5 * 1024,  # 指定文件大小
+            'filename': '%s/tasks.txt' % LOG_PATH,  # 指定文件地址
+            'formatter': 'default',
+            'encoding': 'utf8',
+        },
+        'oracle_recover': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',  # 日志文件指定为5M, 超过5m重新命名，然后写入新的日志文件
+            'maxBytes': 5 * 1024,  # 指定文件大小
+            'filename': '%s/oracle_recover.txt' % LOG_PATH,  # 指定文件地址
+            'formatter': 'default',
+            'encoding': 'utf8',
+        },
+        'oracleRAC_recover': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',  # 日志文件指定为5M, 超过5m重新命名，然后写入新的日志文件
+            'maxBytes': 5 * 1024,  # 指定文件大小
+            'filename': '%s/oracleRAC_recover.txt' % LOG_PATH,  # 指定文件地址
+            'formatter': 'default',
+            'encoding': 'utf8',
+        },
+        'FS_recover': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',  # 日志文件指定为5M, 超过5m重新命名，然后写入新的日志文件
+            'maxBytes': 5 * 1024,  # 指定文件大小
+            'filename': '%s/FS_recover.txt' % LOG_PATH,  # 指定文件地址
+            'formatter': 'default',
+            'encoding': 'utf8',
+        },
+        'MSSQL_recover': {
+            'level': 'DEBUG',
+            'class': 'logging.handlers.RotatingFileHandler',  # 日志文件指定为5M, 超过5m重新命名，然后写入新的日志文件
+            'maxBytes': 5 * 1024,  # 指定文件大小
+            'filename': '%s/MSSQL_recover.txt' % LOG_PATH,  # 指定文件地址
+            'formatter': 'default',
+            'encoding': 'utf8',
+        },
+    },
+    'loggers': {
+        'tasks': {
+            'handlers': ['tasks'],
+            'level': 'INFO'
+        },
+        'oracle_recover': {
+            'handlers': ['oracle_recover'],
+            'level': 'INFO'
+        },
+        'oracleRAC_recover': {
+            'handlers': ['oracleRAC_recover'],
+            'level': 'INFO'
+        },
+        'FS_recover': {
+            'handlers': ['FS_recover'],
+            'level': 'INFO'
+        },
+        'MSSQL_recover': {
+            'handlers': ['MSSQL_recover'],
+            'level': 'INFO'
+        },
+    },
+}

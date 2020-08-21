@@ -177,7 +177,7 @@ $(document).ready(function () {
     $("#recovery_time_redio_group").click(function () {
         if ($("input[name='recovery_time_redio']:checked").val() == 2) {
             $("#static02").modal({backdrop: "static"});
-            var pri_name = $("#pri_name").val();
+            var pri = $("#pri").val();
             var datatable = $("#backup_point").dataTable();
             datatable.fnClearTable(); //清空数据
             datatable.fnDestroy();
@@ -185,7 +185,7 @@ $(document).ready(function () {
                 "bAutoWidth": true,
                 "bProcessing": true,
                 "bSort": false,
-                "ajax": "../../oraclerecoverydata?clientName=" + pri_name,
+                "ajax": "../../client_cv_get_backup_his?id=" + pri,
                 "columns": [
                     {"data": "jobId"},
                     {"data": "jobType"},
@@ -285,10 +285,10 @@ $(document).ready(function () {
         for (var k = 0, length = nodes.length; k < length; k++) {
             var halfCheck = nodes[k].getCheckStatus();
             if (!halfCheck.half){
-                $("#fs_se_1").append("<option value='\\" + nodes[k].id + "\\'>\\" + nodes[k].id + "\\</option>");
+                $("#fs_se_1").append("<option value='" + nodes[k].id + "'>" + nodes[k].id + "</option>");
             }
         }
         if (nodes.length==0)
-            $("#fs_se_1").append("<option value='\\'>\\</option>");
+            $("#fs_se_1").append("<option value=''></option>");
      })
 });
