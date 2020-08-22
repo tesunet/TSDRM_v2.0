@@ -472,6 +472,7 @@ function customTree() {
                         $("#script_text_div").hide();
                         $("#success_text_div").hide();
                         $("#log_address_div").hide();
+                        $("#sort_div").hide();
                         $("#origin_div").hide();
                         $("#commv_interface_div").hide();
                         $('#utils_id_div').hide();
