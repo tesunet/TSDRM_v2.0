@@ -3310,7 +3310,7 @@ def util_manage(request, funid):
                   {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request)})
 
 
-def get_credit_info(content):
+def get_credit_info(content, util_type):
     commvault_credit = {
         'webaddr': '',
         'port': '',
@@ -3325,57 +3325,86 @@ def get_credit_info(content):
         'SQLServerPasswd': '',
         'SQLServerDataBase': '',
     }
+    kvm_credit = {
+        'KvmHost': '',
+        'KvmUser': '',
+        'KvmPasswd': '',
+        'SystemType': '',
+    }
+
     try:
         doc = etree.XML(content)
+        if util_type == 'COMMVAULT':
+            # Commvault账户信息
+            try:
+                commvault_credit['webaddr'] = doc.xpath('//webaddr/text()')[0]
+            except:
+                pass
+            try:
+                commvault_credit['port'] = doc.xpath('//port/text()')[0]
+            except:
+                pass
+            try:
+                commvault_credit['hostusername'] = doc.xpath('//hostusername/text()')[0]
+            except:
+                pass
+            try:
+                commvault_credit['hostpasswd'] = base64.b64decode(doc.xpath('//hostpasswd/text()')[0]).decode()
+            except:
+                pass
+            try:
+                commvault_credit['username'] = doc.xpath('//username/text()')[0]
+            except:
+                pass
+            try:
+                commvault_credit['passwd'] = base64.b64decode(doc.xpath('//passwd/text()')[0]).decode()
+            except:
+                pass
 
-        # Commvault账户信息
-        try:
-            commvault_credit['webaddr'] = doc.xpath('//webaddr/text()')[0]
-        except:
-            pass
-        try:
-            commvault_credit['port'] = doc.xpath('//port/text()')[0]
-        except:
-            pass
-        try:
-            commvault_credit['hostusername'] = doc.xpath('//hostusername/text()')[0]
-        except:
-            pass
-        try:
-            commvault_credit['hostpasswd'] = base64.b64decode(doc.xpath('//hostpasswd/text()')[0]).decode()
-        except:
-            pass
-        try:
-            commvault_credit['username'] = doc.xpath('//username/text()')[0]
-        except:
-            pass
-        try:
-            commvault_credit['passwd'] = base64.b64decode(doc.xpath('//passwd/text()')[0]).decode()
-        except:
-            pass
+            # SQL Server账户信息
+            try:
+                sqlserver_credit['SQLServerHost'] = doc.xpath('//SQLServerHost/text()')[0]
+            except:
+                pass
+            try:
+                sqlserver_credit['SQLServerUser'] = doc.xpath('//SQLServerUser/text()')[0]
+            except:
+                pass
+            try:
+                sqlserver_credit['SQLServerPasswd'] = base64.b64decode(
+                    doc.xpath('//SQLServerPasswd/text()')[0]).decode()
+            except:
+                pass
+            try:
+                sqlserver_credit['SQLServerDataBase'] = doc.xpath('//SQLServerDataBase/text()')[0]
+            except:
+                pass
 
-        # SQL Server账户信息
-        try:
-            sqlserver_credit['SQLServerHost'] = doc.xpath('//SQLServerHost/text()')[0]
-        except:
-            pass
-        try:
-            sqlserver_credit['SQLServerUser'] = doc.xpath('//SQLServerUser/text()')[0]
-        except:
-            pass
-        try:
-            sqlserver_credit['SQLServerPasswd'] = base64.b64decode(
-                doc.xpath('//SQLServerPasswd/text()')[0]).decode()
-        except:
-            pass
-        try:
-            sqlserver_credit['SQLServerDataBase'] = doc.xpath('//SQLServerDataBase/text()')[0]
-        except:
-            pass
+            return commvault_credit, sqlserver_credit
+        elif util_type == 'KVM':
+            # Kvm账户信息
+            try:
+                kvm_credit['KvmHost'] = doc.xpath('//KvmHost/text()')[0]
+            except:
+                pass
+            try:
+                kvm_credit['KvmUser'] = doc.xpath('//KvmUser/text()')[0]
+            except:
+                pass
+            try:
+                kvm_credit['KvmPasswd'] = base64.b64decode(
+                    doc.xpath('//KvmPasswd/text()')[0]).decode()
+            except:
+                pass
+            try:
+                kvm_credit['SystemType'] = doc.xpath('//SystemType/text()')[0]
+            except:
+                pass
+            return kvm_credit
 
     except Exception as e:
         print(e)
-    return commvault_credit, sqlserver_credit
+
 
 
 @login_required
@@ -3388,31 +3417,26 @@ def util_manage_data(request):
     util_manages = UtilsManage.objects.exclude(state='9')
 
     for um in util_manages:
-        commvault_credit = {
-            'webaddr': '',
-            'port': '',
-            'hostusername': '',
-            'hostpasswd': '',
-            'username': '',
-            'passwd': '',
-        }
-        sqlserver_credit = {
-            'SQLServerHost': '',
-            'SQLServerUser': '',
-            'SQLServerPasswd': '',
-            'SQLServerDataBase': '',
-        }
         if um.util_type.upper() == 'COMMVAULT':
-            commvault_credit, sqlserver_credit = get_credit_info(um.content)
+            commvault_credit, sqlserver_credit = get_credit_info(um.content, um.util_type.upper())
+            util_manage_list.append({
+                'id': um.id,
+                'code': um.code,
+                'name': um.name,
+                'util_type': um.util_type,
+                'commvault_credit': commvault_credit,
+                'sqlserver_credit': sqlserver_credit,
+            })
 
-        util_manage_list.append({
-            'id': um.id,
-            'code': um.code,
-            'name': um.name,
-            'util_type': um.util_type,
-            'commvault_credit': commvault_credit,
-            'sqlserver_credit': sqlserver_credit
-        })
+        elif um.util_type.upper() == 'KVM':
+            kvm_credit = get_credit_info(um.content, um.util_type.upper())
+            util_manage_list.append({
+                'id': um.id,
+                'code': um.code,
+                'name': um.name,
+                'util_type': um.util_type,
+                'kvm_credit': kvm_credit
+            })
 
     return JsonResponse({"data": util_manage_list})
 
@@ -3439,6 +3463,11 @@ def util_manage_save(request):
     SQLServerUser = request.POST.get('SQLServerUser', '')
     SQLServerPasswd = request.POST.get('SQLServerPasswd', '')
     SQLServerDataBase = request.POST.get('SQLServerDataBase', '')
+
+    KvmHost = request.POST.get('KvmHost', '')
+    KvmUser = request.POST.get('KvmUser', '')
+    KvmPasswd = request.POST.get('KvmPasswd', '')
+    SystemType = request.POST.get('SystemType', '')
 
     credit = ''
 
@@ -3485,6 +3514,19 @@ def util_manage_save(request):
                     "SQLServerUser": SQLServerUser,
                     "SQLServerPasswd": base64.b64encode(SQLServerPasswd.encode()).decode(),
                     "SQLServerDataBase": SQLServerDataBase
+                })
+            elif util_type.strip().upper() == 'KVM':
+                credit = """<?xml version="1.0" ?>
+                    <vendor>
+                        <KvmHost>{KvmHost}</KvmHost>
+                        <KvmUser>{KvmUser}</KvmUser>
+                        <KvmPasswd>{KvmPasswd}</KvmPasswd>
+                        <SystemType>{SystemType}</SystemType>
+                    </vendor>""".format(**{
+                    "KvmHost": KvmHost,
+                    "KvmUser": KvmUser,
+                    "KvmPasswd": base64.b64encode(KvmPasswd.encode()).decode(),
+                    "SystemType": SystemType
                 })
             try:
                 cur_util_manage = UtilsManage.objects.filter(id=util_manage_id)

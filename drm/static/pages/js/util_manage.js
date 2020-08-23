@@ -58,29 +58,47 @@ $(document).ready(function () {
 
         }
     });
+
+
+
     $('#util_manage_dt tbody').on('click', 'button#edit', function () {
         var table = $('#util_manage_dt').DataTable();
         var data = table.row($(this).parents('tr')).data();
         $("#util_manage_id").val(data.id);
-
         $('#code').val(data.code);
         $('#name').val(data.name);
         $('#util_type').val(data.util_type);
-        $('#webaddr').val(data.commvault_credit.webaddr);
-        $('#port').val(data.commvault_credit.port);
-        $('#hostusernm').val(data.commvault_credit.hostusername);
-        $('#hostpasswd').val(data.commvault_credit.hostpasswd);
-        $('#usernm').val(data.commvault_credit.username);
-        $('#passwd').val(data.commvault_credit.passwd);
-        $('#SQLServerHost').val(data.sqlserver_credit.SQLServerHost);
-        $('#SQLServerUser').val(data.sqlserver_credit.SQLServerUser);
-        $('#SQLServerPasswd').val(data.sqlserver_credit.SQLServerPasswd);
-        $('#SQLServerDataBase').val(data.sqlserver_credit.SQLServerDataBase);
+        if (data.util_type.toUpperCase() == 'COMMVAULT'){
+            $('#credit_div').show();
+            $('#kvm_div').hide();
+            $('#webaddr').val(data.commvault_credit.webaddr);
+            $('#port').val(data.commvault_credit.port);
+            $('#hostusernm').val(data.commvault_credit.hostusername);
+            $('#hostpasswd').val(data.commvault_credit.hostpasswd);
+            $('#usernm').val(data.commvault_credit.username);
+            $('#passwd').val(data.commvault_credit.passwd);
+            $('#SQLServerHost').val(data.sqlserver_credit.SQLServerHost);
+            $('#SQLServerUser').val(data.sqlserver_credit.SQLServerUser);
+            $('#SQLServerPasswd').val(data.sqlserver_credit.SQLServerPasswd);
+            $('#SQLServerDataBase').val(data.sqlserver_credit.SQLServerDataBase);
+        }
+        else if (data.util_type.toUpperCase() == 'KVM'){
+            $('#credit_div').hide();
+            $('#kvm_div').show();
+            $('#KvmHost').val(data.kvm_credit.KvmHost);
+            $('#KvmUser').val(data.kvm_credit.KvmUser);
+            $('#KvmPasswd').val(data.kvm_credit.KvmPasswd);
+            $('#SystemType').val(data.kvm_credit.SystemType);
+        }
     });
 
     $("#new").click(function () {
         $('#util_manage_form')[0].reset();
         $("#util_manage_id").val("0");
+        if ($('#util_type').val().toUpperCase() == 'COMMVAULT'){
+            $('#credit_div').show();
+            $('#kvm_div').hide();
+        }
     });
 
     $('#save').click(function () {
@@ -109,8 +127,15 @@ $(document).ready(function () {
         console.log(util_type)
         if (util_type.toUpperCase() == 'COMMVAULT'){
             $('#credit_div').show();
-        } else {
+            $('#kvm_div').hide();
+        }
+        else if (util_type.toUpperCase() == 'KVM'){
             $('#credit_div').hide();
+            $('#kvm_div').show();
+        }
+        else {
+            $('#credit_div').hide();
+            $('#kvm_div').hide();
         }
     });
 

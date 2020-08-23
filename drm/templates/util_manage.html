@@ -57,6 +57,7 @@
                                     <select name="util_type" id="util_type" class="form-control">
                                         <option value="Commvault">Commvault</option>
                                         <option value="Falconstor">Falconstor</option>
+                                        <option value="Kvm">Kvm</option>
                                     </select>
                                     <div class="form-control-focus"></div>
             
@@ -98,7 +99,7 @@
                                 <div class="form-group">
                                     <label class="col-md-2 control-label">端口号</label>
                                     <div class="col-md-10">
-                                        <input id="port" autocomplete="off" type="text" name="port" class="form-control"">
+                                        <input id="port" autocomplete="off" type="text" name="port" class="form-control">
                                         <div class="form-control-focus"></div>
                                     </div>
                                 </div>
@@ -164,6 +165,45 @@
                                     <label class="col-md-2 control-label">数据库名称</label>
                                     <div class="col-md-10">
                                         <input id="SQLServerDataBase" autocomplete="off" type="text" name="SQLServerDataBase" class="form-control">
+                                        <div class="form-control-focus"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id='kvm_div'>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="col-md-2 control-label" for="form_control_1"
+                                        style="vertical-align: inherit;font-weight:bold;">Kvm
+                                    </label>
+                                    <div class="col-md-10">
+                                        <hr>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-2 control-label">服务器地址</label>
+                                    <div class="col-md-10">
+                                        <input hidden id="id" type="text" name="id" value="{{ id }}">
+                                        <input id="KvmHost" autocomplete="off" type="text" name="KvmHost" class="form-control">
+                                        <div class="form-control-focus"></div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-2 control-label">用户名</label>
+                                    <div class="col-md-10">
+                                        <input id="KvmUser" autocomplete="off" type="text" name="KvmUser" class="form-control">
+                                        <div class="form-control-focus"></div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-2 control-label">密码</label>
+                                    <div class="col-md-10">
+                                        <input id="KvmPasswd" autocomplete="off" type="password" name="KvmPasswd" class="form-control">
+                                        <div class="form-control-focus"></div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="col-md-2 control-label">系统类型</label>
+                                    <div class="col-md-10">
+                                        <input id="SystemType" autocomplete="off" type="text" name="SystemType" class="form-control">
                                         <div class="form-control-focus"></div>
                                     </div>
                                 </div>
