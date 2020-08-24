@@ -871,7 +871,7 @@ def index(request, funid):
 
                         pre_client = pri_client_name
 
-        all_process = Process.objects.exclude(state="9").filter(type="cv_oracle")
+        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None)
         # 右上角消息任务
         return render(request, "index.html",
                       {'username': request.user.userinfo.fullname, "alltask": alltask, "homepage": True,
@@ -989,7 +989,7 @@ def monitor(request):
 
                 curren_processrun_info_list.append(current_processrun_dict)
 
-        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type=""))
+        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None)
         utils_manage = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
         # 右上角消息任务
         return render(request, "monitor.html",
@@ -1051,7 +1051,7 @@ def get_monitor_data(request):
         }
 
         # 系统演练次数TOP5
-        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type=""))
+        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None)
         drill_name = []
         drill_time = []
         for process in all_process:
@@ -1105,7 +1105,7 @@ def get_monitor_data(request):
             })
         # 今日作业
         running_job, success_job, error_job = 0, 0, 0
-        all_processes = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type=""))
+        all_processes = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None)
         has_run_process = 0
         for process in all_processes:
             process_run = process.processrun_set.exclude(state__in=["9", "REJECT"]).filter(
@@ -1269,7 +1269,7 @@ def get_process_run_facts(request):
         #######################################################
         cv_oracle_process_list = []
 
-        all_process = Process.objects.exclude(state="9").order_by("sort").exclude(Q(type=None) | Q(type=""))
+        all_process = Process.objects.exclude(state="9").order_by("sort").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None)
 
         for cur_process in all_process:
             # 今日演练(状态)  0/1/2
@@ -1347,7 +1347,7 @@ def get_process_run_facts(request):
 def get_process_rto(request):
     if request.user.is_authenticated():
         # 不同流程最近的12次切换RTO
-        all_processes = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type=""))
+        all_processes = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None)
         process_rto_list = []
         if all_processes:
             for process in all_processes:

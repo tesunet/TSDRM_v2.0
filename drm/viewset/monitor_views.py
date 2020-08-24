@@ -1503,7 +1503,7 @@ def get_force_script_info(request):
 ######################
 def process_schedule(request, funid):
     if request.user.is_authenticated():
-        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).order_by("sort").only("id", "name")
+        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None).order_by("sort").only("id", "name")
 
         return render(request, 'process_schedule.html', {'username': request.user.userinfo.fullname,
                                                          "pagefuns": getpagefuns(funid, request=request),
@@ -1803,7 +1803,7 @@ def invite(request):
         nowtime = datetime.datetime.now()
         invite_time = nowtime.strftime("%Y-%m-%d")
 
-        current_processes = Process.objects.filter(id=process_id).exclude(Q(type=None) | Q(type=""))
+        current_processes = Process.objects.filter(id=process_id)
         process_name = current_processes[0].name if current_processes else ""
         allgroup = current_processes[0].step_set.exclude(state="9").exclude(Q(group="") | Q(group=None)).values(
             "group").distinct()
