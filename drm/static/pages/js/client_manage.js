@@ -1933,6 +1933,26 @@ $(document).ready(function () {
         kvmFunction();
     });
 
+    $('#kvm_protect_save').click(function () {
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../kvm_save/",
+            data:
+                {
+                    util_kvm_id: $("#kvm_machine_platform").val(),
+                    name: $("#kvm_machine").val(),
+                    filesystem: $("#kvm_filesystem").val(),
+                },
+            success: function (data) {
+                alert(data.info);
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+            }
+        });
+    });
+
 
     $('#zfs_snapshot').dataTable({
         "bAutoWidth": true,

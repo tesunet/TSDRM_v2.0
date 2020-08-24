@@ -1924,6 +1924,44 @@ def kvm_data(request):
 
     return JsonResponse({'kvm_list': kvm_list, 'kvm_filesystem_list': kvm_filesystem_list})
 
+@login_required
+def kvm_save(request):
+    status = 1
+    info = '保存成功。'
+
+    utils_id = request.POST.get("util_kvm_id", "")
+    name = request.POST.get("name", "")
+    filesystem = request.POST.get("filesystem", "")
+
+    try:
+        utils_id = int(utils_id)
+    except:
+        utils_id = ""
+    try:
+        kvm_obj = KvmMachine.objects.filter(name=name)
+        if kvm_obj.exists():
+            kvm_obj.update(**{
+                'utils_id': utils_id,
+                'name': name,
+                'filesystem': filesystem,
+
+            })
+        else:
+            kvm_obj.create(**{
+                'utils_id': utils_id,
+                'name': name,
+                'filesystem': filesystem,
+            })
+    except Exception as e:
+        print(e)
+        status = 0
+        info = '保存失败。'
+
+    return JsonResponse({
+        'status': status,
+        'info': info,
+    })
+
 
 def get_client_node(parent, select_id, request):
     nodes = []

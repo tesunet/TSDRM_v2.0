@@ -233,7 +233,7 @@ urlpatterns = [
     url(r'^hosts_manage_data/$', hosts_manage_data),
 
     url(r'^kvm_data/$', kvm_data),
-
+    url(r'^kvm_save/$', kvm_save),
 
 
 ]
