@@ -104,9 +104,11 @@ function displayParams() {
 // 根据工具加载源客户端
 $("#utils").empty()
 for (var i=0; i<cv_client_data.length; i++){
-    $("#utils").append('<option value="' + cv_client_data[i].utils_id + '">' + cv_client_data[i].utils_name + '</option>');
     if (i==0){
+        $("#utils").append('<option value="' + cv_client_data[i].utils_id + '" selected>' + cv_client_data[i].utils_name + '</option>');
         loadOrigins(cv_client_data[i].utils_id);
+    } else {
+        $("#utils").append('<option value="' + cv_client_data[i].utils_id + '">' + cv_client_data[i].utils_name + '</option>');
     }
 }
 
@@ -116,12 +118,16 @@ function loadOrigins(utils_id){
         if (cv_client_data[i]["utils_id"] == utils_id){
             var origins = cv_client_data[i]["cv_client_list"];
             for (var j=0; j< origins.length; j++){
-                $("#origin").append('<option value="' + origins[j].id + '">' + origins[j].client_name + '(' + cv_client_data[i]["utils_name"] + ')</option>')
+                $("#origin").append('<option value="' + origins[j].id + '">' + origins[j].client_name + '(' + origins[j].host_ip + ')</option>')
             }
             break;
         }
     }
 }
+
+$('#utils').change(function(){
+    loadOrigins($(this).val());
+})
 
 function loadHostsParams(){
     $.ajax({
@@ -494,7 +500,7 @@ function customTree() {
                         $("#error_solved").val('');
                         $('#script_instance_name').val('');
                         $('#script_instance_remark').val('');
-                        $('#utils').val('')
+                        $('#utils option:first').prop("selected", true);
 
                         // 隐藏
                         $("#host_id_div").hide();

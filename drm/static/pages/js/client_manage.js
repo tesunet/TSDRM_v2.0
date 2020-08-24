@@ -243,6 +243,18 @@ function getClientree() {
 
                                         //cv信息
                                         if (JSON.stringify(data.cvinfo) != '{}') {
+                                            // 所属流程
+                                            var processes = "";
+                                            var processes_json = eval(data.cvinfo.processes);
+                                            console.log(processes_json)
+                                            for (var i = 0; i < processes_json.length; i++) {
+                                                if (i == processes_json.length - 1) {
+                                                    processes += processes_json[i]["name"]
+                                                } else {
+                                                    processes += prcesses_json[i]["name"] + "、";
+                                                }
+                                            }
+                                            $('#processes').val(processes);
                                             $("#tabcheck2_1").click();
                                             $("#div_creatcv").hide();
                                             $("#div_cv").show();
@@ -279,38 +291,38 @@ function getClientree() {
                                             var overWrite = data.cvinfo.overWrite;
                                             var destPath = data.cvinfo.destPath;
                                             var sourcePaths = data.cvinfo.sourcePaths;
-                                            if (overWrite == "True"){
+                                            if (overWrite == "True") {
                                                 $('input[name="cv_overwrite"]:last').prop("checked", true);
                                             } else {
                                                 $('input[name="cv_overwrite"]:first').prop("checked", true);
                                             }
 
-                                            if (destPath == "same"){
+                                            if (destPath == "same") {
                                                 $('input[name="cv_path"]:first').prop("checked", true);
                                             } else {
                                                 $('input[name="cv_path"]:last').prop("checked", true);
                                                 $('#cv_mypath').val(destPath);
                                             }
-                                            
+
                                             $('#cv_fs_se_1').empty();
-                                            for (var i=0; i<sourcePaths.length; i++){
+                                            for (var i = 0; i < sourcePaths.length; i++) {
                                                 $('#cv_fs_se_1').append("<option value='" + sourcePaths[i] + "'>" + sourcePaths[i] + "</option>");
                                             }
                                             // 加载tree
                                             try {
-                                                if ($('#cvclient_agentType').val().indexOf("File System") != -1){
+                                                if ($('#cvclient_agentType').val().indexOf("File System") != -1) {
                                                     getFileTree();
-                                                    if ($('#cvclient_type').val()==2){ // 目标端
+                                                    if ($('#cvclient_type').val() == 2) { // 目标端
                                                         $('#cv_select_file').hide();
                                                     } else {
                                                         $('#cv_select_file').show();
                                                     }
                                                 }
-                                            } catch (e){}
+                                            } catch (e) { }
 
                                             // SQL Server
                                             var mssqlOverWrite = data.cvinfo.mssqlOverWrite;
-                                            if (mssqlOverWrite == "False"){
+                                            if (mssqlOverWrite == "False") {
                                                 $('#cv_isoverwrite').prop("checked", false);
                                             } else {
                                                 $('#cv_isoverwrite').prop("checked", true);
@@ -338,7 +350,7 @@ function getClientree() {
 
                                         //dbcopy信息
                                         if (JSON.stringify(data.dbcopyinfo) != '{}') {
-                                            $("#dbcopy_dbtype").prop("disabled","disabled");
+                                            $("#dbcopy_dbtype").prop("disabled", "disabled");
                                             $("#tabcheck3_1").click();
                                             $("#div_creatdbcopy").hide();
                                             $("#div_dbcopy").show();
@@ -369,7 +381,7 @@ function getClientree() {
                                                     $("#tabcheck3_3").parent().hide();
                                                 }
                                             }
-                                            else{
+                                            else {
                                                 $("#dbcopy_oracleusername").val("");
                                                 $("#dbcopy_oraclepassword").val("");
                                                 $("#dbcopy_oracleinstance").val("");
@@ -453,7 +465,7 @@ function get_cv_detail() {
     ).load();
     // 目标客户端
     var dest_client = $('#cvclient_destination').val();
-    if (dest_client == "self"){
+    if (dest_client == "self") {
         dest_client = $('#cv_id').val();
     }
     var table1 = $('#cv_restore_his').DataTable();
@@ -470,7 +482,7 @@ function get_cv_detail() {
     $('#cv_r_data_path').val($('#cvclient_data_path').val());
 
     // SQL Server
-    if ($('#cv_isoverwrite').is(':checked')){
+    if ($('#cv_isoverwrite').is(':checked')) {
         $('#cv_r_isoverwrite').prop("checked", true);
     } else {
         $('#cv_r_isoverwrite').prop("checked", false);
@@ -480,14 +492,14 @@ function get_cv_detail() {
     // cv_overwrite cv_path  cv_mypath cv_fs_se_1
     // cv_r_overwrite cv_r_path cv_r_mypath cv_r_fs_se_1
     var cv_overwrite = $('input[name="cv_overwrite"]:checked').val();
-    if (cv_overwrite == "TRUE"){
+    if (cv_overwrite == "TRUE") {
         $('input[name="cv_r_overwrite"]:last').prop("checked", true);
     } else {
         $('input[name="cv_r_overwrite"]:first').prop("checked", true);
     }
     var cv_path = $('input[name="cv_path"]:checked').val();
     var cv_mypath = $('#cv_mypath').val();
-    if (cv_path == 1){  // 相同文件
+    if (cv_path == 1) {  // 相同文件
         $('input[name="cv_r_path"]:first').prop("checked", true);
     } else {
         $('input[name="cv_r_path"]:last').prop("checked", true);
@@ -499,34 +511,44 @@ function get_cv_detail() {
 
 function getCvInstance() {
     $("#cvclient_instance").empty();
-    var clientdata = JSON.parse($("#cvclient_client_info").val());
-    var instancelist = [];
-    for (var i = 0; i < clientdata.length; i++) {
-        if (clientdata[i].clientid == $("#cvclient_source").val() && clientdata[i].agent == $("#cvclient_agentType").val()) {
-            if (instancelist.indexOf(clientdata[i].instance) == -1) {
-                instancelist.push(clientdata[i].instance);
+    try {
+        var clientdata = JSON.parse($("#cvclient_client_info").val());
+        var instancelist = [];
+        for (var i = 0; i < clientdata.length; i++) {
+            if (clientdata[i].clientid == $("#cvclient_source").val() && clientdata[i].agent == $("#cvclient_agentType").val()) {
+                if (instancelist.indexOf(clientdata[i].instance) == -1) {
+                    instancelist.push(clientdata[i].instance);
+                }
             }
         }
+        for (var i = 0; i < instancelist.length; i++) {
+            $("#cvclient_instance").append('<option value="' + instancelist[i] + '">' + instancelist[i] + '</option>');
+        }
+    } catch (e){
+        console.log(e)
     }
-    for (var i = 0; i < instancelist.length; i++) {
-        $("#cvclient_instance").append('<option value="' + instancelist[i] + '">' + instancelist[i] + '</option>');
-    }
+
 }
 
 function getCvAgenttype() {
     $("#cvclient_agentType").empty();
-    var clientdata = JSON.parse($("#cvclient_client_info").val());
-    var agentlist = [];
-    for (var i = 0; i < clientdata.length; i++) {
-        if (clientdata[i].clientid == $("#cvclient_source").val()) {
-            if (agentlist.indexOf(clientdata[i].agent) == -1) {
-                agentlist.push(clientdata[i].agent);
+    try {
+        var clientdata = JSON.parse($("#cvclient_client_info").val());
+        var agentlist = [];
+        for (var i = 0; i < clientdata.length; i++) {
+            if (clientdata[i].clientid == $("#cvclient_source").val()) {
+                if (agentlist.indexOf(clientdata[i].agent) == -1) {
+                    agentlist.push(clientdata[i].agent);
+                }
             }
         }
+        for (var i = 0; i < agentlist.length; i++) {
+            $("#cvclient_agentType").append('<option value="' + agentlist[i] + '">' + agentlist[i] + '</option>');
+        }
+    } catch (e){
+        console.log(e)
     }
-    for (var i = 0; i < agentlist.length; i++) {
-        $("#cvclient_agentType").append('<option value="' + agentlist[i] + '">' + agentlist[i] + '</option>');
-    }
+
     getCvInstance();
 }
 
@@ -590,19 +612,19 @@ function getCvinfo() {
 
 }
 
-function getFileTree(){
+function getFileTree() {
     var setting = {
         async: {
             enable: true,
             url: '../get_file_tree/',
             autoParam: ["id"],
-            otherParam: {"cv_id": $('#cv_id').val()},
+            otherParam: { "cv_id": $('#cv_id').val() },
             dataFilter: filter
         },
         check: {
             enable: true,
             chkStyle: "checkbox",               //多选
-            chkboxType: {"Y": "s", "N": "ps"}  //不级联父节点选择
+            chkboxType: { "Y": "s", "N": "ps" }  //不级联父节点选择
         },
         view: {
             showLine: false
@@ -730,9 +752,9 @@ function get_dbcopy_mysql_detail() {
             $(".mysqlsync").attr("src", "/static/pages/images/adg/sync_r.png");
             $(".mysqlhost").attr("src", "/static/pages/images/adg/db3.png");
             $(".mysqltest").text("")
-            var hostcount=data["data"].length;
+            var hostcount = data["data"].length;
             $("#mysql_count_" + hostcount.toString()).show();
-            if(hostcount>4){
+            if (hostcount > 4) {
                 $("#mysql_count_4").show();
             }
             for (var i = 0; i < data["data"].length; i++) {
@@ -746,12 +768,12 @@ function get_dbcopy_mysql_detail() {
 
                 $("#dbhost_" + hostcount.toString() + "_" + num.toString()).text(host_name);
                 $("#dbip_" + hostcount.toString() + "_" + num.toString()).text(host_ip);
-                if(conn_status==1){
-                     $("#mysqlimg_" + hostcount.toString() + "_" + num.toString()).attr("src", "/static/pages/images/adg/db1.png");
+                if (conn_status == 1) {
+                    $("#mysqlimg_" + hostcount.toString() + "_" + num.toString()).attr("src", "/static/pages/images/adg/db1.png");
                 }
-                $("#sync_" + hostcount.toString() + "_" + masternum.toString()+ "_" + num.toString()).show();
-                if(io_state=="Yes" && sql_state=="Yes" ){
-                    $("#sync_" + hostcount.toString() + "_" + masternum.toString()+ "_" + num.toString()).attr("src", "/static/pages/images/adg/sync_r.gif");
+                $("#sync_" + hostcount.toString() + "_" + masternum.toString() + "_" + num.toString()).show();
+                if (io_state == "Yes" && sql_state == "Yes") {
+                    $("#sync_" + hostcount.toString() + "_" + masternum.toString() + "_" + num.toString()).attr("src", "/static/pages/images/adg/sync_r.gif");
                 }
 
             }
@@ -1103,7 +1125,7 @@ $(document).ready(function () {
     $('#cv_save').click(function () {
         var cv_iscover = $("input[name='cv_overwrite']:checked").val();
         var cv_mypath = "same"
-        if ($("input[name='cv_path']:checked").val() == "2"){
+        if ($("input[name='cv_path']:checked").val() == "2") {
             cv_mypath = $('#cv_mypath').val()
         }
         var cv_selectedfile = ""
@@ -1112,7 +1134,7 @@ $(document).ready(function () {
             cv_selectedfile = cv_selectedfile + txt + "*!-!*"
         });
         var mssql_iscover = "FALSE"
-        if ($('#cv_isoverwrite').is(':checked')){
+        if ($('#cv_isoverwrite').is(':checked')) {
             mssql_iscover = "TRUE"
         }
         $.ajax({
@@ -1181,15 +1203,15 @@ $(document).ready(function () {
                     get_cv_detail();
                     // 加载tree
                     try {
-                        if ($('#cvclient_agentType').val().indexOf("File System") != -1){
+                        if ($('#cvclient_agentType').val().indexOf("File System") != -1) {
                             getFileTree();
-                            if ($('#cvclient_type').val()==2){ // 目标端
+                            if ($('#cvclient_type').val() == 2) { // 目标端
                                 $('#cv_select_file').hide();
                             } else {
                                 $('#cv_select_file').show();
                             }
-                        } 
-                    } catch(e){}
+                        }
+                    } catch (e) { }
                 }
                 alert(data.info);
             },
@@ -1288,7 +1310,7 @@ $(document).ready(function () {
         var pre_last_time = "";
         try {
             pre_last_time = table.row($(this).parents('tr').next()).data().LastTime;
-        }catch(e){
+        } catch (e) {
             //..
         }
         $('#cv_r_pre_restore_time').val(pre_last_time);
@@ -1347,13 +1369,13 @@ $(document).ready(function () {
                     myrestoreTime = $('#cv_r_datetimepicker').val();
                 }
                 var destClient = $('#cv_r_destClient option:selected').text().trim();
-                if ($('#cv_r_destClient').val()  == "self") {
+                if ($('#cv_r_destClient').val() == "self") {
                     destClient = $('#cv_r_sourceClient').val()
                 }
 
                 // 区分应用
                 var agent = $("#cvclient_agentType").val();
-                if (agent.indexOf("Oracle")!=-1) {
+                if (agent.indexOf("Oracle") != -1) {
                     $.ajax({
                         type: "POST",
                         url: "../../client_cv_recovery/",
@@ -1378,7 +1400,7 @@ $(document).ready(function () {
                             alert("恢复失败，请于客服联系。");
                         }
                     });
-                } else if (agent.indexOf('File System')!=-1) {
+                } else if (agent.indexOf('File System') != -1) {
                     if ($("input[name='cv_r_path']:checked").val() == "2" && $('#cv_r_mypath').val() == "")
                         alert("请输入指定路径。");
                     else {
@@ -1416,9 +1438,9 @@ $(document).ready(function () {
                             }
                         });
                     }
-                } else if (agent.indexOf('SQL Server')!=-1) {
+                } else if (agent.indexOf('SQL Server') != -1) {
                     var mssql_iscover = "FALSE"
-                    if ($('#cv_r_isoverwrite').is(':checked')){
+                    if ($('#cv_r_isoverwrite').is(':checked')) {
                         mssql_iscover = "TRUE"
                     }
                     $.ajax({
@@ -1480,19 +1502,19 @@ $(document).ready(function () {
         }
     });
 
-    $('#cv_selectpath').click(function(){
+    $('#cv_selectpath').click(function () {
         $('#cv_fs_se_1').empty();
         var cv_fs_tree = $.fn.zTree.getZTreeObj("cv_fs_tree");
         var nodes = cv_fs_tree.getCheckedNodes(true);
         for (var k = 0, length = nodes.length; k < length; k++) {
             var halfCheck = nodes[k].getCheckStatus();
-            if (!halfCheck.half){
+            if (!halfCheck.half) {
                 $("#cv_fs_se_1").append("<option value='\\" + nodes[k].id + "\\'>\\" + nodes[k].id + "\\</option>");
             }
         }
-        if (nodes.length==0)
+        if (nodes.length == 0)
             $("#cv_fs_se_1").append("<option value='\\'>\\</option>");
-     })
+    })
     // SQL Server
 
 
@@ -1502,11 +1524,11 @@ $(document).ready(function () {
     $("#dbcopy_dbtype").change(function () {
         if ($("#dbcopy_dbtype").val() == "1") {
             $("#oraclediv").show();
-             $("#mysqldiv").hide();
+            $("#mysqldiv").hide();
         }
         if ($("#dbcopy_dbtype").val() == "2") {
             $("#mysqldiv").show();
-             $("#oraclediv").hide();
+            $("#oraclediv").hide();
         }
     });
     $("#dbcopy_hosttype").change(function () {
@@ -1612,7 +1634,7 @@ $(document).ready(function () {
                         $("#tabcheck3_3").parent().hide();
                     }
                     $("#dbcopy_oracle_del").show();
-                    $("#dbcopy_dbtype").prop("disabled","disabled");
+                    $("#dbcopy_dbtype").prop("disabled", "disabled");
                 }
                 alert(data.info);
             },
@@ -1695,7 +1717,7 @@ $(document).ready(function () {
                         $("#tabcheck3_3").parent().hide();
                     }
                     $("#dbcopy_mysql_del").show();
-                    $("#dbcopy_dbtype").prop("disabled","disabled");
+                    $("#dbcopy_dbtype").prop("disabled", "disabled");
                 }
                 alert(data.info);
             },
@@ -1914,17 +1936,17 @@ $(document).ready(function () {
                 utils_kvm_id: $('#kvm_machine_platform').val()
             },
             success: function (data) {
-            if (data.ret == 0) {
-                alert(data.data)
-            } else {
-                for (i = 0; i < data.kvm_list.length; i++) {
-                    $("#kvm_machine").append('<option value="'+ data.kvm_list[i].name + '">'+ data.kvm_list[i].name + '</option>')
-                }
-                for (i = 0; i < data.kvm_filesystem_list.length; i++) {
-                    $("#kvm_filesystem").append('<option value="'+ data.kvm_filesystem_list[i] + '">'+ data.kvm_filesystem_list[i] + '</option>')
+                if (data.ret == 0) {
+                    alert(data.data)
+                } else {
+                    for (i = 0; i < data.kvm_list.length; i++) {
+                        $("#kvm_machine").append('<option value="' + data.kvm_list[i].name + '">' + data.kvm_list[i].name + '</option>')
+                    }
+                    for (i = 0; i < data.kvm_filesystem_list.length; i++) {
+                        $("#kvm_filesystem").append('<option value="' + data.kvm_filesystem_list[i] + '">' + data.kvm_filesystem_list[i] + '</option>')
+                    }
                 }
             }
-        }
         });
     }
     kvmFunction();
@@ -1939,11 +1961,11 @@ $(document).ready(function () {
             dataType: 'json',
             url: "../kvm_save/",
             data:
-                {
-                    util_kvm_id: $("#kvm_machine_platform").val(),
-                    name: $("#kvm_machine").val(),
-                    filesystem: $("#kvm_filesystem").val(),
-                },
+            {
+                util_kvm_id: $("#kvm_machine_platform").val(),
+                name: $("#kvm_machine").val(),
+                filesystem: $("#kvm_filesystem").val(),
+            },
             success: function (data) {
                 alert(data.info);
             },
@@ -1955,7 +1977,7 @@ $(document).ready(function () {
 
 
     $('#zfs_snapshot_create').click(function () {
-         $.ajax({
+        $.ajax({
             type: "POST",
             dataType: 'json',
             url: "../kvm_data/",
@@ -1963,14 +1985,14 @@ $(document).ready(function () {
                 utils_kvm_id: $('#kvm_machine_platform').val()
             },
             success: function (data) {
-            if (data.ret == 0) {
-                alert(data.data)
-            } else {
-                for (i = 0; i < data.kvm_filesystem_list.length; i++) {
-                    $("#kvm_filesystem1").append('<option value="'+ data.kvm_filesystem_list[i] + '">'+ data.kvm_filesystem_list[i] + '</option>')
+                if (data.ret == 0) {
+                    alert(data.data)
+                } else {
+                    for (i = 0; i < data.kvm_filesystem_list.length; i++) {
+                        $("#kvm_filesystem1").append('<option value="' + data.kvm_filesystem_list[i] + '">' + data.kvm_filesystem_list[i] + '</option>')
+                    }
                 }
             }
-        }
         });
     });
 
@@ -1987,12 +2009,12 @@ $(document).ready(function () {
             dataType: 'json',
             url: "../zfs_snapshot_save/",
             data:
-                {
-                    util_kvm_id: $("#kvm_machine_platform").val(),
-                    filesystem: $("#kvm_filesystem1").val(),
-                    snapshot_name: $("#snapshot_name").val(),
-                    create_time: $("#create_time").val(),
-                },
+            {
+                util_kvm_id: $("#kvm_machine_platform").val(),
+                filesystem: $("#kvm_filesystem1").val(),
+                snapshot_name: $("#snapshot_name").val(),
+                create_time: $("#create_time").val(),
+            },
             success: function (data) {
                 var myres = data["res"];
                 if (myres == "创建成功。") {
@@ -2016,10 +2038,10 @@ $(document).ready(function () {
         "bProcessing": true,
         "ajax": "../zfs_snapshot_data",
         "columns": [
-            {"data": "id"},
-            {"data": "name"},
-            {"data": "create_time"},
-            {"data": null}
+            { "data": "id" },
+            { "data": "name" },
+            { "data": "create_time" },
+            { "data": null }
         ],
 
         "columnDefs": [{
@@ -2063,9 +2085,9 @@ $(document).ready(function () {
                 type: "POST",
                 url: "../zfs_snapshot_del/",
                 data:
-                    {
-                        id: data.id,
-                    },
+                {
+                    id: data.id,
+                },
                 success: function (data) {
                     if (data == 1) {
                         table.ajax.reload();
@@ -2091,13 +2113,13 @@ $(document).ready(function () {
         "bProcessing": true,
         "ajax": "",
         "columns": [
-            {"data": "id"},
-            {"data": "kvm_copy_ip"},
-            {"data": "kvm_copy_name"},
-            {"data": "kvm_copy_hostname"},
-            {"data": "createtime" },
-            {"data": "createuser" },
-            {"data": null}
+            { "data": "id" },
+            { "data": "kvm_copy_ip" },
+            { "data": "kvm_copy_name" },
+            { "data": "kvm_copy_hostname" },
+            { "data": "createtime" },
+            { "data": "createuser" },
+            { "data": null }
         ],
 
         "columnDefs": [{
@@ -2132,9 +2154,9 @@ $(document).ready(function () {
                 type: "POST",
                 url: "",
                 data:
-                    {
-                        id: data.id,
-                    },
+                {
+                    id: data.id,
+                },
                 success: function (data) {
                     if (data == 1) {
                         table.ajax.reload();

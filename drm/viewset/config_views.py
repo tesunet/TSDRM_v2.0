@@ -863,12 +863,19 @@ def process_design(request, funid):
         })
     
     # 选择关联客户端
-    hms = HostsManage.objects.exclude(state="9")
-    cv_client_list = list(filter(lambda n: True if n["client_name"] else False ,[{
-        "id": str(x.id),
-        "client_name": x.cvclient_set.exclude(state="9")[0].client_name if x.cvclient_set.exclude(state="9") else "",
-        "name": x.host_name,
-    } for x in hms ]))
+    cv_client_data = []
+    utils = UtilsManage.objects.exclude(state="9").filter(util_type="Commvault")
+    for u in utils:
+        cv_client_list = u.cvclient_set.exclude(state="9").exclude(type=2).values("id", "client_name", "hostsmanage__host_ip")
+        cv_client_data.append({
+            "utils_id": u.id,
+            "utils_name": u.name,
+            "cv_client_list": [{
+                "id": str(x["id"]),
+                "client_name": x["client_name"],
+                "host_ip": x["hostsmanage__host_ip"]
+            } for x in cv_client_list],
+        })
 
     return render(request, "processdesign.html", {
         'username': request.user.userinfo.fullname, 
@@ -878,7 +885,7 @@ def process_design(request, funid):
         "tree_data": tree_data,
         "table": table,
         "errors": errors,
-        "cv_clients": cv_client_list,
+        "cv_clients": cv_client_data,
     })
 
 
@@ -1032,18 +1039,30 @@ def processconfig(request, funid):
     # 主机选项
     all_hosts_manage = HostsManage.objects.exclude(state="9")
 
-    # commvault源端客户端
-    # 工具
+    # # commvault源端客户端
+    # # 工具
+    # cv_client_data = []
+    # utils = UtilsManage.objects.exclude(state="9").filter(util_type="Commvault")
+    # for u in utils:
+    #     cv_client_list = u.cvclient_set.exclude(state="9").exclude(type=2).values("id", "client_name")
+    #     cv_client_data.append({
+    #         "utils_id": u.id,
+    #         "utils_name": u.name,
+    #         "cv_client_list": cv_client_list,
+    #     })
     cv_client_data = []
     utils = UtilsManage.objects.exclude(state="9").filter(util_type="Commvault")
     for u in utils:
-        cv_client_list = u.cvclient_set.exclude(state="9").exclude(type=2).values("id", "client_name")
+        cv_client_list = u.cvclient_set.exclude(state="9").exclude(type=2).values("id", "client_name", "hostsmanage__host_ip")
         cv_client_data.append({
             "utils_id": u.id,
             "utils_name": u.name,
-            "cv_client_list": cv_client_list,
+            "cv_client_list": [{
+                "id": str(x["id"]),
+                "client_name": x["client_name"],
+                "host_ip": x["hostsmanage__host_ip"]
+            } for x in cv_client_list],
         })
-
     # tree_data
     select_id = ""
     tree_data = []
@@ -2506,6 +2525,9 @@ def get_client_detail(request):
                 cvinfo["instanceName"] = cc[0].instanceName
                 cvinfo["destination_id"] = cc[0].destination_id
 
+                # 所属流程
+                processes = cc[0].process_set.exclude(state="9").values("name")
+                cvinfo["processes"] = str(processes)
                 # oracle
                 cvinfo["copy_priority"] = ""
                 cvinfo["db_open"] = ""
@@ -2517,7 +2539,6 @@ def get_client_detail(request):
                 cvinfo["sourcePaths"] =""
                 # SQL Server
                 cvinfo["mssqlOverWrite"] = ""
-
 
                 try:
                     config = etree.XML(cc[0].info)
