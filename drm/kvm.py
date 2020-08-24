@@ -318,7 +318,7 @@ class KVMApi():
             info = '拷贝{0}磁盘文件失败。'.format(kvm_name)
         return info
 
-    def zfs_create_snapshot(self, kvm_name_new, kvm_snapshot_name):
+    def zfs_create_snapshot(self, snapshot_name):
         """
         创建快照：zfs snapshot tank/kvm_1@2020-07-28
         kvm_name：虚拟机
@@ -326,10 +326,12 @@ class KVMApi():
         """
         info = ''
         try:
-            exe_cmd = r'zfs snapshot tank/{0}@{1}'.format(kvm_name_new, kvm_snapshot_name)
+            exe_cmd = r'zfs snapshot {0}'.format(snapshot_name)
+            print(exe_cmd)
             self.remote_linux(exe_cmd)
+            info = '创建成功。'
         except:
-            info = '创建快照失败。'
+            info = '创建失败。'
         return info
 
     def zfs_snapshot_list(self):
@@ -351,9 +353,9 @@ class KVMApi():
         for item in end_list:
             data = {}
             data['name'] = item[0]
-            data['used'] = item[1]
-            data['avail'] = item[2]
-            data['refer'] = item[3]
+            # data['used'] = item[1]
+            # data['avail'] = item[2]
+            # data['refer'] = item[3]
             zfs_snapshot_list_dict.append(data)
         return zfs_snapshot_list_dict
 

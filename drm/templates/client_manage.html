@@ -892,7 +892,7 @@
                                                     </table>
 
                                                     <div class="form-group " style="text-align:center">
-                                                        <button type="button" id="zfs_snapshot_create" name="zfs_snapshot_create" class="btn green">
+                                                        <button type="button" id="zfs_snapshot_create" data-toggle="modal" data-target="#static02" name="zfs_snapshot_create" class="btn green">
                                                                 创建快照
                                                         </button>
                                                     </div>
@@ -1063,6 +1063,114 @@
         </div>
     </div>
 </div>
+
+<div id="static02" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
+                    <h4 class="modal-title">创建快照</h4>
+                    <input hidden id="id" type="text" name="id">
+                </div>
+                <div class="panel-body">
+
+                    <form class="bs-example form-horizontal activate-form">{% csrf_token %}
+
+                        <div class="form-body">
+                            <div class="form-group">
+                                <label class="col-md-3 control-label"><span style="color:red; ">*</span>虚拟化平台</label>
+                                <div class="col-md-9">
+                                    <select class="form-control" id="kvm_machine_platform" name="kvm_machine_platform">
+                                        {% for utils in utils_kvm_list %}
+                                            <option value="{{ utils.id }}">{{ utils.code }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-control-focus"></div>
+
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-md-3 control-label"><span style="color:red; ">*</span>kvm文件系统</label>
+                                <div class="col-md-9">
+                                    <select class="form-control" id="kvm_filesystem1" name="kvm_filesystem1">
+
+                                    </select>
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                 <label class="col-md-3 control-label"><span style="color:red; ">*</span>快照名称</label>
+                                <div class="col-md-9">
+                                    <input id="snapshot_name" type="text" name="snapshot_name" class="form-control"
+                                           placeholder="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                 <label class="col-md-3 control-label">创建时间</label>
+                                <div class="col-md-9">
+                                    <input id="create_time" type="text" name="create_time" class="form-control"
+                                           placeholder="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-actions ">
+                            <div class="modal-footer">
+                                <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
+                                </button>
+                                <button type="button" id="zfs_snapshot_save" name="save" class="btn green">创建快照</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div id="static03" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
+                    <h4 class="modal-title">挂载快照</h4>
+                    <input hidden id="id" type="text" name="id">
+                </div>
+                <div class="panel-body">
+
+                    <form class="bs-example form-horizontal activate-form">{% csrf_token %}
+
+                        <div class="form-body">
+                            <input hidden id="snapshot_id" type="text" name="id">
+                            <div class="form-group">
+                                 <label class="col-md-3 control-label"><span style="color:red; ">*</span>快照名称</label>
+                                <div class="col-md-9">
+                                    <input id="snapshot_name1" type="text" name="snapshot_name" class="form-control"
+                                           placeholder="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                 <label class="col-md-3 control-label">创建时间</label>
+                                <div class="col-md-9">
+                                    <input id="create_time1" type="text" name="create_time" class="form-control"
+                                           placeholder="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-actions ">
+                            <div class="modal-footer">
+                                <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
+                                </button>
+                                <button type="button" id="zfs_snapshot_save" name="save" class="btn green">挂载快照</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <div id="loading" class="portlet-body">
 </div>
