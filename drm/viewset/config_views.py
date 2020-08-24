@@ -684,6 +684,9 @@ def process_design(request, funid):
     rpo = ""
     sort = ""
     color = ""
+    cv_client = ""
+    main_database = ""
+    process_back = ""
     type = ""
     config = ""
     
@@ -700,15 +703,17 @@ def process_design(request, funid):
         rpo = request.POST.get('rpo', '')
         sort = request.POST.get('sort', '')
         color = request.POST.get('color', '')
+        cv_client = request.POST.get('cv_client', '')
         type = request.POST.get('type', '')
         config = request.POST.get('config', [])
 
-        main_database = request.POST.get('main_database', '')
+        main_database = request.POST.get('process_main_database', '')
         process_back = request.POST.get('process_back', '')
         try:
             id = int(id)
             pid = int(pid)
             process_back = int(process_back)
+            cv_client = int(cv_client)
         except Exception as e:
             pass
 
@@ -759,6 +764,7 @@ def process_design(request, funid):
                             processsave.type = type
                             processsave.primary_id = main_database
                             processsave.backprocess_id = process_back
+                            processsave.cv_client_id = cv_client if cv_client else None
                             processsave.config = xml_config
                             processsave.pnode_id = pid
 
@@ -794,6 +800,7 @@ def process_design(request, funid):
                             processsave.type = type
                             processsave.primary_id = main_database
                             processsave.backprocess_id = process_back
+                            processsave.cv_client_id = cv_client if cv_client else None
                             processsave.config = xml_config
                             processsave.save()
                             select_id = processsave.id
@@ -836,8 +843,10 @@ def process_design(request, funid):
         "color": color,
         "type": type,
         "config": config,
+        "cv_client": cv_client,
+        "main_database": main_database,
+        "process_back": process_back,
     }
-
     all_main_database = []
     all_processes_back = []
     all_processes = Process.objects.exclude(state="9").filter(type='Oracle ADG')
@@ -852,6 +861,15 @@ def process_design(request, funid):
             "process_id": process.id,
             "process_name": process.name
         })
+    
+    # 选择关联客户端
+    hms = HostsManage.objects.exclude(state="9")
+    cv_client_list = list(filter(lambda n: True if n["client_name"] else False ,[{
+        "id": str(x.id),
+        "client_name": x.cvclient_set.exclude(state="9")[0].client_name if x.cvclient_set.exclude(state="9") else "",
+        "name": x.host_name,
+    } for x in hms ]))
+
     return render(request, "processdesign.html", {
         'username': request.user.userinfo.fullname, 
         "pagefuns": getpagefuns(funid, request=request),
@@ -860,6 +878,7 @@ def process_design(request, funid):
         "tree_data": tree_data,
         "table": table,
         "errors": errors,
+        "cv_clients": cv_client_list,
     })
 
 
@@ -967,6 +986,7 @@ def get_process_tree(parent, select_id):
             "process_color": child.color,
             "type": child.type,
             "variable_param_list": param_list,
+            "cv_client": child.cv_client_id
         }
 
         try:

@@ -39,6 +39,7 @@ $('#p_tree').jstree({
                     $("#type").val("");
                     $('#param_se').empty();
                     $("#adg_div").hide();
+                    $("#cv_clients_div").hide();
                 }
             },
             "删除": {
@@ -97,7 +98,7 @@ $('#p_tree').jstree({
     $("#sort").val(data.process_sort);
     $("#process_color").val(data.process_color);
     $("#type").val(data.type);
-
+    $("#cv_client").val(data.cv_client)
     // 动态参数
     $('#param_se').empty();
     var variable_param_list = data.variable_param_list;
@@ -107,9 +108,13 @@ $('#p_tree').jstree({
 
     if (data.type=="Oracle ADG"||data.type=="MYSQL"){
         $("#adg_div").show();
-    }
-    else{
+    } else{
         $("#adg_div").hide();
+    }
+    if (data.type == "Commvault"){
+        $("#cv_clients_div").show();
+    } else{
+        $("#cv_clients_div").hide();
     }
 }).on('move_node.jstree', function (e, data) {
     var moveid = data.node.id;
@@ -337,4 +342,13 @@ $("#type").change(function () {
     else{
         $("#adg_div").hide();
     }
+    if ($(this).val() == "Commvault"){
+        $("#cv_clients_div").show();
+    } else{
+        $("#cv_clients_div").hide();
+    } 
+});
+
+$("#error").click(function () {
+    $(this).hide();
 });

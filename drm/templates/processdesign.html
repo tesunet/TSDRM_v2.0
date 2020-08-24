@@ -8,6 +8,11 @@
             <div id="p_tree" class="col-md-4 tree-demo"></div>
             <div class="col-md-8">
                 <div id="form_div" class="portlet light bordered" {{ table.right_info_hidden }}>
+                    {% if errors %}
+                    {% for error in errors %}
+                        <div id="error" class="alert alert-danger ">{{ error }}</div>
+                        <span> {% endfor %}</span>
+                    {% endif %}
                     <div class="portlet-title">
                         <div class="caption font-green-sharp">
                             <label id="title" class="caption-subject bold uppercase">{{ table.name }}</label>
@@ -54,14 +59,14 @@
                                         <div class="form-control-focus"></div>
                                     </div>
                                 </div>
-                                <div id="adg_div">
+                                <div id="adg_div" {% if table.type == "Oracle ADG" %}{% else %}hidden{% endif %}>
                                     <div class="form-group">
                                         <label class="col-md-2 control-label"><span
                                                 style="color:red; ">*</span>主数据库</label>
                                         <div class="col-md-10">
                                             <select class="form-control" id="process_main_database" name="process_main_database">
-                                                {% for main_database in all_main_database %}
-                                                    <option value="{{ main_database.main_database_id }}">{{ main_database.main_database_name }}</option>
+                                                {% for md in all_main_database %}
+                                                    <option value="{{ md.main_database_id }}"  {% if md.main_database_id == table.main_database %} selected{% endif %}>{{ md.main_database_name }}</option>
                                                 {% endfor %}
                                             </select>
                                             <div class="form-control-focus"></div>
@@ -72,8 +77,22 @@
                                         <div class="col-md-10">
                                             <select class="form-control"  id="process_back" name="process_back">
                                                 <option value="">无</option>
-                                                {% for process_back in all_processes_back %}
-                                                    <option value="{{ process_back.process_id }}">{{ process_back.process_name }}</option>
+                                                {% for pb in all_processes_back %}
+                                                    <option value="{{ pb.process_id }}" {% if pb.process_id == table.process_back %} selected{% endif %}>{{ pb.process_name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <div class="form-control-focus"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="cv_clients_div" {% if table.type == "Commvault" %}{% else %}hidden{% endif %}>
+                                    <div class="form-group">
+                                        <label class="col-md-2 control-label">关联客户端</label>
+                                        <div class="col-md-10">
+                                            <select class="form-control" id="cv_client" name="cv_client">
+                                                <option value="">无</option>
+                                                {% for cc in cv_clients %}
+                                                    <option value="{{ cc.id }}" {% if cc.id == table.cv_client %}selected{% endif %}> {{ cc.client_name }} ({{ cc.name }})</option>
                                                 {% endfor %}
                                             </select>
                                             <div class="form-control-focus"></div>
