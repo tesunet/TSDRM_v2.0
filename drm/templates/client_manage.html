@@ -36,8 +36,8 @@
                                     <li>
                                         <a href="#tab_1_3" id='tabcheck3' data-toggle="tab"> 数据库复制 </a>
                                     </li>
-                                    <li style="pointer-events:none;">
-                                        <a style="color: #cbd5dd" href="#tab_1_4" id='tabcheck4' data-toggle="tab">
+                                    <li>
+                                        <a href="#tab_1_4" id='tabcheck4' data-toggle="tab">
                                             多副本保护 </a>
                                     </li>
                                 </ul>
@@ -809,6 +809,105 @@
                                                             <th> 流程ID</th>
                                                             <th> 流程url</th>
                                                             <th style="width:50px;"> 报表查询</th>
+                                                        </tr>
+                                                        </thead>
+
+                                                        <tbody>
+
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="tab-pane fade" id="tab_1_4" style="margin-top: -10px">
+                                        <div id="div_kvm" class="tab " role="tabpanel">
+                                            <ul id="navtabs3" class="nav nav-tabs ">
+                                                    <li class="active">
+                                                        <a href="#tab_4_1" id='tabcheck4_1' data-toggle="tab"> 保护配置 </a>
+                                                    </li>
+                                                    <li >
+                                                        <a href="#tab_4_2"  id='tabcheck4_2' data-toggle="tab"> 快照管理 </a>
+                                                    </li>
+                                                     <li>
+                                                        <a href="#tab_4_3"  id='tabcheck4_3' data-toggle="tab"> 副本管理 </a>
+                                                    </li>
+                                            </ul>
+                                            <div class="tab-content">
+                                                <div class="tab-pane fade active in" id="tab_4_1">
+                                                    <div class="form-group">
+                                                        <label class="col-md-2 control-label"><span style="color:red; ">*</span>虚拟化平台</label>
+                                                        <div class="col-md-10">
+                                                            <select class="form-control" id="kvm_machine_platform" name="kvm_machine_platform">
+                                                                {% for utils in utils_kvm_list %}
+                                                                    <option value="{{ utils.id }}">{{ utils.code }}</option>
+                                                                {% endfor %}
+                                                            </select>
+                                                            <div class="form-control-focus"></div>
+
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label class="col-md-2 control-label"><span style="color:red; ">*</span>kvm虚拟机</label>
+                                                        <div class="col-md-10">
+                                                            <select class="form-control" id="kvm_machine" name="kvm_machine">
+
+                                                            </select>
+                                                            <div class="form-control-focus"></div>
+
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group">
+                                                        <label class="col-md-2 control-label"><span style="color:red; ">*</span>kvm文件系统</label>
+                                                        <div class="col-md-10">
+                                                            <select class="form-control" id="kvm_filesystem" name="kvm_filesystem">
+
+                                                            </select>
+                                                            <div class="form-control-focus"></div>
+
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group " style="text-align:center">
+                                                        <button type="button" id="kvm_protect_save" name="kvm_protect_save" class="btn green">
+                                                                保存
+                                                        </button>
+                                                    </div>
+
+                                                </div>
+                                                <div class="tab-pane fade" id="tab_4_2">
+                                                    <table class="table table-striped table-bordered table-hover table-checkable order-column" id="zfs_snapshot">
+                                                        <thead>
+                                                        <tr>
+                                                            <th> 快照ID</th>
+                                                            <th> 快照名称</th>
+                                                            <th> 快照时间</th>
+                                                            <th style="width:50px;"> 操作</th>
+                                                        </tr>
+                                                        </thead>
+
+                                                        <tbody>
+
+                                                        </tbody>
+                                                    </table>
+
+                                                    <div class="form-group " style="text-align:center">
+                                                        <button type="button" id="zfs_snapshot_create" name="zfs_snapshot_create" class="btn green">
+                                                                创建快照
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div class="tab-pane fade" id="tab_4_3">
+                                                    <table class="table table-striped table-bordered table-hover table-checkable order-column" id="kvm_copy">
+                                                        <thead>
+                                                        <tr>
+                                                            <th style="width:40px;"> 序号</th>
+                                                            <th> 副本IP</th>
+                                                            <th> 副本名称</th>
+                                                            <th> 副本主机名</th>
+                                                            <th> 创建时间</th>
+                                                            <th> 创建人</th>
+                                                            <th style="width:50px;"> 操作</th>
                                                         </tr>
                                                         </thead>
 

@@ -232,6 +232,8 @@ urlpatterns = [
     url(r'^host_save/$', host_save),
     url(r'^hosts_manage_data/$', hosts_manage_data),
 
+    url(r'^kvm_data/$', kvm_data),
+
 
 
 ]

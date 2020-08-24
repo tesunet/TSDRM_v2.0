@@ -20,6 +20,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import cx_Oracle
 import pymysql
 from ..remote import ServerByPara
+from ..kvm import KVMApi
 
 
 ######################
@@ -1681,11 +1682,62 @@ def load_hosts_params(request):
 ######################
 @login_required
 def client_manage(request, funid):
-
-
+    # kvm虚拟化平台
+    utils_kvm_id = request.POST.get('utils_kvm_id', '')
+    util_manage = UtilsManage.objects.filter(util_type='Kvm')
+    utils_kvm_list = []
+    for utils in util_manage:
+        utils_kvm_list.append({
+            "id": utils.id,
+            "code": utils.code,
+            "name": utils.name,
+        })
     return render(request, 'client_manage.html',
                   {'username': request.user.userinfo.fullname,
-                   "pagefuns": getpagefuns(funid, request=request)})
+                   "pagefuns": getpagefuns(funid, request=request),
+                   "utils_kvm_list": utils_kvm_list,
+                   })
+
+@login_required
+def kvm_data(request):
+    # kvm虚拟机
+    utils_kvm_id = request.POST.get('utils_kvm_id', '')
+    kvm_list = []
+    kvm_credit = {}
+    try:
+        utils_kvm_id = int(utils_kvm_id)
+    except:
+        utils_kvm_id = ""
+    if utils_kvm_id:
+        utils_kvm_info = UtilsManage.objects.filter(id=utils_kvm_id)
+        content = utils_kvm_info[0].content
+        util_type = utils_kvm_info[0].util_type
+        kvm_credit = get_credit_info(content, util_type.upper())
+        try:
+            kvm_list = KVMApi(kvm_credit).kvm_all_list()
+        except Exception as e:
+            print(e)
+            return JsonResponse({
+                "ret": 0,
+                "data": "获取kvm虚拟机失败。",
+            })
+
+    # zfs文件系统
+    try:
+        kvm_filesystem = KVMApi(kvm_credit).zfs_kvm_filesystem()
+    except Exception as e:
+        print(e)
+        return JsonResponse({
+            "ret": 0,
+            "data": "获取kvm文件系统虚失败。",
+        })
+    kvm_filesystem_list = []
+    for i in kvm_filesystem:
+        kvm_filesystem = 'tank/' + i
+        kvm_filesystem_list.append(kvm_filesystem)
+
+    return JsonResponse({'kvm_list': kvm_list, 'kvm_filesystem_list': kvm_filesystem_list})
+
 
 def get_client_node(parent, select_id, request):
     nodes = []

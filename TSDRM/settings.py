@@ -110,8 +110,8 @@ DATABASES = {
         'NAME': "tesudrm_v2",
         'USER': "root",
         'PASSWORD': "password",
-        # 'HOST': "127.0.0.1",
-        'HOST': "192.168.1.66",
+        'HOST': "127.0.0.1",
+        # 'HOST': "192.168.1.66",
         'PORT': '3306',
     }
 }
