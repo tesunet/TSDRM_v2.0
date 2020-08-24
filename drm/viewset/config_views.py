@@ -97,7 +97,6 @@ def script(request, funid):
     name = ""
     script_text = ""
     success_text = ""
-    log_address = ""
     interface_type = ""
     commv_interface = ""
     pid = ""
@@ -979,45 +978,6 @@ def get_process_tree(parent, select_id):
     return nodes
 
 
-
-@login_required
-def process_data(request):
-    result = []
-    all_process = Process.objects.all().exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None).order_by("sort").select_related("primary", "backprocess")
-    for process in all_process:
-        param_list = []
-        try:
-            config = etree.XML(process.config)
-
-            param_el = config.xpath("//param")
-            for v_param in param_el:
-                param_list.append({
-                    "param_name": v_param.attrib.get("param_name", ""),
-                    "variable_name": v_param.attrib.get("variable_name", ""),
-                    "param_value": v_param.attrib.get("param_value", ""),
-                })
-        except Exception as e:
-            print(e)
-        result.append({
-            "process_id": process.id,
-            "process_code": process.code,
-            "process_name": process.name,
-            "process_remark": process.remark,
-            "process_sign": process.sign,
-            "process_rto": process.rto,
-            "process_rpo": process.rpo,
-            "process_sort": process.sort,
-            "process_color": process.color,
-            "main_database_id": process.primary.id if process.primary else "",
-            "main_database_name": process.primary.host_name if process.primary else "",
-            "process_back_id": process.backprocess.id if process.backprocess else "",
-            "process_back_name": process.backprocess.name if process.backprocess else "",
-            "type": process.type,
-            "variable_param_list": param_list,
-        })
-    return JsonResponse({"data": result})
-
-
 @login_required
 def process_del(request):
     if 'id' in request.POST:
@@ -1108,6 +1068,7 @@ def processscriptsave(request):
     script_instance_id = request.POST.get('script_instance_id', '')
     config = request.POST.get('config', '')
     interface_type = request.POST.get('interface_type', '')  # 接口类型：Commvault Linux Windows
+    error_solved = request.POST.get('error_solved', '')
 
     # add
     script_instance_name = request.POST.get('script_instance_name', '')  # 必填
@@ -1146,6 +1107,11 @@ def processscriptsave(request):
         sort = int(sort)
     except:
         sort = None
+    try:
+        error_solved = int(error_solved)
+    except:
+        error_solved = None
+
     # 初始化
     if not script_instance_name:
         result["status"] = 0
@@ -1171,6 +1137,7 @@ def processscriptsave(request):
                 "primary_id": origin_id,
                 "log_address": log_address,
                 "sort": sort,
+                "process_id": error_solved,
                 "remark": script_instance_remark,
                 "hosts_manage_id": None,
             }
@@ -1188,6 +1155,7 @@ def processscriptsave(request):
                 "name": script_instance_name,
                 "log_address": log_address,
                 "sort": sort,
+                "process_id": error_solved,
                 "remark": script_instance_remark,
 
                 "utils_id": None,
@@ -1276,6 +1244,7 @@ def get_script_data(request):
             "script_instance_name": script_instance.name,
             "script_instance_remark": script_instance.remark,
             "script_instance_sort": script_instance.sort,
+            "script_instance_error_solved": script_instance.process_id,
             "params": "",
             "log_address": script_instance.log_address,
             "host_id": script_instance.hosts_manage_id,
@@ -1287,6 +1256,31 @@ def get_script_data(request):
         'status': status,
         'info': info,
         'data': data,
+    })
+
+
+@login_required
+def get_error_solved_process(request):
+    """
+    @params process_id
+    """
+    p_id = request.POST.get("process_id", "")
+
+    status = 1
+    info = "获取排错流程成功。"
+    data = []
+    try:
+        p_id = int(p_id)
+    except Exception as e:
+        info = "获取排错流程失败。"
+        status = 0
+    else:
+        data = Process.objects.exclude(state="9").filter(pnode_id=p_id).values("id", "name")
+
+    return JsonResponse({
+        "status": status,
+        "info": info,
+        "data": str(data)
     })
 
 
@@ -1511,6 +1505,121 @@ def custom_step_tree(request):
     process["children"] = treedata
     process["state"] = {"opened": True}
     return JsonResponse({"treedata": process})
+
+
+@login_required
+def solve_error(request):
+    status = 1
+    info = "启动排错流程成功。"
+    data = ""
+    sr_id = request.POST.get("script_run_id", "")
+    try:
+        sr_id = int(sr_id)
+        sr = ScriptRun.objects.get(id=sr_id)
+    except Exception as e:
+        status = 0
+        info = "启动排错流程失败：{e}。".format(e)
+    else:
+        si = sr.script
+        error_solved = si.process if si else None
+        if error_solved:
+            # 启动排错流程
+            # 返回排错流程ID
+            # 前端定时获取该进程状态
+            running_process = ProcessRun.objects.filter(process=error_solved, state__in=["RUN"])
+            if running_process.exists():
+                myprocesstask = ProcessTask()
+                myprocesstask.starttime = datetime.datetime.now()
+                myprocesstask.type = "INFO"
+                myprocesstask.logtype = "END"
+                myprocesstask.state = "0"
+                myprocesstask.processrun = running_process[0]
+                myprocesstask.content = "排错流程({0})已运行。".format(running_process[0].process.name)
+                myprocesstask.save()
+            else:
+                myprocessrun = ProcessRun()
+                myprocessrun.creatuser = request.user.username
+                myprocessrun.process = error_solved
+                myprocessrun.starttime = datetime.datetime.now()
+                myprocessrun.state = "RUN"
+                process_type = error_solved.type
+                if process_type.upper() == "COMMVAULT":
+                    cv_restore_params_save(myprocessrun)
+
+                myprocessrun.save()
+                mystep = error_solved.step_set.exclude(state="9")
+                if not mystep.exists():
+                    myprocesstask = ProcessTask()
+                    myprocesstask.starttime = datetime.datetime.now()
+                    myprocesstask.type = "INFO"
+                    myprocesstask.logtype = "END"
+                    myprocesstask.state = "0"
+                    myprocesstask.processrun = myprocessrun
+                    myprocesstask.content = "排错流程({0})不存在可运行步骤。".format(error_solved.name)
+                    myprocesstask.save()
+                else:
+                    for step in mystep:
+                        mysteprun = StepRun()
+                        mysteprun.step = step
+                        mysteprun.processrun = myprocessrun
+                        mysteprun.state = "EDIT"
+                        mysteprun.save()
+
+                        myscript = step.scriptinstance_set.exclude(state="9")
+                        for script in myscript:
+                            myscriptrun = ScriptRun()
+                            myscriptrun.script = script
+                            myscriptrun.steprun = mysteprun
+                            myscriptrun.state = "EDIT"
+                            myscriptrun.save()
+
+                    myprocesstask = ProcessTask()
+                    myprocesstask.processrun = myprocessrun
+                    myprocesstask.starttime = datetime.datetime.now()
+                    myprocesstask.type = "INFO"
+                    myprocesstask.logtype = "START"
+                    myprocesstask.state = "1"
+                    myprocesstask.content = "排错流程({0})已启动。".format(error_solved.name)
+                    myprocesstask.save()
+
+                    exec_process.delay(myprocessrun.id)
+                    data = myprocessrun.id
+        else:
+            status = 0
+            info = "启动排错流程失败：无排错流程。"
+
+    return JsonResponse({
+        "status": status,
+        "info": info,
+        "data": data,
+    })
+
+
+@login_required
+def get_error_sovled_status(request):
+    """
+    @param pr_id:
+    @return status: 1 成功 0 未完成 2出错
+    """
+    pr_id = request.POST.get("pr_id", "")
+    status = 0
+    try:
+        pr_id = int(pr_id)
+        c_pr = ProcessRun.objects.get(id=pr_id)
+        state = c_pr.state
+        if state == "DONE":
+            status = 1
+        elif state == "ERROR":
+            # 排错流程错误的处理(待补充)
+            status = 2
+        else:
+            status = 0
+    except Exception as e:
+        pass
+
+    return JsonResponse({
+        "status": status
+    })
 
 
 def del_step(request):
@@ -2697,7 +2806,7 @@ def client_cv_recovery(request):
         instance = ""
         try:
             pri = CvClient.objects.exclude(state="9").get(id=int(cv_id))
-        except Origin.DoesNotExist as e:
+        except CvClient.DoesNotExist as e:
             return HttpResponse("恢复任务启动失败, 源客户端不存在。")
         else:
             instance = pri.instanceName

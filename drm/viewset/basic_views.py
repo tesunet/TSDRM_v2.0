@@ -992,11 +992,17 @@ def monitor(request):
         all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None)
         utils_manage = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
         # 右上角消息任务
-        return render(request, "monitor.html",
-                      {'username': request.user.userinfo.fullname, "alltask": alltask, "homepage": True,
-                       "success_rate": success_rate, "utils_manage": utils_manage, "all_processruns": all_processruns, 
-                       "last_processrun_time": last_processrun_time, "curren_processrun_info_list": curren_processrun_info_list,
-                       "all_process": all_process})
+        return render(request, "monitor.html", {
+            'username': request.user.userinfo.fullname, 
+            "alltask": alltask, 
+            "homepage": True,
+            "success_rate": success_rate, 
+            "utils_manage": utils_manage, 
+            "all_processruns": all_processruns, 
+            "last_processrun_time": last_processrun_time, 
+            "curren_processrun_info_list": curren_processrun_info_list,
+            "all_process": all_process
+        })
     else:
         return HttpResponseRedirect("/login")
 

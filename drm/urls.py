@@ -85,7 +85,6 @@ urlpatterns = [
     url(r'^move_step/$', move_step),
     url(r'^get_all_groups/$', get_all_groups),
     url(r'^processdesign/$', process_design, {"funid": "33"}),
-    url(r'^process_data/$', process_data),
     url(r'^process_del/$', process_del),
     url(r'^process_move/$', process_move),
     url(r'^verify_items_save/$', verify_items_save),
@@ -93,6 +92,9 @@ urlpatterns = [
     url(r'^remove_verify_item/$', remove_verify_item),
     url(r'^display_params/$', display_params),
     url(r'^load_hosts_params/$', load_hosts_params),
+    url(r'^get_error_solved_process/$', get_error_solved_process),
+    url(r'^solve_error/$', solve_error),
+    url(r'^get_error_sovled_status/$', get_error_sovled_status),
 
     # Oracle恢复
     url(r'^oracle_restore/(?P<process_id>\d+)$', oracle_restore),

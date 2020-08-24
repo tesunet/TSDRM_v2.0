@@ -846,6 +846,7 @@ def get_current_scriptinfo(request):
                 "pri": pri.client_name if pri else "",
                 "std": std_name,
                 "interface_type": script.interface_type,
+                "error_solved": script_instance.process_id,
             }
         except Exception as e:
             status = 0
