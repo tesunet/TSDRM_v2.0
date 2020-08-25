@@ -698,7 +698,7 @@ def get_process_node(parent, select_process):
             "process_color": child.color,
             "type": child.type,
             "variable_param_list": param_list,
-            "cv_client": child.cv_client_id
+            "cv_client": child.hosts_id
         }
         if child in select_process:
             node["state"] = {"selected": True}
