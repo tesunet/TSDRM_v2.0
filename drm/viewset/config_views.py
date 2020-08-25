@@ -764,7 +764,7 @@ def process_design(request, funid):
                             processsave.type = type
                             processsave.primary_id = main_database
                             processsave.backprocess_id = process_back
-                            processsave.cv_client_id = cv_client if cv_client else None
+                            processsave.hosts_id = cv_client if cv_client else None
                             processsave.config = xml_config
                             processsave.pnode_id = pid
 
@@ -800,7 +800,7 @@ def process_design(request, funid):
                             processsave.type = type
                             processsave.primary_id = main_database
                             processsave.backprocess_id = process_back
-                            processsave.cv_client_id = cv_client if cv_client else None
+                            processsave.hosts_id = cv_client if cv_client else None
                             processsave.config = xml_config
                             processsave.save()
                             select_id = processsave.id
@@ -863,19 +863,7 @@ def process_design(request, funid):
         })
     
     # 选择关联客户端
-    cv_client_data = []
-    utils = UtilsManage.objects.exclude(state="9").filter(util_type="Commvault")
-    for u in utils:
-        cv_client_list = u.cvclient_set.exclude(state="9").exclude(type=2).values("id", "client_name", "hostsmanage__host_ip")
-        cv_client_data.append({
-            "utils_id": u.id,
-            "utils_name": u.name,
-            "cv_client_list": [{
-                "id": str(x["id"]),
-                "client_name": x["client_name"],
-                "host_ip": x["hostsmanage__host_ip"]
-            } for x in cv_client_list],
-        })
+    hosts = HostsManage.objects.exclude(state="9").filter(nodetype="CLIENT").values("id", "host_name")
 
     return render(request, "processdesign.html", {
         'username': request.user.userinfo.fullname, 
@@ -885,7 +873,10 @@ def process_design(request, funid):
         "tree_data": tree_data,
         "table": table,
         "errors": errors,
-        "cv_clients": cv_client_data,
+        "hosts": [{
+            "id": str(x["id"]),
+            "host_name": x["host_name"]
+        } for x in hosts],
     })
 
 
@@ -993,7 +984,7 @@ def get_process_tree(parent, select_id):
             "process_color": child.color,
             "type": child.type,
             "variable_param_list": param_list,
-            "cv_client": child.cv_client_id
+            "cv_client": child.hosts_id
         }
 
         try:
@@ -2526,7 +2517,7 @@ def get_client_detail(request):
                 cvinfo["destination_id"] = cc[0].destination_id
 
                 # 所属流程
-                processes = cc[0].process_set.exclude(state="9").values("name")
+                processes = cc[0].hostsmanage.process_set.exclude(state="9").values("name")
                 cvinfo["processes"] = str(processes)
                 # oracle
                 cvinfo["copy_priority"] = ""

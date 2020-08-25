@@ -99,13 +99,9 @@
                                     <div class="col-md-10">
                                         <select class="form-control" id="cv_client" name="cv_client">
                                             <option value="">无</option>
-                                            {% for cc in cv_clients %}
-                                            <optgroup label="{{ cc.utils_name }}">
-                                                {% for c in cc.cv_client_list %}
-                                                    <option value="{{ c.id }}" {% if c.id == table.cv_client %} selected{% endif %}>{{ c.client_name }} ({{ c.host_ip }})</option>
-                                                {% endfor %} 
-                                            </optgroup>
-                                            {% endfor %}
+                                            {% for host in hosts %}
+                                                <option value="{{ host.id }}" {% if host.id == table.cv_client %} selected{% endif %}>{{ host.host_name }}</option>
+                                            {% endfor %} 
                                         </select>
                                         <div class="form-control-focus"></div>
                                     </div>
