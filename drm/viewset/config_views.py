@@ -2017,45 +2017,45 @@ def client_manage(request, funid):
 
 @login_required
 def kvm_data(request):
-    # kvm虚拟机
-    utils_kvm_id = request.POST.get('utils_kvm_id', '')
-    kvm_list = []
-    kvm_credit = {}
-    try:
-        utils_kvm_id = int(utils_kvm_id)
-    except:
-        utils_kvm_id = ""
-    if utils_kvm_id:
-        utils_kvm_info = UtilsManage.objects.filter(id=utils_kvm_id)
+    util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
+
+    all_kvm_dict = {}
+    all_kvm_filesystem_dict = {}
+    for utils in util_manage:
+        utils_id = utils.id
+        utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
         content = utils_kvm_info[0].content
         util_type = utils_kvm_info[0].util_type
         kvm_credit = get_credit_info(content, util_type.upper())
         try:
             kvm_list = KVMApi(kvm_credit).kvm_all_list()
+            all_kvm_dict[utils_id] = kvm_list
         except Exception as e:
             print(e)
             return JsonResponse({
                 "ret": 0,
                 "data": "获取kvm虚拟机失败。",
             })
+        try:
+            kvm_filesystem = KVMApi(kvm_credit).zfs_kvm_filesystem()   # ['连接服务器失败', 'timed', 'out']
+        except Exception as e:
+            print(e)
+            return JsonResponse({
+                "ret": 0,
+                "data": "获取kvm文件系统虚失败。",
+            })
+        kvm_filesystem_list = []
+        if kvm_filesystem[0] == '连接服务器失败':
+            kvm_filesystem_list = []
+        else:
+            for i in kvm_filesystem:
+                kvm_filesystem = 'tank/' + i
+                kvm_filesystem_list.append(kvm_filesystem)
 
-    # zfs文件系统
-    try:
-        kvm_filesystem = KVMApi(kvm_credit).zfs_kvm_filesystem()
-    except Exception as e:
-        print(e)
-        return JsonResponse({
-            "ret": 0,
-            "data": "获取kvm文件系统虚失败。",
-        })
-    kvm_filesystem_list = []
-    for i in kvm_filesystem:
-        kvm_filesystem = 'tank/' + i
-        kvm_filesystem_list.append(kvm_filesystem)
+        all_kvm_filesystem_dict[utils_id] = kvm_filesystem_list
 
     kvm_machine_list = []
     all_kvmmachine = KvmMachine.objects.exclude(state='9')
-
     for um in all_kvmmachine:
         kvm_machine_list.append({
             'id': um.id,
@@ -2064,9 +2064,8 @@ def kvm_data(request):
             'utils_id': um.utils_id,
 
         })
-
-    return JsonResponse({'kvm_list': kvm_list,
-                         'kvm_filesystem_list': kvm_filesystem_list,
+    return JsonResponse({'all_kvm_dict': all_kvm_dict,
+                         'all_kvm_filesystem_dict': all_kvm_filesystem_dict,
                          'kvm_machine_list': kvm_machine_list})
 
 
@@ -2121,6 +2120,22 @@ def kvm_save(request):
         'status': status,
         'info': info,
     })
+
+
+@login_required
+def kvm_del(request):
+    if 'id' in request.POST:
+        id = request.POST.get('id', '')
+        try:
+            id = int(id)
+        except:
+            return HttpResponse(0)
+        kvm = KvmMachine.objects.get(id=id)
+        kvm.state = '9'
+        kvm.save()
+        return HttpResponse(1)
+    else:
+        return HttpResponse(0)
 
 
 @login_required

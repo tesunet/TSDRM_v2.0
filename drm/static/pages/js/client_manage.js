@@ -420,7 +420,7 @@ function getClientree() {
                                             $("#kvm_filesystem").val(data.kvminfo.filesystem);
 
 
-                                            //get_kvm_detail();
+                                            get_kvm_detail();
                                             $("#tabcheck4_1").parent().show();
                                             $("#tabcheck4_2").parent().show();
                                             $("#tabcheck3_3").parent().show();
@@ -920,58 +920,42 @@ function kvmFunction() {
             if (data.ret == 0) {
                 alert(data.data)
             } else {
-                for (i = 0; i < data.kvm_list.length; i++) {
-                    $("#kvm_machine").append('<option value="'+ data.kvm_list[i].name + '">'+ data.kvm_list[i].name + '</option>')
+                $("#all_kvm_data").val(JSON.stringify(data.all_kvm_dict));
+                $("#all_filesystem_data").val(JSON.stringify(data.all_kvm_filesystem_dict));
+
+                var utils_id = $('#kvm_machine_platform').val();
+                for (i = 0; i < data.all_kvm_dict[utils_id].length; i++) {
+                    $("#kvm_machine").append('<option value="'+ data.all_kvm_dict[utils_id][i].name + '">'+ data.all_kvm_dict[utils_id][i].name + '</option>')
                 }
-                for (i = 0; i < data.kvm_filesystem_list.length; i++) {
-                    $("#kvm_filesystem").append('<option value="'+ data.kvm_filesystem_list[i] + '">'+ data.kvm_filesystem_list[i] + '</option>')
+                for (i = 0; i < data.all_kvm_filesystem_dict[utils_id].length; i++) {
+                    $("#kvm_filesystem").append('<option value="'+ data.all_kvm_filesystem_dict[utils_id][i] + '">'+ data.all_kvm_filesystem_dict[utils_id][i] + '</option>')
                 }
 
+                $("#kvm_id").val(data.kvm_machine_list[0].id);
                 $("#kvm_machine_platform").val(data.kvm_machine_list[0].utils_id);
                 $("#kvm_machine").val(data.kvm_machine_list[0].name);
                 $("#kvm_filesystem").val(data.kvm_machine_list[0].filesystem);
-
-
-                $('#zfs_snapshot').dataTable({
-                    "bAutoWidth": true,
-                    "bSort": false,
-                    "iDisplayLength": 25,
-                    "bProcessing": true,
-                    "ajax": "../zfs_snapshot_data/?utils_id=" + $('#kvm_machine_platform').val() + "&filesystem=" + $('#kvm_filesystem').val(),
-                    "columns": [
-                        {"data": "name"},
-                        {"data": null}
-                    ],
-
-                    "columnDefs": [{
-                        "targets": -1,
-                        "data": null,
-                        "width": "100px",
-                        "defaultContent": "<button  id='edit' title='挂载快照' data-toggle='modal'  data-target='#static03'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-edit'></i></button>" +
-                            "<button title='删除快照'  id='delrow' class='btn btn-xs btn-primary' type='button'><i class='fa fa-trash-o'></i></button>"
-                    }
-                    ],
-                    "oLanguage": {
-                        "sLengthMenu": "每页显示 _MENU_ 条记录",
-                        "sZeroRecords": "抱歉， 没有找到",
-                        "sInfo": "从 _START_ 到 _END_ /共 _TOTAL_ 条数据",
-                        "sInfoEmpty": "没有数据",
-                        "sInfoFiltered": "(从 _MAX_ 条数据中检索)",
-                        "sSearch": "搜索",
-                        "oPaginate": {
-                            "sFirst": "首页",
-                            "sPrevious": "前一页",
-                            "sNext": "后一页",
-                            "sLast": "尾页"
-                        },
-                        "sZeroRecords": "没有检索到数据",
-                    },
-                });
-
             }
         }
         });
     }
+
+function get_kvm_detail(){
+
+    var all_kvm = $("#all_kvm_data").val();
+    var all_kvm_dict = JSON.parse(all_kvm);
+    var all_filesystem = $("#all_filesystem_data").val();
+    var all_kvm_filesystem_dict = JSON.parse(all_filesystem);
+    var utils_id = $('#kvm_machine_platform').val();
+
+    for (i = 0; i < all_kvm_dict[utils_id].length; i++) {
+        $("#kvm_machine").append('<option value="'+ all_kvm_dict[utils_id][i].name + '">'+ all_kvm_dict[utils_id][i].name + '</option>')
+    }
+    for (i = 0; i < all_kvm_filesystem_dict[utils_id].length; i++) {
+        $("#kvm_filesystem").append('<option value="'+ all_kvm_filesystem_dict[utils_id][i] + '">'+ all_kvm_filesystem_dict[utils_id][i] + '</option>')
+    }
+}
+
 
 $(document).ready(function () {
     //主机
@@ -2060,7 +2044,6 @@ $(document).ready(function () {
     });
 
     //kvm
-
     kvmFunction();
     $('#creatkvm').click(function () {
         $("#div_creatkvm").hide();
@@ -2097,7 +2080,7 @@ $(document).ready(function () {
                         $('#tree_client').jstree('set_text', $("#id").val(), newtext);
                     }
                 }
-                //get_kvm_detail();
+                get_kvm_detail();
                 alert(data.info);
             },
             error: function (e) {
@@ -2105,8 +2088,39 @@ $(document).ready(function () {
             }
         });
     });
+    $('#kvm_del').click(function () {
+        if (confirm("确定要删除？删除后不可恢复。")) {
+            $.ajax({
+                type: "POST",
+                url: "../kvm_del/",
+                data:
+                {
+                    id: $("#kvm_id").val(),
+                },
+                success: function (data) {
+                    if (data == 1) {
+                        $("#div_creatkvm").show();
+                        $("#div_kvm").hide();
+                        $("#kvm_del").hide();
+                        var curnode = $('#tree_client').jstree('get_node', $("#id").val());
+                        var newtext = curnode.text.replace("<img src = '/static/pages/images/ts.png' height='24px'> ", "");
+                        $('#tree_client').jstree('set_text', $("#id").val(), newtext);
+
+                        alert("删除成功！");
+                    } else
+                        alert("删除失败，请于管理员联系。");
+                },
+                error: function (e) {
+                    alert("删除失败，请于管理员联系。");
+                }
+            });
+        }
+    })
+
     $('#kvm_machine_platform').change(function () {
-        kvmFunction();
+        $('#kvm_machine').empty();
+        $('#kvm_filesystem').empty();
+        get_kvm_detail()
     });
     $('#zfs_snapshot_create').click(function () {
         $.ajax({
@@ -2154,6 +2168,41 @@ $(document).ready(function () {
                 alert("页面出现错误，请于管理员联系。");
             }
         });
+    });
+    $('#zfs_snapshot').dataTable({
+        "bAutoWidth": true,
+        "bSort": false,
+        "iDisplayLength": 25,
+        "bProcessing": true,
+        "ajax": "../zfs_snapshot_data/?utils_id=" + $('#kvm_machine_platform').val() + "&filesystem=" + $('#kvm_filesystem').val(),
+        "columns": [
+            {"data": "name"},
+            {"data": null}
+        ],
+
+        "columnDefs": [{
+            "targets": -1,
+            "data": null,
+            "width": "100px",
+            "defaultContent": "<button  id='edit' title='挂载快照' data-toggle='modal'  data-target='#static03'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-edit'></i></button>" +
+                "<button title='删除快照'  id='delrow' class='btn btn-xs btn-primary' type='button'><i class='fa fa-trash-o'></i></button>"
+        }
+        ],
+        "oLanguage": {
+            "sLengthMenu": "每页显示 _MENU_ 条记录",
+            "sZeroRecords": "抱歉， 没有找到",
+            "sInfo": "从 _START_ 到 _END_ /共 _TOTAL_ 条数据",
+            "sInfoEmpty": "没有数据",
+            "sInfoFiltered": "(从 _MAX_ 条数据中检索)",
+            "sSearch": "搜索",
+            "oPaginate": {
+                "sFirst": "首页",
+                "sPrevious": "前一页",
+                "sNext": "后一页",
+                "sLast": "尾页"
+            },
+            "sZeroRecords": "没有检索到数据",
+        },
     });
     $('#zfs_snapshot tbody').on('click', 'button#edit', function () {
         var table = $('#zfs_snapshot').DataTable();
@@ -2285,7 +2334,6 @@ $(document).ready(function () {
             });
         }
     });
-
 
 });
 /**

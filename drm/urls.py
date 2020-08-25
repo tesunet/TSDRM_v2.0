@@ -238,6 +238,7 @@ urlpatterns = [
 
     url(r'^kvm_data/$', kvm_data),
     url(r'^kvm_save/$', kvm_save),
+    url(r'^kvm_del/$', kvm_del),
     url(r'^zfs_snapshot_data/$', zfs_snapshot_data),
     url(r'^zfs_snapshot_save/$', zfs_snapshot_save),
     url(r'^zfs_snapshot_del/$', zfs_snapshot_del),

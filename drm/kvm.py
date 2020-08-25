@@ -51,7 +51,6 @@ class KVMApi():
         kvm_all_list_dict = []
         for item in end_list:
             data = {}
-            data['id'] = item[0]
             data['name'] = item[1]
             data['state'] = item[2]
             kvm_all_list_dict.append(data)

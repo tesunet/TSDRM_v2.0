@@ -843,7 +843,7 @@
                                             </ul>
                                             <div class="tab-content">
                                                 <div class="tab-pane fade active in" id="tab_4_1">
-                                                 <input type="text" hidden id="kvm_id" name="kvm_id" value="">
+                                                    <input type="text" hidden id="kvm_id" name="kvm_id" value="">
                                                     <div class="form-group">
                                                         <label class="col-md-2 control-label"><span style="color:red; ">*</span>虚拟化平台</label>
                                                         <div class="col-md-10">
@@ -877,6 +877,22 @@
 
                                                         </div>
                                                     </div>
+                                                    <div class="form-group" hidden>
+                                                        <label class="col-md-2 control-label">虚拟机</label>
+                                                        <div class="col-md-10">
+                                                            <textarea class="form-control" id="all_kvm_data" name="all_kvm_data" readonly></textarea>
+                                                            <div class="form-control-focus"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="form-group" hidden>
+                                                        <label class="col-md-2 control-label">文件系统</label>
+                                                        <div class="col-md-10">
+                                                            <textarea class="form-control" id="all_filesystem_data" name="all_filesystem_data" readonly></textarea>
+                                                            <div class="form-control-focus"></div>
+
+                                                        </div>
+                                                    </div>
+
                                                     <div class="form-group " style="text-align:center">
                                                         <button type="button" id="kvm_protect_save" name="kvm_protect_save" class="btn green">
                                                                 保存
