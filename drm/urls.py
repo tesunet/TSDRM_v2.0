@@ -49,6 +49,8 @@ urlpatterns = [
     url(r'^funmove/$', funmove),
     url(r'^get_all_client_tree/$', get_all_client_tree),
     url(r'^group_save_host_tree/$', group_save_host_tree),
+    url(r'^get_all_process_tree/$', get_all_process_tree),
+    url(r'^group_save_process_tree/$', group_save_process_tree),
 
 
     # 工具管理
