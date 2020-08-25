@@ -1959,9 +1959,6 @@ $(document).ready(function () {
 
                 $("#kvm_machine_platform").val(data.kvm_machine_list[0].utils_id);
                 $("#kvm_machine").val(data.kvm_machine_list[0].name);
-                $("#kvm_user").val(data.kvm_machine_list[0].kvm_credit['KvmUser']);
-                $("#kvm_password").val(data.kvm_machine_list[0].kvm_credit['KvmPasswd']);
-                $("#kvm_os").val(data.kvm_machine_list[0].kvm_credit['KvmOs']);
                 $("#kvm_filesystem").val(data.kvm_machine_list[0].filesystem);
 
 
@@ -2092,7 +2089,9 @@ $(document).ready(function () {
         $("#utils_id").val(data.utils_id);
         $("#snapshot_name1").val(data.name);
         var kvm_copy_name = $("#snapshot_name1").val().split('/');
-        $('#kvm_copy_name').val(kvm_copy_name[1])
+        $('#kvm_copy_name').val(kvm_copy_name[1]);
+        $("#kvm_copy_ip").val("");
+        $("#kvm_copy_hostname").val("")
 
     });
     $('#zfs_snapshot tbody').on('click', 'button#delrow', function () {
@@ -2130,11 +2129,13 @@ $(document).ready(function () {
             url: "../zfs_snapshot_mount/",
             data:
                 {
-                    snapshot_id: $("#snapshot_id").val(),
-                    utils_id: $("#utils_id").val(),
-                    snapshot_name: $("#snapshot_name").val(),
-                    snapshot_clone_path: $("#snapshot_clone_path").val(),
+                    utils_id: $("#kvm_machine_platform").val(),
+                    snapshot_name: $("#snapshot_name1").val(),
                     kvm_copy_name: $("#kvm_copy_name").val(),
+                    kvm_copy_ip: $("#kvm_copy_ip").val(),
+                    kvm_copy_hostname: $("#kvm_copy_hostname").val(),
+
+                    kvm_machine: $("#kvm_machine").val(),
                 },
             success: function (data) {
                 var myres = data["res"];

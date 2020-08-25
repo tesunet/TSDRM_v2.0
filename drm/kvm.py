@@ -337,7 +337,6 @@ class KVMApi():
         查看zfs快照：zfs list -t snapshot -r tank/kvm_1
         """
         exe_cmd = r'zfs list -t snapshot -r {0}'.format(filesystem)
-        print(exe_cmd)
         result = self.remote_linux(exe_cmd)
         snapshot_list = [x for x in result['data'].split(' ') if x]
         split_monutpoint = snapshot_list[4].lstrip('MOUNTPOINT')
@@ -366,26 +365,22 @@ class KVMApi():
             info = '快照已挂载，删除失败。'
         return info
 
-    def zfs_clone_snapshot(self, snapshot_name, snapshot_clone_path):
+    def zfs_clone_snapshot(self, snapshot_name):
         """
-        克隆快照：zfs clone tank/Test-1/disk@2020-08-23 tank/Test-1/Test-1_clone
+        克隆快照：zfs clone tank/kvm_1@2020-08-20 tank/kvm_1@2020-08-20
         kvm_name
         kvm_snapshot_name
         kvm_snapshot_clone_name
         """
-        info = ''
         try:
-            snapshot = snapshot_name.split('/')
-            snapshot_clone_path = snapshot[0] + '/' + snapshot[1] + '/' + snapshot_clone_path
-            exe_cmd = r'zfs clone {0} {1}'.format(snapshot_name, snapshot_clone_path)
-            print(exe_cmd)
-            # self.remote_linux(exe_cmd)
+            exe_cmd = r'zfs clone {0} {0}'.format(snapshot_name)
+            self.remote_linux(exe_cmd)
             info = '克隆成功。'
         except:
-            info = '克隆快照失败。'
+            info = '克隆失败。'
         return info
 
-    def create_kvm_xml(self, snapshot_name, snapshot_clone_path, kvm_copy_name):
+    def create_kvm_xml(self, kvm_machine, snapshot_name, copy_name):
         """
         读取文件，修改文件，追加到新文件
         kvm_name = 'Test-1                               老虚拟机
@@ -394,9 +389,9 @@ class KVMApi():
         """
         info = ''
         try:
-            snapshot = snapshot_name.split('/')
-            snapshot_clone_path = snapshot[0] + '/' + snapshot[1] + '/' + snapshot_clone_path + '/' + snapshot[1] + '.qcow2'
-            exe_cmd = r'cat /etc/libvirt/qemu/{0}.xml'.format(snapshot[1])
+            kvm_disk_path = snapshot_name + '/' + kvm_machine + '.qcow2'
+            exe_cmd = r'cat /etc/libvirt/qemu/{0}.xml'.format(kvm_machine)
+
             result = self.remote_linux(exe_cmd)
             # 解析xml文件找出要修改的name、uuid、disk_path、mac
             config = etree.XML(result['data'])
@@ -407,34 +402,33 @@ class KVMApi():
             kvm_mac = config.xpath("//mac")[0]
 
             # 修改名字、修改磁盘路径、删除uuid、删除mac
-            kvm_name.text = kvm_copy_name
-            kvm_diskpath.attrib['file'] = snapshot_clone_path
+            kvm_name.text = copy_name
+            kvm_diskpath.attrib['file'] = kvm_disk_path
             config.remove(kvm_uuid)
             kvm_interface.remove(kvm_mac)
             xml_content = etree.tounicode(config)
 
-            xml_path = '/etc/libvirt/qemu/{0}.xml'.format(kvm_copy_name)
+            xml_path = '/etc/libvirt/qemu/{0}.xml'.format(copy_name)
             exe_cmd = r'cat > {0} << \EOH'.format(xml_path) + '\n' + xml_content + '\nEOH'
             self.remote_linux(exe_cmd)
-            info = '创建成功。'
+            info = '生成成功。'
         except:
-            info = '生成虚拟机{0}.xml失败。'.format(kvm_copy_name)
-            pass
+            info = '生成失败。'
         return info
 
-    def define_kvm(self, kvm_copy_name):
+    def define_kvm(self, copy_name):
         """
         通过xml文件定义虚拟机
         virsh define /etc/libvirt/qemu/kvm_1.xml
         """
-        xml_path = '/etc/libvirt/qemu/{0}.xml'.format(kvm_copy_name)
+        xml_path = '/etc/libvirt/qemu/{0}.xml'.format(copy_name)
         exe_cmd = r'virsh define {0}'.format(xml_path)
         result = self.remote_linux(exe_cmd)
-        if result['data'] == 'Domain {0} defined from {1}'.format(kvm_copy_name, xml_path) or \
-                result['data'] == '定义域 {0}（从 {1}）'.format(kvm_copy_name, xml_path):
-            result = '虚拟机{0}定义成功。'.format(kvm_copy_name)
+        if result['data'] == 'Domain {0} defined from {1}'.format(copy_name, xml_path) or \
+                result['data'] == '定义域 {0}（从 {1}）'.format(copy_name, xml_path):
+            result = '挂载成功。'
         else:
-            result = '虚拟机{0}定义失败。'.format(kvm_copy_name)
+            result = '挂载失败。'
 
         return result
 
@@ -458,7 +452,4 @@ linuxserver_credit = {
 # result = KVMApi(linuxserver_credit).start('kvm_1')
 # result = KVMApi(linuxserver_credit).shutdown('Test-1')
 # result = KVMApi(linuxserver_credit).zfs_list()
-# print(result)
-
-
 

@@ -2057,40 +2057,17 @@ def kvm_data(request):
     all_kvmmachine = KvmMachine.objects.exclude(state='9')
 
     for um in all_kvmmachine:
-        kvm_credit = {
-            'KvmUser': '',
-            'KvmPasswd': '',
-            'KvmOs': ''
-        }
-        try:
-            doc = etree.XML(um.info)
-            # Kvm账户信息
-            try:
-                kvm_credit['KvmUser'] = doc.xpath('//KvmUser/text()')[0]
-            except:
-                pass
-            try:
-                kvm_credit['KvmPasswd'] = base64.b64decode(
-                    doc.xpath('//KvmPasswd/text()')[0]).decode()
-            except:
-                pass
-            try:
-                kvm_credit['KvmOs'] = doc.xpath('//KvmOs/text()')[0]
-            except:
-                pass
-        except:
-            pass
-
         kvm_machine_list.append({
             'id': um.id,
             'name': um.name,
             'filesystem': um.filesystem,
             'utils_id': um.utils_id,
-            'kvm_credit': kvm_credit
+
         })
+
     return JsonResponse({'kvm_list': kvm_list,
                          'kvm_filesystem_list': kvm_filesystem_list,
-                         "kvm_machine_list": kvm_machine_list})
+                         'kvm_machine_list': kvm_machine_list})
 
 
 @login_required
@@ -2120,7 +2097,7 @@ def kvm_save(request):
         "KvmOs": kvm_os
     })
     try:
-        kvm_obj = KvmMachine.objects.filter(name=name)
+        kvm_obj = KvmMachine.objects.filter(name=name).exclude(state='9')
         if kvm_obj.exists():
             kvm_obj.update(**{
                 'utils_id': utils_id,
@@ -2232,10 +2209,12 @@ def zfs_snapshot_mount(request):
     # ①创建快照完成：tank/Test-1@2020-08-23
     # ②克隆快照：zfs clone tank/Test-1/disk@2020-08-23 tank/Test-1/Test-1_clone
     utils_id = request.POST.get("utils_id", "")
-    snapshot_id = request.POST.get("snapshot_id", "")
     snapshot_name = request.POST.get("snapshot_name", "")
-    snapshot_clone_path = request.POST.get("snapshot_clone_path", "")
-    kvm_copy_name = request.POST.get("kvm_copy_name", "")
+    copy_name = request.POST.get("kvm_copy_name", "")
+    copy_ip = request.POST.get("kvm_copy_ip", "")
+    copy_hostname = request.POST.get("kvm_copy_hostname", "")
+
+    kvm_machine = request.POST.get("kvm_machine", "")
     try:
         utils_id = int(utils_id)
     except:
@@ -2247,22 +2226,38 @@ def zfs_snapshot_mount(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     try:
-        result_info = KVMApi(kvm_credit).zfs_clone_snapshot(snapshot_name, snapshot_clone_path)
-
+        result_info = KVMApi(kvm_credit).zfs_clone_snapshot(snapshot_name)
         if result_info == '克隆成功。':
             # ③克隆成功，生成新的xml文件
-            result_info = KVMApi(kvm_credit).create_kvm_xml(snapshot_name, snapshot_clone_path, kvm_copy_name)
-            if result_info == '创建成功。':
+            result_info = KVMApi(kvm_credit).create_kvm_xml(kvm_machine, snapshot_name, copy_name)
+            if result_info == '生成成功。':
                 # ④新的xml文件生成，开始定义虚拟机
-                result_info = KVMApi(kvm_credit).define_kvm(kvm_copy_name)
+                result_info = KVMApi(kvm_credit).define_kvm(copy_name)
+                if result_info == '挂载成功。':
+                    # 保存数据库
+                    try:
+                        kvmcopy_obj = KvmCopy.objects.exclude(state="9")
+                        kvmcopy_obj.create(**{
+                            'utils_id': utils_id,
+                            'name': copy_name,
+                            'ip': copy_ip,
+                            'hostname': copy_hostname,
+                            'create_time': datetime.datetime.now(),
+                            # 'create_user': create_user
+                        })
+                        result["res"] = "挂载成功。"
+                    except Exception as e:
+                        print(e)
+                        result["res"] = "挂载失败。"
+
                 result['res'] = result_info
             else:
-                result['res'] = '挂载快照失败。'
-        result['res'] = '挂载快照失败。'
+                result['res'] = '挂载失败。'
+        result['res'] = '挂载失败。'
 
     except Exception as e:
         print(e)
-        result['res'] = '挂载快照失败。'
+        result['res'] = '挂载失败。'
 
     return JsonResponse(result)
 
