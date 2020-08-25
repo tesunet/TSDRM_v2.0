@@ -340,6 +340,6 @@ class KvmCopy(models.Model):
     ip = models.CharField("副本IP", blank=True, null=True, max_length=30)
     hostname = models.CharField("副本主机名", blank=True, null=True, max_length=30)
     create_time = models.DateTimeField("创建时间", blank=True, null=True)
-    create_user = models.CharField("创建人", blank=True, null=True, max_length=20)
+    create_user = models.OneToOneField(User, blank=True, null=True, verbose_name="创建人")
     state = models.CharField("状态", blank=True, null=True, max_length=20)
 
