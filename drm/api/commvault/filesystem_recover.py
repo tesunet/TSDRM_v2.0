@@ -15,7 +15,7 @@ except ImportError:
 import base64
 
 try:
-    import urllib.request  as urllib
+    import urllib.request as urllib
 except:
     import urllib
 
@@ -24,14 +24,14 @@ import sys
 from django.core.wsgi import get_wsgi_application
 
 # 获取django路径
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 sys.path.extend([r'%s' % BASE_DIR, ])
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "TSDRM.settings")
 application = get_wsgi_application()
 from drm.models import *
 import logging
 
-logger = logging.getLogger('oracleRAC_recover')
+logger = logging.getLogger('FS_recover')
 
 
 class CV_RestApi_Token(object):
@@ -51,7 +51,8 @@ class CV_RestApi_Token(object):
         """
         # super().__init__()
         self.service = 'http://<<server>>:<<port>>/SearchSvc/CVWebService.svc/'
-        self.credit = {"webaddr": "", "port": "", "username": "", "passwd": "", "token": "", "lastlogin": 0}
+        self.credit = {"webaddr": "", "port": "", "username": "",
+                       "passwd": "", "token": "", "lastlogin": 0}
         self.isLogin = False
         self.msg = ""
         self.sendText = ""
@@ -93,10 +94,12 @@ class CV_RestApi_Token(object):
         self.isLogin = False
         self.credit["token"] = None
         # print(credit)
-        self.service = self.service.replace("<<server>>", self.credit["webaddr"])
+        self.service = self.service.replace(
+            "<<server>>", self.credit["webaddr"])
         self.service = self.service.replace("<<port>>", self.credit["port"])
 
-        password = base64.b64encode(self.credit["passwd"].encode(encoding="utf-8"))
+        password = base64.b64encode(
+            self.credit["passwd"].encode(encoding="utf-8"))
 
         loginReq = '<DM2ContentIndexing_CheckCredentialReq mode="Webconsole" username="<<username>>" password="<<password>>" />'
         loginReq = loginReq.replace("<<username>>", self.credit["username"])
@@ -105,7 +108,8 @@ class CV_RestApi_Token(object):
         try:
             r = requests.post(self.service + 'Login', data=loginReq)
         except:
-            self.msg = "Connect Failed: webaddr " + self.credit["webaddr"] + " port " + self.credit["port"]
+            self.msg = "Connect Failed: webaddr " + \
+                       self.credit["webaddr"] + " port " + self.credit["port"]
             return False
         if r.status_code == 200:
             try:
@@ -123,9 +127,12 @@ class CV_RestApi_Token(object):
 
                     return True
                 else:
-                    self.msg = "Login Failed: username " + self.credit["username"] + " passwd " + self.credit["passwd"]
+                    self.msg = "Login Failed: username " + \
+                               self.credit["username"] + \
+                               " passwd " + self.credit["passwd"]
         else:
-            self.msg = "Connect Failed: webaddr " + self.credit["webaddr"] + " port " + self.credit["port"]
+            self.msg = "Connect Failed: webaddr " + \
+                       self.credit["webaddr"] + " port " + self.credit["port"]
 
         return False
 
@@ -156,7 +163,8 @@ class CV_RestApi(object):
         self.service = 'http://<<server>>:<<port>>/SearchSvc/CVWebService.svc/'
         self.webaddr = token.credit["webaddr"]
         self.port = token.credit["port"]
-        self.service = self.service.replace("<<server>>", token.credit["webaddr"])
+        self.service = self.service.replace(
+            "<<server>>", token.credit["webaddr"])
         self.service = self.service.replace("<<port>>", token.credit["port"])
         self.token = token
         self.msg = ""
@@ -201,7 +209,8 @@ class CV_RestApi(object):
 
         if restCmd == "DEL":
             try:
-                r = requests.delete(clientPropsReq, data=update, headers=headers)
+                r = requests.delete(
+                    clientPropsReq, data=update, headers=headers)
             except:
                 self.msg = "Connect Failed: webaddr " + self.webaddr + " port " + self.port
                 return None
@@ -217,7 +226,8 @@ class CV_RestApi(object):
             self.receiveText = r.text
         else:
             self.receiveText = r.status_code
-            self.msg = 'Failure: webaddr ' + self.webaddr + " port " + self.port + " retcode: %d" % r.status_code
+            self.msg = 'Failure: webaddr ' + self.webaddr + \
+                       " port " + self.port + " retcode: %d" % r.status_code
 
         return self.receiveText
 
@@ -254,9 +264,11 @@ class CV_RestApi(object):
             else:
                 try:
                     errString = node.attrib["errorString"]
-                    self.msg = "PostCmd:" + command + "ErrCode: " + errorCode + "ErrString:" + errString
+                    self.msg = "PostCmd:" + command + "ErrCode: " + \
+                               errorCode + "ErrString:" + errString
                 except:
-                    self.msg = "post command:" + command + " Error Code: " + errorCode + " receive text is " + self.receiveText
+                    self.msg = "post command:" + command + " Error Code: " + \
+                               errorCode + " receive text is " + self.receiveText
                     pass
             return None
         except:
@@ -275,7 +287,8 @@ class CV_RestApi(object):
             if errorCode == "0":
                 self.msg = "Set successfully"
                 return True
-            self.msg = "del command:" + command + " xml format:" + updatecmd + " Error Code: " + errorCode + " receive text is " + self.receiveText
+            self.msg = "del command:" + command + " xml format:" + updatecmd + \
+                       " Error Code: " + errorCode + " receive text is " + self.receiveText
             return False
         except:
             self.msg = "receive string is not XML format:" + self.receiveText
@@ -293,7 +306,8 @@ class CV_RestApi(object):
             if errorCode == "0":
                 self.msg = "Set successfully"
                 return retString
-            self.msg = "del command:" + command + " xml format:" + updatecmd + " Error Code: " + errorCode + " receive text is " + self.receiveText
+            self.msg = "del command:" + command + " xml format:" + updatecmd + \
+                       " Error Code: " + errorCode + " receive text is " + self.receiveText
             return None
         except:
             self.msg = "receive string is not XML format:" + self.receiveText
@@ -320,9 +334,11 @@ class CV_RestApi(object):
             else:
                 try:
                     errString = node.attrib["errorString"]
-                    self.msg = "qcmd command:" + command + " Error Code: " + errorCode + " ErrString: " + errString
+                    self.msg = "qcmd command:" + command + " Error Code: " + \
+                               errorCode + " ErrString: " + errString
                 except:
-                    self.msg = "qcmd command:" + command + " Error Code: " + errorCode + " receive text is " + self.receiveText
+                    self.msg = "qcmd command:" + command + " Error Code: " + \
+                               errorCode + " receive text is " + self.receiveText
                     pass
             return False
         except:
@@ -557,8 +573,10 @@ class CV_GetAllInformation(CV_RestApi):
                     self.vmESXHost.append(attribHost)
 
                     datastoreCmd = 'VSBrowse/<<clientId>>/<<esxHost>>?requestType=DATASTORES_ON_HOST'
-                    datastoreCmd = datastoreCmd.replace("<<clientId>>", clientId)
-                    datastoreCmd = datastoreCmd.replace("<<esxHost>>", attribHost["name"])
+                    datastoreCmd = datastoreCmd.replace(
+                        "<<clientId>>", clientId)
+                    datastoreCmd = datastoreCmd.replace(
+                        "<<esxHost>>", attribHost["name"])
                     dsResp = self.getCmd(datastoreCmd)
                     datastoreList = dsResp.findall(".//dataStore")
                     for dsnode in datastoreList:
@@ -579,7 +597,8 @@ class CV_Client(CV_GetAllInformation):
         self.client = client
         self.backupsetList = []
         self.subclientList = []
-        self.platform = {"platform": None, "ProcessorType": 0, "hostName": None}
+        self.platform = {"platform": None,
+                         "ProcessorType": 0, "hostName": None}
         self.clientInfo = {"clientName": None, "clientId": None, "platform": self.platform, "backupsetList": [],
                            "agentList": []}
         # self.backupInfo = {"clientId":None, "clientName":None, "agentType":None, "agentId":None, "backupsetId":None, "backupsetName":None, "instanceName":None, "instanceId":None}
@@ -620,7 +639,7 @@ class CV_Client(CV_GetAllInformation):
         del subList[:]
         if clientId == None:
             return None
-        cmd = 'Subclient?clientId=<<clientId>>';
+        cmd = 'Subclient?clientId=<<clientId>>'
         cmd = cmd.replace("<<clientId>>", clientId)
         subclient = self.getCmd(cmd)
         if subclient == None:
@@ -691,7 +710,8 @@ class CV_Client(CV_GetAllInformation):
 
             proxylist = resp.findall(".//memberServers/client")
             for proxy in proxylist:
-                myproxylist.append({"clientId": proxy.attrib["clientId"], "clientName": proxy.attrib["clientName"]})
+                myproxylist.append(
+                    {"clientId": proxy.attrib["clientId"], "clientName": proxy.attrib["clientName"]})
             instance["PROXYLIST"] = myproxylist
         except:
             self.msg = "error get client instance"
@@ -731,13 +751,16 @@ class CV_Client(CV_GetAllInformation):
         clientInfo = self.clientInfo
         self.isNewClient = False
         # get backupsetList
-        clientInfo["backupsetList"] = self.getBackupsetList(clientInfo["clientId"])
+        clientInfo["backupsetList"] = self.getBackupsetList(
+            clientInfo["clientId"])
         # get platform
         self.getClientOSInfo(clientInfo["clientId"])
         # get agent list
-        clientInfo["agentList"] = self.getClientAgentList(clientInfo["clientId"])
+        clientInfo["agentList"] = self.getClientAgentList(
+            clientInfo["clientId"])
         if (clientInfo["platform"]["platform"]).upper() == "ANY":
-            clientInfo["instance"] = self.getClientInstance(clientInfo["clientId"])
+            clientInfo["instance"] = self.getClientInstance(
+                clientInfo["clientId"])
         return clientInfo
 
     def setVMWareClient(self, myclientName, vmClient):
@@ -858,8 +881,10 @@ class CV_Client(CV_GetAllInformation):
             # 应用名
             backupInfo["appName"] = subClientEntity[0].get("appName", "")
             # 存储策略
-            dataBackupStoragePolicy = resp.findall(".//dataBackupStoragePolicy")
-            backupInfo["Storage"] = dataBackupStoragePolicy[0].get("storagePolicyName", "")
+            dataBackupStoragePolicy = resp.findall(
+                ".//dataBackupStoragePolicy")
+            backupInfo["Storage"] = dataBackupStoragePolicy[0].get(
+                "storagePolicyName", "")
             # *********************** Schedule, Oracle connect string, SQL Server if  default covered
             # 计划策略
             # 取出所有taskid
@@ -871,7 +896,8 @@ class CV_Client(CV_GetAllInformation):
                 for task in all_tasks:
                     task_id = task.get("taskId", "")
                     # 取出taskName
-                    cmd_get_schedule_name = "SchedulePolicy/{0}".format(task_id)
+                    cmd_get_schedule_name = "SchedulePolicy/{0}".format(
+                        task_id)
                     content = self.getCmd(cmd_get_schedule_name)
 
                     # 对应子客户端
@@ -884,7 +910,8 @@ class CV_Client(CV_GetAllInformation):
                     if subclientId in subclient_id_list:
                         schedule_content = content.findall(".//task")
                         if schedule_content:
-                            schedule_name = schedule_content[0].get("taskName", "")
+                            schedule_name = schedule_content[0].get(
+                                "taskName", "")
                         break
             backupInfo["schedule_name"] = schedule_name
             # *****************************************************************************
@@ -898,7 +925,8 @@ class CV_Client(CV_GetAllInformation):
                 backupInfo["content"] = mycontent
                 # backupSystemState
                 fsSubClientProp = resp.findall(".//fsSubClientProp")
-                backupInfo["backupSystemState"] = fsSubClientProp[0].get("backupSystemState", "")
+                backupInfo["backupSystemState"] = fsSubClientProp[0].get(
+                    "backupSystemState", "")
                 if backupInfo["backupSystemState"] == "0" or backupInfo["backupSystemState"] == "false":
                     backupInfo["backupSystemState"] = "FALSE"
                 if backupInfo["backupSystemState"] == "1" or backupInfo["backupSystemState"] == "true":
@@ -906,15 +934,18 @@ class CV_Client(CV_GetAllInformation):
             # 数据库实例信息
             if backupInfo["appName"] == "SQL Server":
                 command = "/instance?clientId=<<clientId>>"
-                command = command.replace("<<clientId>>", subClientEntity[0].get("clientId", ""))
+                command = command.replace(
+                    "<<clientId>>", subClientEntity[0].get("clientId", ""))
                 resp = self.getCmd(command)
                 instancenodes = resp.findall(".//instanceProperties")
                 for instancenode in instancenodes:
                     instance = instancenode.findall(".//instance")
 
                     if instance[0].get("instanceId", "") == subClientEntity[0].get("instanceId", ""):
-                        backupInfo["instanceName"] = instance[0].get("instanceName", "")
-                        mssqlInstance = instancenode.findall(".//mssqlInstance")
+                        backupInfo["instanceName"] = instance[0].get(
+                            "instanceName", "")
+                        mssqlInstance = instancenode.findall(
+                            ".//mssqlInstance")
                         backupInfo["vss"] = mssqlInstance[0].get("useVss", "")
                         if backupInfo["vss"] == "0" or backupInfo["vss"] == "false":
                             backupInfo["vss"] = "FALSE"
@@ -922,10 +953,12 @@ class CV_Client(CV_GetAllInformation):
                             backupInfo["vss"] = "TRUE"
 
                         # iscover
-                        iscover = instancenode.findall(".//mssqlInstance/overrideHigherLevelSettings")
+                        iscover = instancenode.findall(
+                            ".//mssqlInstance/overrideHigherLevelSettings")
                         if iscover:
                             iscover = iscover[0]
-                            backupInfo["iscover"] = iscover.get("overrideGlobalAuthentication", "")
+                            backupInfo["iscover"] = iscover.get(
+                                "overrideGlobalAuthentication", "")
                         else:
                             backupInfo["iscover"] = ""
 
@@ -934,37 +967,48 @@ class CV_Client(CV_GetAllInformation):
                         if backupInfo["iscover"] == "1" or backupInfo["iscover"] == "true":
                             backupInfo["iscover"] = "TRUE"
                         # user:<userAccount/>
-                        userAccount = instancenode.findall(".//mssqlInstance/overrideHigherLevelSettings/userAccount")
+                        userAccount = instancenode.findall(
+                            ".//mssqlInstance/overrideHigherLevelSettings/userAccount")
                         if userAccount:
-                            backupInfo["userName"] = userAccount[0].get("userName", "")
+                            backupInfo["userName"] = userAccount[0].get(
+                                "userName", "")
                         else:
                             backupInfo["userName"] = ""
                         break
             if backupInfo["appName"] == "Oracle":
                 command = "/instance?clientId=<<clientId>>"
-                command = command.replace("<<clientId>>", subClientEntity[0].get("clientId", ""))
+                command = command.replace(
+                    "<<clientId>>", subClientEntity[0].get("clientId", ""))
                 resp = self.getCmd(command)
                 instancenodes = resp.findall(".//instanceProperties")
                 for instancenode in instancenodes:
                     instance = instancenode.findall(".//instance")
                     if instance[0].get("instanceId", "") == subClientEntity[0].get("instanceId", ""):
-                        backupInfo["instanceName"] = instance[0].get("instanceName", "")
-                        oracleInstance = instancenode.findall(".//oracleInstance")
-                        backupInfo["oracleHome"] = oracleInstance[0].get("oracleHome", "")
-                        oracleUser = instancenode.findall(".//oracleInstance/oracleUser")
-                        backupInfo["oracleUser"] = oracleUser[0].get("userName", "")
+                        backupInfo["instanceName"] = instance[0].get(
+                            "instanceName", "")
+                        oracleInstance = instancenode.findall(
+                            ".//oracleInstance")
+                        backupInfo["oracleHome"] = oracleInstance[0].get(
+                            "oracleHome", "")
+                        oracleUser = instancenode.findall(
+                            ".//oracleInstance/oracleUser")
+                        backupInfo["oracleUser"] = oracleUser[0].get(
+                            "userName", "")
                         # connect
-                        sqlConnect = instancenode.findall(".//oracleInstance/sqlConnect")
+                        sqlConnect = instancenode.findall(
+                            ".//oracleInstance/sqlConnect")
                         backupInfo["conn1"] = sqlConnect[0].get("userName", "")
                         backupInfo["conn2"] = ""  # sys密码，没有
-                        backupInfo["conn3"] = sqlConnect[0].get("domainName", "")
+                        backupInfo["conn3"] = sqlConnect[0].get(
+                            "domainName", "")
                         break
             if backupInfo["appName"] == "Virtual Server":
                 children = resp.findall(".//vmContent/children")
                 for child in children:
                     mycontent.append(child.get("displayName", ""))
                 backupInfo["content"] = mycontent
-                backupInfo["backupsetName"] = subClientEntity[0].get("backupsetName", "")
+                backupInfo["backupsetName"] = subClientEntity[0].get(
+                    "backupsetName", "")
         except:
             self.msg = "error get client instance"
         # print(backupInfo)
@@ -991,7 +1035,8 @@ class CV_OperatorInterFace(CV_RestApi):
             self.msg = "Properties set successfully"
             return True
         else:
-            self.msg = "command " + cmd + " xml format" + updateClientProps + " Error Code: " + errorCode + " receive text is " + self.receiveText
+            self.msg = "command " + cmd + " xml format" + updateClientProps + \
+                       " Error Code: " + errorCode + " receive text is " + self.receiveText
             return False
 
     def _setSPBySubId(self, subclientId, spname=None):
@@ -1114,7 +1159,8 @@ class CV_VMRestore(object):
         ''' source proxy client '''
         et = self.root
         try:
-            backupsetnames = et.findall(".//browseOption/backupset/backupsetName")
+            backupsetnames = et.findall(
+                ".//browseOption/backupset/backupsetName")
             backupsetnames[0].text = backupsetname
             clientnames = et.findall(".//browseOption/backupset/clientName")
             clientnames[0].text = clientname
@@ -1180,20 +1226,25 @@ class CV_VMRestore(object):
                                       overWrite=False, power=False):
         et = self.root
         try:
-            esxServerNames = et.findall(".//diskLevelVMRestoreOption/esxServerName")
+            esxServerNames = et.findall(
+                ".//diskLevelVMRestoreOption/esxServerName")
             esxServerNames[0].text = esxServerName
-            hostOrClusters = et.findall(".//diskLevelVMRestoreOption/hostOrCluster")
+            hostOrClusters = et.findall(
+                ".//diskLevelVMRestoreOption/hostOrCluster")
             hostOrClusters[0].text = hostOrCluster
-            userNames = et.findall(".//diskLevelVMRestoreOption/userPassword/userName")
+            userNames = et.findall(
+                ".//diskLevelVMRestoreOption/userPassword/userName")
             userNames[0].text = userName
             diskOptions = et.findall(".//diskLevelVMRestoreOption/diskOption")
             diskOptions[0].text = diskOption
-            overWrites = et.findall(".//diskLevelVMRestoreOption/passUnconditionalOverride")
+            overWrites = et.findall(
+                ".//diskLevelVMRestoreOption/passUnconditionalOverride")
             if overWrite == True:
                 overWrites[0].text = "True"
             else:
                 overWrites[0].text = "False"
-            powers = et.findall(".//diskLevelVMRestoreOption/powerOnVmAfterRestore")
+            powers = et.findall(
+                ".//diskLevelVMRestoreOption/powerOnVmAfterRestore")
             if power == True:
                 powers[0].text = "True"
             else:
@@ -1274,7 +1325,7 @@ class CV_Backupset(CV_Client):
     def _setFSSystemState(self, subclientId, platform, systemstates=None):
         if systemstates == None:
             return True
-        cmd = 'Subclient/<<subclientId>>';
+        cmd = 'Subclient/<<subclientId>>'
         cmd = cmd.replace("<<subclientId>>", subclientId)
         if systemstates == True:
             if "Win" in platform:
@@ -1307,7 +1358,7 @@ class CV_Backupset(CV_Client):
     def _setFSPaths(self, subclientId, paths=None):
         if paths == None:
             return True
-        cmd = 'Subclient/<<subclientId>>';
+        cmd = 'Subclient/<<subclientId>>'
         cmd = cmd.replace("<<subclientId>>", subclientId)
         firstRec = True
         for path in paths:
@@ -1317,7 +1368,8 @@ class CV_Backupset(CV_Client):
                             </subClientProperties></App_UpdateSubClientPropertiesRequest>'''
                 updateClientProps = updateClientProps.replace("<<path>>", path)
                 firstRec = False
-                retCode = self.operator.postClientPorertiesCmd(cmd, updateClientProps)
+                retCode = self.operator.postClientPorertiesCmd(
+                    cmd, updateClientProps)
                 if retCode == False:
                     return False
             else:
@@ -1325,7 +1377,8 @@ class CV_Backupset(CV_Client):
                             <content><path><<path>></path></content>
                             </subClientProperties></App_UpdateSubClientPropertiesRequest>'''
                 updateClientProps = updateClientProps.replace("<<path>>", path)
-                retCode = self.operator.postClientPorertiesCmd(cmd, updateClientProps)
+                retCode = self.operator.postClientPorertiesCmd(
+                    cmd, updateClientProps)
                 if retCode == False:
                     return False
         return True
@@ -1380,10 +1433,13 @@ class CV_Backupset(CV_Client):
                                 <instanceName><<backupsetName>></instanceName>
                                 </entity></association></App_CreateBackupSetRequest>'''
             updateClientProps = updateClientProps.replace("\n", " ")
-            updateClientProps = updateClientProps.replace("<<backupsetName>>", backupset)
-            updateClientProps = updateClientProps.replace("<<clientName>>", self.clientInfo["clientName"])
+            updateClientProps = updateClientProps.replace(
+                "<<backupsetName>>", backupset)
+            updateClientProps = updateClientProps.replace(
+                "<<clientName>>", self.clientInfo["clientName"])
             # print(command, updateClientProps)
-            retCode = self.operator.postClientPorertiesCmd(command, updateClientProps)
+            retCode = self.operator.postClientPorertiesCmd(
+                command, updateClientProps)
             # print(retCode, self.operator.msg)
             if retCode == False:
                 return False
@@ -1406,20 +1462,24 @@ class CV_Backupset(CV_Client):
         for node in self.subclientList:
             if node["backupsetId"] == backupsetId:
                 platform = self.clientInfo["platform"]["platform"]
-                retCode = self._setFSSystemState(node["subclientId"], platform, content["OS"])
+                retCode = self._setFSSystemState(
+                    node["subclientId"], platform, content["OS"])
                 if retCode == False:
                     self.msg = "修改备份操作系统状态出错：" + self.msg
                     return False
-                retCode = self._setFSPaths(node["subclientId"], content["Paths"])
+                retCode = self._setFSPaths(
+                    node["subclientId"], content["Paths"])
                 if retCode == False:
                     self.msg = "修改备份路径出错：" + self.msg
                     return False
-                retCode = self.operator._setSPBySubId(node["subclientId"], content["SPName"])
+                retCode = self.operator._setSPBySubId(
+                    node["subclientId"], content["SPName"])
                 if retCode == False:
                     self.msg = node["clientName"] + " File System update schdule error " + node[
                         "backupsetName"] + self.operator.msg
                     return False
-                retCode = self.operator._setSchdulist(node["appName"], node, content["Schdule"])
+                retCode = self.operator._setSchdulist(
+                    node["appName"], node, content["Schdule"])
                 if retCode == False:
                     self.msg = node["clientName"] + " File System update schdule error " + node[
                         "backupsetName"] + self.operator.msg
@@ -1433,7 +1493,7 @@ class CV_Backupset(CV_Client):
         # print(node)
         if node == None or vmlist == None:
             return True
-        cmd = 'Subclient/<<subclientId>>';
+        cmd = 'Subclient/<<subclientId>>'
         cmd = cmd.replace("<<subclientId>>", node["subclientId"])
 
         vmUpdateCmd = '''<App_UpdateSubClientPropertiesRequest><association><entity><appName>Virtual Server</appName>
@@ -1469,9 +1529,11 @@ class CV_Backupset(CV_Client):
         else:
             vmUpdateCmd = vmUpdateCmd.replace("<<proxyList>>", "")
 
-        vmUpdateCmd = vmUpdateCmd.replace("<<subclientName>>", node["subclientName"])
+        vmUpdateCmd = vmUpdateCmd.replace(
+            "<<subclientName>>", node["subclientName"])
         vmUpdateCmd = vmUpdateCmd.replace("<<clientName>>", node["clientName"])
-        vmUpdateCmd = vmUpdateCmd.replace("<<backupsetName>>", node["backupsetName"])
+        vmUpdateCmd = vmUpdateCmd.replace(
+            "<<backupsetName>>", node["backupsetName"])
         vmcontent = ""
         for vm in vmlist:
             if vm == None or vm == "":
@@ -1516,7 +1578,8 @@ class CV_Backupset(CV_Client):
                     isVSAClient = True
                     break
         if isVSAClient == False:
-            self.msg = "this client is not vmware client" + self.clientInfo["clientName"]
+            self.msg = "this client is not vmware client" + \
+                       self.clientInfo["clientName"]
             return False
 
         # 判断是否是新的backupset名称
@@ -1530,7 +1593,8 @@ class CV_Backupset(CV_Client):
         if addBackupset == True:
             command = 'qcreate backupset -c <<clientName>> -a Q_VIRTUAL_SERVER -i VMware -n <<backupsetName>>'
             command = command.replace("<<backupsetName>>", backupset)
-            command = command.replace("<<clientName>>", self.clientInfo["clientName"])
+            command = command.replace(
+                "<<clientName>>", self.clientInfo["clientName"])
             retCode = self.qCmd("QCommand/" + command)
             receive = str(self.receiveText)
             # print(self.receiveText)
@@ -1556,18 +1620,21 @@ class CV_Backupset(CV_Client):
         # return False
 
         # 设置VMWare 备份配置
-        retCode = self._setVMBackupContent(subclientNode, content["vmList"], content["proxyList"])
+        retCode = self._setVMBackupContent(
+            subclientNode, content["vmList"], content["proxyList"])
         if retCode == False:
             self.msg = "update VMWare content error ：" + self.msg
             return False
-        retCode = self.operator._setSPBySubId(subclientNode["subclientId"], content["SPName"])
+        retCode = self.operator._setSPBySubId(
+            subclientNode["subclientId"], content["SPName"])
         if retCode == False:
             self.msg = "associate storage police error：" + self.msg
             return False
         # retCode = self.operator._setSchdulist(node["subclientId"], subclientNode["subclientName"], content["Schdule"])
         agentType = subclientNode["appName"]
 
-        retCode = self.operator._setSchdulist(agentType, subclientNode, content["Schdule"])
+        retCode = self.operator._setSchdulist(
+            agentType, subclientNode, content["Schdule"])
         if retCode == False:
             self.msg = "associate schdule error：" + self.msg
             return False
@@ -1957,7 +2024,8 @@ class CV_Backupset(CV_Client):
                 return False
 
         if self.isNewClient == True:
-            self.msg = "there is not this client" + self.clientInfo["clientName"]
+            self.msg = "there is not this client" + \
+                       self.clientInfo["clientName"]
             return False
 
         instanceName = backupsetName
@@ -1998,12 +2066,14 @@ class CV_Backupset(CV_Client):
         if content != None:
             for node in self.subclientList:
                 if node["instanceName"] == instanceName:
-                    retCode = self.operator._setSchdulist("Oracle", node, content["Schdule"])
+                    retCode = self.operator._setSchdulist(
+                        "Oracle", node, content["Schdule"])
                     if retCode == False:
                         self.msg = node["clientName"] + " oracle update schdule error " + node[
                             "instanceName"] + self.operator.msg
                         return False
-                    retCode = self.operator._setSPBySubId(node["subclientId"], content["SPName"])
+                    retCode = self.operator._setSPBySubId(
+                        node["subclientId"], content["SPName"])
                     if retCode == False:
                         self.msg = node["clientName"] + " oracle update sp error " + node[
                             "instanceName"] + self.operator.msg
@@ -2053,7 +2123,8 @@ class CV_Backupset(CV_Client):
                 addInstance = False
                 break
         if self.isNewClient == True:
-            self.msg = "there is not this client" + self.clientInfo["clientName"]
+            self.msg = "there is not this client" + \
+                       self.clientInfo["clientName"]
             return False
         # if self.checkRunningJob(self.clientInfo["clientName"], "SQL Server", None, instanceName) == True:
         # self.msg = "there is a running job, did not configure"
@@ -2084,12 +2155,14 @@ class CV_Backupset(CV_Client):
         if content != None:
             for node in self.subclientList:
                 if node["instanceName"] == instanceName:
-                    retCode = self.operator._setSchdulist("SQL Server", node, content["Schdule"])
+                    retCode = self.operator._setSchdulist(
+                        "SQL Server", node, content["Schdule"])
                     if retCode == False:
                         self.msg = node["clientName"] + " mssql update schdule error " + node[
                             "instanceName"] + self.operator.msg
                         return False
-                    retCode = self.operator._setSPBySubId(node["subclientId"], content["SPName"])
+                    retCode = self.operator._setSPBySubId(
+                        node["subclientId"], content["SPName"])
                     if retCode == False:
                         self.msg = node["clientName"] + " mssql update sp error " + node[
                             "instanceName"] + self.operator.msg
@@ -2100,7 +2173,8 @@ class CV_Backupset(CV_Client):
     def browse(self, path=None, browse_file=False):
         list = []
         if self.backupsetInfo == None:
-            self.msg = "there is no this backupset " + self.backupsetInfo["backupsetName"]
+            self.msg = "there is no this backupset " + \
+                       self.backupsetInfo["backupsetName"]
             return None
         backupsetInfo = self.backupsetInfo
         subclientNode = None
@@ -2110,7 +2184,8 @@ class CV_Backupset(CV_Client):
                 subclientNode = node
                 break
         if subclientNode == None:
-            self.msg = "there is no this subclient " + self.backupsetInfo["backupsetName"]
+            self.msg = "there is no this subclient " + \
+                       self.backupsetInfo["backupsetName"]
             return None
 
         command = "Subclient/<<subclientId>>/Browse?"
@@ -2139,10 +2214,12 @@ class CV_Backupset(CV_Client):
                 param = param.replace("<<content>>", content)
 
         if flag == False:
-            self.msg = "agentType did not support" + self.backupsetInfo["agentType"]
+            self.msg = "agentType did not support" + \
+                       self.backupsetInfo["agentType"]
             return None
 
-        command = command.replace("<<subclientId>>", subclientNode["subclientId"])
+        command = command.replace(
+            "<<subclientId>>", subclientNode["subclientId"])
         resp = self.getCmd(command + param)
         nodelist = resp.findall(".//dataResultSet")
         for node in nodelist:
@@ -2318,7 +2395,7 @@ class CV_Backupset(CV_Client):
         destClient = dest
         backupset = self.backupsetInfo["backupsetName"]
         instance = self.backupsetInfo["instanceName"]
-        restoreTime = operator["restoreTime"]
+        restoreTime = "{0:%Y-%m-%d %H:%M:%S}".format(operator["restoreTime"] if operator["restoreTime"] else datetime.datetime.now())
         overWrite = operator["overWrite"]
         inPlace = operator["inPlace"]
         destPath = operator["destPath"]
@@ -2342,7 +2419,8 @@ class CV_Backupset(CV_Client):
             for node in sourceclients:
                 node.text = sourceClient
                 # break
-            overWrites = root.findall(".//commonOptions/unconditionalOverwrite")
+            overWrites = root.findall(
+                ".//commonOptions/unconditionalOverwrite")
             for node in overWrites:
                 if overWrite == True:
                     node.text = "true"
@@ -2633,18 +2711,21 @@ class CV_Backupset(CV_Client):
 
         retCode = cvSetXML.setVMAssociate(backupsetname, clientName)
         if retCode == False:
-            self.msg = "the file format is wrong: " + input + " |set backupsetname and clientName"
+            self.msg = "the file format is wrong: " + \
+                       input + " |set backupsetname and clientName"
             return jobId
         retCode = cvSetXML.setVMbrowseOption(backupsetname, browseProxyClient)
         if retCode == False:
-            self.msg = "the file format is wrong: " + input + " |set backupsetName browseProxyClient"
+            self.msg = "the file format is wrong: " + \
+                       input + " |set backupsetName browseProxyClient"
             return jobId
 
         for subclientnode in self.subclientList:
             if subclientnode["backupsetId"] == self.backupsetInfo["backupsetId"]:
-                break;
+                break
         if subclientnode == None:
-            self.msg = "did not get this backupset: %s  %s" % (clientName, backupsetname)
+            self.msg = "did not get this backupset: %s  %s" % (
+                clientName, backupsetname)
             return jobId
 
         lists = self.browse("\\" + vmGUID)
@@ -2665,13 +2746,15 @@ class CV_Backupset(CV_Client):
         retCode = cvSetXML.setVMadvancedRestoreOptions(dataStoreName, disklist, esxhost, vmGUID,
                                                        vmName, newname, None)
         if retCode == False:
-            self.msg = "the file format is wrong: " + input + " setVMadvancedRestoreOptions"
+            self.msg = "the file format is wrong: " + \
+                       input + " setVMadvancedRestoreOptions"
             return jobId
 
         retCode = cvSetXML.setVMdiskLevelVMRestoreOption(vcenterIp, esxhost, vcenterUser, diskOption=diskOption,
                                                          overWrite=overWrite, power=power)
         if retCode == False:
-            self.msg = "the file format is wrong: " + input + " setVMdiskLevelVMRestoreOption"
+            self.msg = "the file format is wrong: " + \
+                       input + " setVMdiskLevelVMRestoreOption"
             return -jobId
 
         retCode = cvSetXML.setVMvCenterInstance(dest)
@@ -3527,11 +3610,13 @@ class CV_Backupset(CV_Client):
                 else:
                     node.text = "False"
                 break
-            destInstanceclient = root.findall(".//destinationInstance/clientName")
+            destInstanceclient = root.findall(
+                ".//destinationInstance/clientName")
             for node in destInstanceclient:
                 node.text = destClient
                 break
-            destInstanceName = root.findall(".//destinationInstance/instanceName")
+            destInstanceName = root.findall(
+                ".//destinationInstance/instanceName")
             for node in destInstanceName:
                 node.text = instance
                 break
@@ -3633,7 +3718,8 @@ class CV_API(object):
         # backupset is backupsetName or backupsetId
         # content is  FSBackupset {"SPName":, "Schdule":, "Paths":["", ""], "OS":True/False}
         # return True / False
-        fsBackupset = CV_Backupset(self.token, client, "File System", backupset)
+        fsBackupset = CV_Backupset(
+            self.token, client, "File System", backupset)
         if fsBackupset.getIsNewClient() == True:
             self.msg = "there is not this fs Client " + client
             return False
@@ -3647,7 +3733,8 @@ class CV_API(object):
         # backupset is backupsetName or backupsetId
         # content is {"proxyList":["",""], "vmList":["", ""], "SPName":, "Schdule":}
         # return True / False
-        vmBackupset = CV_Backupset(self.token, client, "Virtual Server", backupset)
+        vmBackupset = CV_Backupset(
+            self.token, client, "Virtual Server", backupset)
         if vmBackupset.getIsNewClient() == True:
             self.msg = "there is not this VMware Client " + client
             return False
@@ -3661,11 +3748,13 @@ class CV_API(object):
         # content is {"SPName":, "Schdule":}
         # return True / False
 
-        oraBackupset = CV_Backupset(self.token, client, "Oracle Database", instanceName)
+        oraBackupset = CV_Backupset(
+            self.token, client, "Oracle Database", instanceName)
         if oraBackupset.getIsNewClient() == True:
             self.msg = "there is not this oracle Client " + client
             return False
-        retCode = oraBackupset.setOracleBackupset(instanceName, credit, content)
+        retCode = oraBackupset.setOracleBackupset(
+            instanceName, credit, content)
         self.msg = oraBackupset.msg
         return retCode
 
@@ -3675,11 +3764,13 @@ class CV_API(object):
         # credit is {"instanceName":,"Server":, "userName":, "passwd":, SPName":, "useVss":True/False}
         # content is {"SPName":, "Schdule":}
         # return True / False
-        mssqlBackupset = CV_Backupset(self.token, client, "SQL Server", instanceName)
+        mssqlBackupset = CV_Backupset(
+            self.token, client, "SQL Server", instanceName)
         if mssqlBackupset.getIsNewClient() == True:
             self.msg = "there is not this mssql Client " + client
             return False
-        retCode = mssqlBackupset.setMssqlBackupset(instanceName, credit, content)
+        retCode = mssqlBackupset.setMssqlBackupset(
+            instanceName, credit, content)
         self.msg = mssqlBackupset.msg
         return retCode
 
@@ -3706,7 +3797,8 @@ class CV_API(object):
         # operator is {"restoreTime":, "destPath":, "Path":["", ""], "overwrite":True/False, "OS Restore": True/False}
         # return JobId
         # or -1 is error
-        sourceClient = CV_Backupset(self.token, source, "File System", backupset)
+        sourceClient = CV_Backupset(
+            self.token, source, "File System", backupset)
         if sourceClient.getIsNewClient() == True:
             self.msg = "there is not this Client " + source
             return None
@@ -3723,13 +3815,15 @@ class CV_API(object):
 
     def restoreOracleBackupset(self, source, dest, instance, operator=None):
         # param client is clientName or clientId
-        # operator is {"instanceName":, "destClient":, "restoreTime":, "restorePath":None}
+        # operator is {"instanceName":, "destClient":, "restoreTime":, "data_path":None}
         # return JobId
         # or -1 is error
 
         # print(client, backupset, credit, content)
-        sourceBackupset = CV_Backupset(self.token, source, "Oracle Database", instance)
-        destBackupset = CV_Backupset(self.token, dest, "Oracle Database", instance)
+        sourceBackupset = CV_Backupset(
+            self.token, source, "Oracle Database", instance)
+        destBackupset = CV_Backupset(
+            self.token, dest, "Oracle Database", instance)
         if sourceBackupset.getIsNewBackupset() == True:
             self.msg = "there is not this oracle sid " + source
             return False
@@ -3744,13 +3838,17 @@ class CV_API(object):
         # or -1 is error
 
         # print(client, backupset, credit, content)
-        sourceBackupset = CV_Backupset(self.token, source, "Oracle RAC", instance)
+        sourceBackupset = CV_Backupset(
+            self.token, source, "Oracle RAC", instance)
         destBackupset = CV_Backupset(self.token, dest, "Oracle RAC", instance)
         if sourceBackupset.getIsNewBackupset() == True:
             self.msg = "there is not this oracle rac sid" + source
             return False
-
-        jobId = sourceBackupset.restoreOracleRacBackupset(source, dest, operator)
+        if destBackupset.getIsNewBackupset() == True:
+            self.msg = "there is not this oracle rac sid" + dest
+            return False
+        jobId = sourceBackupset.restoreOracleRacBackupset(
+            source, dest, operator)
         self.msg = sourceBackupset.msg
         return jobId
 
@@ -3761,7 +3859,8 @@ class CV_API(object):
         # or -1 is error
 
         # print(client, backupset, credit, content)
-        sourceBackupset = CV_Backupset(self.token, source, "SQL Server", instance)
+        sourceBackupset = CV_Backupset(
+            self.token, source, "SQL Server", instance)
         destBackupset = CV_Backupset(self.token, dest, "SQL Server", instance)
         if sourceBackupset.getIsNewBackupset() == True:
             self.msg = "there is not this mssql sid " + source
@@ -3780,7 +3879,8 @@ class CV_API(object):
         # return JobId
         # or -1 is error
 
-        sourceBackupset = CV_Backupset(self.token, source, "Virtual Server", backupset)
+        sourceBackupset = CV_Backupset(
+            self.token, source, "Virtual Server", backupset)
         destBackupset = CV_Backupset(self.token, dest, "Virtual Server")
         if sourceBackupset.getIsNewBackupset() == True:
             self.msg = "there is not this virtual Client " + source
@@ -3889,58 +3989,6 @@ class CV_API(object):
         return list
 
 
-class DoMysql(object):
-    # 初始化
-    def __init__(self, host, user, password, db):
-        # 创建连接
-        self.conn = pymysql.Connect(
-            host=host,
-            port=3306,
-            user=user,
-            password=password,
-            db=db,
-            charset='utf8',
-            cursorclass=pymysql.cursors.DictCursor  # 以字典的形式返回数据
-        )
-        # 获取游标
-        self.cursor = self.conn.cursor()
-
-    # 返回多条数据
-    def fetchAll(self, sql):
-        self.cursor.execute(sql)
-        return self.cursor.fetchall()
-
-    # 返回一条数据
-    def fetchOne(self, sql):
-        self.cursor.execute(sql)
-        return self.cursor.fetchone()
-
-    # 插入一条数据
-    def insert_one(self, sql):
-        result = self.cursor.execute(sql)
-        self.conn.commit()
-        return result
-
-    # 插入多条数据
-    def insert_many(self, sql, datas):
-        result = self.cursor.executemany(sql, datas)
-        self.conn.commit()
-        return result
-
-    # 更新数据
-    def update(self, sql):
-        result = self.cursor.execute(sql)
-        self.conn.commit()
-        return result
-
-    # 关闭连接
-    def close(self):
-        if self.cursor:
-            self.cursor.close()
-        if self.conn:
-            self.conn.close()
-
-
 def run(pri, std, instance, processrun_id):
     # 从ProcessRun表中读取 recover_time, browse_job_id, data_path, copy_priority, curSCN, db_open, log_restore
     # 从UtilsManage表中读取，Commvault认证信息
@@ -4001,7 +4049,6 @@ def run(pri, std, instance, processrun_id):
         utils_manage = pri.utils
 
         commvault_credit, _ = get_credit_info(utils_manage.content)
-
         info = {
             'webaddr': commvault_credit['webaddr'],
             'port': commvault_credit['port'],
@@ -4015,36 +4062,47 @@ def run(pri, std, instance, processrun_id):
         cvToken.login(info)
         cvAPI = CV_API(cvToken)
 
-        # oracle恢复流程参数
+        # File System 恢复流程参数
         info = processrun.info
 
-        browse_job_id, data_path, copy_priority, curSCN, db_open, log_restore = ["" for _ in range(6)]
-
+        overWrite = False
+        inPlace = True
+        OSRestore = False
+        sourceItemlist = []
+        destPath = ""
         try:
             info = etree.XML(info)
         except Exception:
             pass
         else:
-            browse_job_id = info.xpath("//param")[0].attrib.get("browse_job_id")
-            data_path = info.xpath("//param")[0].attrib.get("data_path")
-            copy_priority = info.xpath("//param")[0].attrib.get("copy_priority")
-            curSCN = info.xpath("//param")[0].attrib.get("curSCN")
-            db_open = info.xpath("//param")[0].attrib.get("db_open")
-            log_restore = info.xpath("//param")[0].attrib.get("log_restore")
-
-        jobId = cvAPI.restoreOracleRacBackupset(pri_name, std_name, instance,
-                                                {'browseJobId': browse_job_id, 'data_path': data_path,
-                                                 "copy_priority": copy_priority, "curSCN": curSCN,
-                                                 "db_open": db_open, "restoreTime": processrun.recover_time,
-                                                 "log_restore": log_restore})
+            overWrite = info.xpath("//param")[0].attrib.get("overWrite", False)
+            inPlace = info.xpath("//param")[0].attrib.get("inPlace", True)
+            destPath = info.xpath("//param")[0].attrib.get("destPath", "")
+            sourcePaths = eval(info.xpath("//param")[0].attrib.get("sourcePaths", "[]"))
+            if inPlace != "False":
+                inPlace = False
+            if overWrite == "TRUE":
+                overWrite = True
+            for sourceItem in sourcePaths:
+                if sourceItem != "":
+                    sourceItemlist.append(sourceItem)
+        """
+        <root><param overWrite="False" 
+        sourcePaths="['\\F:\\$RECYCLE.BIN\\', '\\F:\\app\\']" 
+        inPlace="False" OSRestore="False" destPath=""/></root>
+        """
+        jobId = cvAPI.restoreFSBackupset(pri_name, std_name, instance, {
+            "overWrite": overWrite, "restoreTime": processrun.recover_time,
+            "destPath": destPath, "sourcePaths": sourceItemlist, "OS Restore": OSRestore,
+            "inPlace": inPlace
+        })
         # jobId = 4553295
         if jobId == -1:
-            print("oracleRac恢复接口调用失败。")
+            print("File System恢复接口调用失败，{0}。".format(cvAPI.msg))
             exit(1)
         else:
             temp_tag = 0
             waiting_times = 0
-
             while True:
                 ret = []
                 try:
@@ -4053,7 +4111,6 @@ def run(pri, std, instance, processrun_id):
                     temp_tag += 1
                 for i in ret:
                     if str(i["jobId"]) == str(jobId):
-
                         if i['status'] in ['运行']:
                             break
                         elif i['status'] in ['等待', '未决']:
@@ -4065,7 +4122,7 @@ def run(pri, std, instance, processrun_id):
                         elif i['status'].upper() == '完成':
                             exit(0)
                         else:
-                            # oracle恢复出现异常
+                            # SQL Server恢复出现异常
                             #################################
                             # 程序中不要出现其他print()      #
                             # print()将会作为输出被服务器获取#
@@ -4076,6 +4133,11 @@ def run(pri, std, instance, processrun_id):
                 if temp_tag > 100:
                     exit(3)
                 time.sleep(4)
+            #################################
+            # exit() 1:调用SQL Server恢复接口失败#
+            #        2:SQL Server恢复出现异常    #
+            #        0:执行SQL Server恢复成功    #
+            #################################
 
 
 if len(sys.argv) == 5:

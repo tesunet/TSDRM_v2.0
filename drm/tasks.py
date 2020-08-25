@@ -514,8 +514,11 @@ def runstep(steprun, if_repeat=False, processrun_params={}):
                     result = rm_obj.run(script.succeedtext)
                 else:
                     result = {}
-                    commvault_api_path = os.path.join(os.path.join(settings.BASE_DIR, "drm"),
-                                                      "commvault_api") + os.sep + "{0}.py".format(script.commv_interface)
+                    commvault_api_path = os.path.join(
+                        os.path.join(
+                            os.path.join(settings.BASE_DIR, "drm"), "api"
+                        ), "commvault"
+                    ) + os.sep + "{0}.py".format(script.commv_interface)
 
                     # 判断接口文件是否存在
                     interface_existed = os.path.exists(commvault_api_path)

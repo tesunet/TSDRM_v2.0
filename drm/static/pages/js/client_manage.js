@@ -1079,7 +1079,7 @@ $(document).ready(function () {
 
     //cv
     getCvinfo();
-    $('#creatcv').click(function () {
+    $('#creatcv').click(function () {  // 创建commvault保护
         $("#div_creatcv").hide();
         $("#div_cv").show();
         $("#cv_del").hide();
@@ -1091,6 +1091,18 @@ $(document).ready(function () {
         $("#cv_id").val("0");
         $("#cvclient_type").val("1");
 
+        /**
+         * 创建commvault保护时
+         * 新建要清除目录
+         * 新建要隐藏选择目录按钮
+         * 新建要清除树
+         */
+        $('#cv_select_file').hide();
+        try {
+            $.fn.zTree.getZTreeObj("cv_fs_tree").destroy();
+        } catch(e){}
+        $('#cv_fs_se_1').empty();
+        $('#cvclient_agentType').change();  // 主从触发更改操作
     });
 
     $("#cvclient_utils_manage").change(function () {
@@ -1110,6 +1122,7 @@ $(document).ready(function () {
         getCvInstance();
 
         var cv_agent = $(this).val();
+        console.log(cv_agent);
         // 应用类型 -> 参数展示
         displayAgentParams(cv_agent);
     });
@@ -1509,14 +1522,12 @@ $(document).ready(function () {
         for (var k = 0, length = nodes.length; k < length; k++) {
             var halfCheck = nodes[k].getCheckStatus();
             if (!halfCheck.half) {
-                $("#cv_fs_se_1").append("<option value='\\" + nodes[k].id + "\\'>\\" + nodes[k].id + "\\</option>");
+                $("#cv_fs_se_1").append("<option value='" + nodes[k].id + "'>" + nodes[k].id + "</option>");
             }
         }
         if (nodes.length == 0)
-            $("#cv_fs_se_1").append("<option value='\\'>\\</option>");
+            $("#cv_fs_se_1").append("<option value=''></option>");
     })
-    // SQL Server
-
 
 
     //db复制
