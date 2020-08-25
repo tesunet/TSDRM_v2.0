@@ -3169,6 +3169,30 @@ def client_cv_get_restore_his(request):
 
 
 @login_required
+def get_cv_process(request):
+    id = request.POST.get('id', "")
+    try:
+        id = int(id)
+    except:
+        id = 0
+
+    cv_process_list = []
+    if id != 0:
+        # 所属流程
+        processlist = Process.objects.filter(hosts_id=id, type='Commvault').exclude(state="9")
+        for process in processlist:
+            cv_process_list.append({
+                "process_id": process.id,
+                "process_name": process.name
+            })
+
+    return JsonResponse({
+        "ret": 1,
+        "process": cv_process_list
+    })
+
+
+@login_required
 def get_dbcopyinfo(request):
     # 所有关联终端
     stdlist = DbCopyClient.objects.exclude(state="9").filter(hosttype='2')
@@ -3271,7 +3295,7 @@ def get_adg_status(request):
                     "host_ip": host_ip
                 })
 
-    if hostid != 0:
+    if id != 0:
         processlist = Process.objects.filter(primary=id,type='Oracle ADG').exclude(state="9")
         for process in processlist:
             adg_process_list.append({
@@ -3696,7 +3720,7 @@ def get_mysql_status(request):
                     break
 
 
-    if hostid != 0:
+    if id != 0:
         processlist = Process.objects.filter(primary=id,type='MYSQL').exclude(state="9")
         for process in processlist:
             mysql_process_list.append({

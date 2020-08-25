@@ -472,6 +472,29 @@ function getClientree() {
 
 //commvault
 function get_cv_detail() {
+    $.ajax({
+        type: "POST",
+        dataType: 'json',
+        url: "../get_cv_process/",
+        data:
+        {
+            id: $("#id").val(),
+        },
+        success: function (data) {
+            //流程
+            var processtext = ""
+            for (var i = 0; i < data["process"].length; i++) {
+                processtext += "<div  class='form-group'><button onclick=\"runprocess(" + data["process"][i].process_id + ",'1')\"  type='button' class=' btn  green'>流程:" + data["process"][i].process_name + "</button> ";
+                processtext += "</div>"
+            }
+            $("#cv_processdiv").empty();
+            $("#cv_processdiv").append(processtext);
+        },
+        error: function (e) {
+            ;
+        }
+    });
+
     var table = $('#cv_backup_his').DataTable();
     table.ajax.url("../client_cv_get_backup_his?id=" + $('#cv_id').val()
     ).load();
@@ -727,7 +750,7 @@ function get_dbcopy_oracle_detail() {
             //流程
             var processtext = ""
             for (var i = 0; i < data["process"].length; i++) {
-                processtext += "<div  class='form-group'><button onclick=\"runprocess(" + data["process"][i].process_id + ",'1')\"  type='button' class=' btn  green'>切换:" + data["process"][i].process_name + "</button> ";
+                processtext += "<div  class='form-group'><button onclick=\"runprocess(" + data["process"][i].process_id + ",'1')\"  type='button' class=' btn  green'>流程:" + data["process"][i].process_name + "</button> ";
                 if (data["process"][i].back_id != null && data["process"][i].back_id != "") {
                     processtext += "<button onclick=\"runprocess(" + data["process"][i].process_id + ",'2')\" type='button' class='backprocessbtn btn  green'>回切</button>";
                 }
@@ -793,7 +816,7 @@ function get_dbcopy_mysql_detail() {
             //流程
             var processtext = ""
             for (var i = 0; i < data["process"].length; i++) {
-                processtext += "<div  class='form-group'><button onclick=\"runprocess(" + data["process"][i].process_id + ",'1')\"  type='button' class=' btn  green'>切换:" + data["process"][i].process_name + "</button> ";
+                processtext += "<div  class='form-group'><button onclick=\"runprocess(" + data["process"][i].process_id + ",'1')\"  type='button' class=' btn  green'>流程:" + data["process"][i].process_name + "</button> ";
                 if (data["process"][i].back_id != null && data["process"][i].back_id != "") {
                     processtext += "<button onclick=\"runprocess(" + data["process"][i].process_id + ",'2')\" type='button' class='backprocessbtn btn  green'>回切</button>";
                 }
