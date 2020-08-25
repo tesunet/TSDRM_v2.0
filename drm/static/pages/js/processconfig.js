@@ -118,7 +118,7 @@ function loadOrigins(utils_id){
         if (cv_client_data[i]["utils_id"] == utils_id){
             var origins = cv_client_data[i]["cv_client_list"];
             for (var j=0; j< origins.length; j++){
-                $("#origin").append('<option value="' + origins[j].id + '">' + origins[j].client_name + '(' + origins[j].host_ip + ')</option>')
+                $("#origin").append('<option value="' + origins[j].id + '">' + origins[j].host_name + '(' + origins[j].client_name + ')</option>')
             }
             break;
         }

@@ -1030,28 +1030,19 @@ def processconfig(request, funid):
     # 主机选项
     all_hosts_manage = HostsManage.objects.exclude(state="9")
 
-    # # commvault源端客户端
-    # # 工具
-    # cv_client_data = []
-    # utils = UtilsManage.objects.exclude(state="9").filter(util_type="Commvault")
-    # for u in utils:
-    #     cv_client_list = u.cvclient_set.exclude(state="9").exclude(type=2).values("id", "client_name")
-    #     cv_client_data.append({
-    #         "utils_id": u.id,
-    #         "utils_name": u.name,
-    #         "cv_client_list": cv_client_list,
-    #     })
+    # commvault源端客户端
+    # 工具
     cv_client_data = []
     utils = UtilsManage.objects.exclude(state="9").filter(util_type="Commvault")
     for u in utils:
-        cv_client_list = u.cvclient_set.exclude(state="9").exclude(type=2).values("id", "client_name", "hostsmanage__host_ip")
+        cv_client_list = u.cvclient_set.exclude(state="9").exclude(type=2).values("id", "client_name", "hostsmanage__host_name")
         cv_client_data.append({
             "utils_id": u.id,
             "utils_name": u.name,
             "cv_client_list": [{
                 "id": str(x["id"]),
                 "client_name": x["client_name"],
-                "host_ip": x["hostsmanage__host_ip"]
+                "host_name": x["hostsmanage__host_name"]
             } for x in cv_client_list],
         })
     # tree_data
