@@ -133,7 +133,7 @@ class Process(models.Model):
                                 related_name="process_primary_set")
     backprocess = models.ForeignKey('self', blank=True, null=True, verbose_name='回切流程',
                                     related_name="process_backprocess_set")
-    cv_client = models.ForeignKey(CvClient, blank=True, null=True, verbose_name='关联客户端')
+    hosts = models.ForeignKey(HostsManage, blank=True, null=True, verbose_name='关联客户端')
 
 
 class Step(models.Model):
