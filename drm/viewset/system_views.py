@@ -623,6 +623,12 @@ def get_all_client_node(parent, select_hosts):
             node["text"] = "<i class='jstree-icon jstree-themeicon fa fa-folder icon-state-warning icon-lg jstree-themeicon-custom'></i>" + node["text"]
 
         if child.nodetype == "CLIENT":
+            db_client = DbCopyClient.objects.exclude(state="9").filter(hostsmanage=child)
+            if len(db_client) > 0:
+                if db_client[0].dbtype=="1":
+                    node["text"] = "<img src = '/static/pages/images/oracle.png' height='24px'> " + node["text"]
+                if db_client[0].dbtype == "2":
+                    node["text"] = "<img src = '/static/pages/images/mysql.png' height='24px'> " + node["text"]
             cv_client = CvClient.objects.exclude(state="9").filter(hostsmanage=child)
             if len(cv_client)>0:
                 node["text"] = "<img src = '/static/pages/images/cv.png' height='24px'> " + node["text"]
@@ -669,7 +675,7 @@ def get_process_node(parent, select_process):
         node = dict()
         node["text"] = child.name
         node["id"] = child.id
-        node["children"] = get_process_node(child, select_process)
+        # node["children"] = get_process_node(child, select_process)
         node["type"] = "NODE"
         param_list = []
         try:
