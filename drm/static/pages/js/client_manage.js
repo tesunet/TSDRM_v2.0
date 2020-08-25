@@ -1936,17 +1936,62 @@ $(document).ready(function () {
                 utils_kvm_id: $('#kvm_machine_platform').val()
             },
             success: function (data) {
-                if (data.ret == 0) {
-                    alert(data.data)
-                } else {
-                    for (i = 0; i < data.kvm_list.length; i++) {
-                        $("#kvm_machine").append('<option value="' + data.kvm_list[i].name + '">' + data.kvm_list[i].name + '</option>')
-                    }
-                    for (i = 0; i < data.kvm_filesystem_list.length; i++) {
-                        $("#kvm_filesystem").append('<option value="' + data.kvm_filesystem_list[i] + '">' + data.kvm_filesystem_list[i] + '</option>')
-                    }
+            if (data.ret == 0) {
+                alert(data.data)
+            } else {
+                for (i = 0; i < data.kvm_list.length; i++) {
+                    $("#kvm_machine").append('<option value="'+ data.kvm_list[i].name + '">'+ data.kvm_list[i].name + '</option>')
                 }
+                for (i = 0; i < data.kvm_filesystem_list.length; i++) {
+                    $("#kvm_filesystem").append('<option value="'+ data.kvm_filesystem_list[i] + '">'+ data.kvm_filesystem_list[i] + '</option>')
+                }
+
+                $("#kvm_machine_platform").val(data.kvm_machine_list[0].utils_id);
+                $("#kvm_machine").val(data.kvm_machine_list[0].name);
+                $("#kvm_user").val(data.kvm_machine_list[0].kvm_credit['KvmUser']);
+                $("#kvm_password").val(data.kvm_machine_list[0].kvm_credit['KvmPasswd']);
+                $("#kvm_os").val(data.kvm_machine_list[0].kvm_credit['KvmOs']);
+                $("#kvm_filesystem").val(data.kvm_machine_list[0].filesystem);
+
+
+                $('#zfs_snapshot').dataTable({
+                    "bAutoWidth": true,
+                    "bSort": false,
+                    "iDisplayLength": 25,
+                    "bProcessing": true,
+                    "ajax": "../zfs_snapshot_data/?utils_id=" + $('#kvm_machine_platform').val() + "&filesystem=" + $('#kvm_filesystem').val(),
+                    "columns": [
+                        {"data": "name"},
+                        {"data": null}
+                    ],
+
+                    "columnDefs": [{
+                        "targets": -1,
+                        "data": null,
+                        "width": "100px",
+                        "defaultContent": "<button  id='edit' title='挂载快照' data-toggle='modal'  data-target='#static03'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-edit'></i></button>" +
+                            "<button title='删除快照'  id='delrow' class='btn btn-xs btn-primary' type='button'><i class='fa fa-trash-o'></i></button>"
+                    }
+                    ],
+                    "oLanguage": {
+                        "sLengthMenu": "每页显示 _MENU_ 条记录",
+                        "sZeroRecords": "抱歉， 没有找到",
+                        "sInfo": "从 _START_ 到 _END_ /共 _TOTAL_ 条数据",
+                        "sInfoEmpty": "没有数据",
+                        "sInfoFiltered": "(从 _MAX_ 条数据中检索)",
+                        "sSearch": "搜索",
+                        "oPaginate": {
+                            "sFirst": "首页",
+                            "sPrevious": "前一页",
+                            "sNext": "后一页",
+                            "sLast": "尾页"
+                        },
+                        "sZeroRecords": "没有检索到数据",
+                    },
+                });
+
             }
+        }
         });
     }
     kvmFunction();
@@ -1961,11 +2006,14 @@ $(document).ready(function () {
             dataType: 'json',
             url: "../kvm_save/",
             data:
-            {
-                util_kvm_id: $("#kvm_machine_platform").val(),
-                name: $("#kvm_machine").val(),
-                filesystem: $("#kvm_filesystem").val(),
-            },
+                {
+                    util_kvm_id: $("#kvm_machine_platform").val(),
+                    name: $("#kvm_machine").val(),
+                    filesystem: $("#kvm_filesystem").val(),
+                    kvm_user: $("#kvm_user").val(),
+                    kvm_password: $("#kvm_password").val(),
+                    kvm_os: $("#kvm_os").val(),
+                },
             success: function (data) {
                 alert(data.info);
             },
@@ -1994,12 +2042,9 @@ $(document).ready(function () {
                 }
             }
         });
+        $('#snapshot_name').val("")
     });
 
-    $('#create_time').datetimepicker({
-        format: 'yyyy-mm-dd hh:ii:ss',
-        autoclose: true,
-    });
 
     $('#zfs_snapshot_save').click(function () {
         var table = $('#zfs_snapshot').DataTable();
@@ -2009,12 +2054,11 @@ $(document).ready(function () {
             dataType: 'json',
             url: "../zfs_snapshot_save/",
             data:
-            {
-                util_kvm_id: $("#kvm_machine_platform").val(),
-                filesystem: $("#kvm_filesystem1").val(),
-                snapshot_name: $("#snapshot_name").val(),
-                create_time: $("#create_time").val(),
-            },
+                {
+                    util_kvm_id: $("#kvm_machine_platform").val(),
+                    filesystem: $("#kvm_filesystem").val(),
+                    snapshot_name: $("#snapshot_name").val(),
+                },
             success: function (data) {
                 var myres = data["res"];
                 if (myres == "创建成功。") {
@@ -2030,51 +2074,14 @@ $(document).ready(function () {
         });
     });
 
-
-    $('#zfs_snapshot').dataTable({
-        "bAutoWidth": true,
-        "bSort": false,
-        "iDisplayLength": 25,
-        "bProcessing": true,
-        "ajax": "../zfs_snapshot_data",
-        "columns": [
-            { "data": "id" },
-            { "data": "name" },
-            { "data": "create_time" },
-            { "data": null }
-        ],
-
-        "columnDefs": [{
-            "targets": -1,
-            "data": null,
-            "width": "100px",
-            "defaultContent": "<button  id='edit' title='挂载快照' data-toggle='modal'  data-target='#static03'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-edit'></i></button>" +
-                "<button title='删除快照'  id='delrow' class='btn btn-xs btn-primary' type='button'><i class='fa fa-trash-o'></i></button>"
-        }
-        ],
-        "oLanguage": {
-            "sLengthMenu": "每页显示 _MENU_ 条记录",
-            "sZeroRecords": "抱歉， 没有找到",
-            "sInfo": "从 _START_ 到 _END_ /共 _TOTAL_ 条数据",
-            "sInfoEmpty": "没有数据",
-            "sInfoFiltered": "(从 _MAX_ 条数据中检索)",
-            "sSearch": "搜索",
-            "oPaginate": {
-                "sFirst": "首页",
-                "sPrevious": "前一页",
-                "sNext": "后一页",
-                "sLast": "尾页"
-            },
-            "sZeroRecords": "没有检索到数据",
-        },
-    });
-
     $('#zfs_snapshot tbody').on('click', 'button#edit', function () {
         var table = $('#zfs_snapshot').DataTable();
         var data = table.row($(this).parents('tr')).data();
         $("#snapshot_id").val(data.id);
+        $("#utils_id").val(data.utils_id);
         $("#snapshot_name1").val(data.name);
-        $("#create_time1").val(data.create_time);
+        var kvm_copy_name = $("#snapshot_name1").val().split('/');
+        $('#kvm_copy_name').val(kvm_copy_name[1])
 
     });
     $('#zfs_snapshot tbody').on('click', 'button#delrow', function () {
@@ -2085,15 +2092,17 @@ $(document).ready(function () {
                 type: "POST",
                 url: "../zfs_snapshot_del/",
                 data:
-                {
-                    id: data.id,
-                },
+                    {
+                        id: data.id,
+                        utils_id: $('#kvm_machine_platform').val(),
+                        snapshot_name: data.name
+                    },
                 success: function (data) {
-                    if (data == 1) {
+                    var myres = data["res"];
+                    if (myres == "删除成功。") {
                         table.ajax.reload();
-                        alert("删除成功！");
-                    } else
-                        alert("删除失败，请于管理员联系。");
+                    }
+                    alert(myres);
                 },
                 error: function (e) {
                     alert("删除失败，请于管理员联系。");
@@ -2103,7 +2112,33 @@ $(document).ready(function () {
     });
 
 
-
+    $('#zfs_snapshot_mount').click(function () {
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../zfs_snapshot_mount/",
+            data:
+                {
+                    snapshot_id: $("#snapshot_id").val(),
+                    utils_id: $("#utils_id").val(),
+                    snapshot_name: $("#snapshot_name").val(),
+                    snapshot_clone_path: $("#snapshot_clone_path").val(),
+                    kvm_copy_name: $("#kvm_copy_name").val(),
+                },
+            success: function (data) {
+                var myres = data["res"];
+                if (myres == "创建成功。") {
+                    $("#id").val(data["data"]);
+                    $('#static02').modal('hide');
+                    table.ajax.reload();
+                }
+                alert(myres);
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+            }
+        });
+    });
 
 
     $('#kvm_copy').dataTable({

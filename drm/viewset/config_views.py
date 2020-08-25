@@ -1999,7 +1999,7 @@ def load_hosts_params(request):
 @login_required
 def client_manage(request, funid):
     # kvm虚拟化平台
-    util_manage = UtilsManage.objects.filter(util_type='Kvm')
+    util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
     utils_kvm_list = []
     for utils in util_manage:
         utils_kvm_list.append({
@@ -2007,6 +2007,7 @@ def client_manage(request, funid):
             "code": utils.code,
             "name": utils.name,
         })
+
     return render(request, 'client_manage.html',
                   {'username': request.user.userinfo.fullname,
                    "pagefuns": getpagefuns(funid, request=request),
@@ -2052,7 +2053,44 @@ def kvm_data(request):
         kvm_filesystem = 'tank/' + i
         kvm_filesystem_list.append(kvm_filesystem)
 
-    return JsonResponse({'kvm_list': kvm_list, 'kvm_filesystem_list': kvm_filesystem_list})
+    kvm_machine_list = []
+    all_kvmmachine = KvmMachine.objects.exclude(state='9')
+
+    for um in all_kvmmachine:
+        kvm_credit = {
+            'KvmUser': '',
+            'KvmPasswd': '',
+            'KvmOs': ''
+        }
+        try:
+            doc = etree.XML(um.info)
+            # Kvm账户信息
+            try:
+                kvm_credit['KvmUser'] = doc.xpath('//KvmUser/text()')[0]
+            except:
+                pass
+            try:
+                kvm_credit['KvmPasswd'] = base64.b64decode(
+                    doc.xpath('//KvmPasswd/text()')[0]).decode()
+            except:
+                pass
+            try:
+                kvm_credit['KvmOs'] = doc.xpath('//KvmOs/text()')[0]
+            except:
+                pass
+        except:
+            pass
+
+        kvm_machine_list.append({
+            'id': um.id,
+            'name': um.name,
+            'filesystem': um.filesystem,
+            'utils_id': um.utils_id,
+            'kvm_credit': kvm_credit
+        })
+    return JsonResponse({'kvm_list': kvm_list,
+                         'kvm_filesystem_list': kvm_filesystem_list,
+                         "kvm_machine_list": kvm_machine_list})
 
 
 @login_required
@@ -2063,11 +2101,24 @@ def kvm_save(request):
     utils_id = request.POST.get("util_kvm_id", "")
     name = request.POST.get("name", "")
     filesystem = request.POST.get("filesystem", "")
-
+    kvm_user = request.POST.get("kvm_user", "")
+    kvm_password = request.POST.get("kvm_password", "")
+    kvm_os = request.POST.get("kvm_os", "")
     try:
         utils_id = int(utils_id)
     except:
         utils_id = ""
+
+    credit = """<?xml version="1.0" ?>
+        <vendor>
+            <KvmUser>{KvmUser}</KvmUser>
+            <KvmPasswd>{KvmPasswd}</KvmPasswd>
+            <KvmOs>{KvmOs}</KvmOs>
+        </vendor>""".format(**{
+        "KvmUser": kvm_user,
+        "KvmPasswd": base64.b64encode(kvm_password.encode()).decode(),
+        "KvmOs": kvm_os
+    })
     try:
         kvm_obj = KvmMachine.objects.filter(name=name)
         if kvm_obj.exists():
@@ -2075,13 +2126,14 @@ def kvm_save(request):
                 'utils_id': utils_id,
                 'name': name,
                 'filesystem': filesystem,
-
+                'info': credit
             })
         else:
             kvm_obj.create(**{
                 'utils_id': utils_id,
                 'name': name,
                 'filesystem': filesystem,
+                'info': credit
             })
     except Exception as e:
         print(e)
@@ -2096,25 +2148,10 @@ def kvm_save(request):
 
 @login_required
 def zfs_snapshot_data(request):
-    zfs_snapshot_list = []
-    all_zfssnapshot = ZfsSnapshot.objects.exclude(state="9")
-
-    for snapshot in all_zfssnapshot:
-        zfs_snapshot_list.append({
-            'id': snapshot.id,
-            'name': snapshot.name,
-            'create_time': snapshot.create_time.strftime("%Y-%m-%d %H:%M:%S") if snapshot.create_time else ''
-        })
-    return JsonResponse({'data': zfs_snapshot_list})
-
-
-@login_required
-def zfs_snapshot_save(request):
     result = {}
-    utils_id = request.POST.get("util_kvm_id", "")
-    filesystem = request.POST.get("filesystem", "")
-    name = request.POST.get("snapshot_name", "")
-    create_time = request.POST.get("create_time", "")
+    zfs_snapshot_list = []
+    utils_id = request.GET.get("utils_id", "")
+    filesystem = request.GET.get("filesystem", "")
     try:
         utils_id = int(utils_id)
     except:
@@ -2125,30 +2162,37 @@ def zfs_snapshot_save(request):
     util_type = utils_kvm_info[0].util_type
     kvm_credit = get_credit_info(content, util_type.upper())
 
+    try:
+        zfs_snapshot_list = KVMApi(kvm_credit).zfs_snapshot_list(filesystem)
+    except Exception as e:
+        print(e)
+        result["res"] = '查询失败。'
+
+    return JsonResponse({'data': zfs_snapshot_list})
+
+
+@login_required
+def zfs_snapshot_save(request):
+    result = {}
+    utils_id = request.POST.get("util_kvm_id", "")
+    filesystem = request.POST.get("filesystem", "")
+    name = request.POST.get("snapshot_name", "")
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
     snapshot_name = filesystem + '@' + name
     try:
         if name.strip() == '':
             result["res"] = '快照名称不能为空。'
         else:
-            zfssnapshot_name = ZfsSnapshot.objects.filter(name=snapshot_name).exclude(state="9")
-            if zfssnapshot_name.exists():
-                result['res'] = '快照' + name + '已存在。'
-            else:
-                result_info = KVMApi(kvm_credit).zfs_create_snapshot(snapshot_name)
-                # 快照保存数据库
-                if result_info == '创建成功。':
-                    try:
-                        zfssnapshot_obj = ZfsSnapshot.objects.exclude(state="9")
-                        zfssnapshot_obj.create(**{
-                            'utils_id': utils_id,
-                            'name': snapshot_name,
-                            'create_time': create_time
-                        })
-                        result["res"] = "创建成功。"
-                    except Exception as e:
-                        print(e)
-                        result["res"] = "创建失败。"
-
+            result_info = KVMApi(kvm_credit).zfs_create_snapshot(snapshot_name)
+            result["res"] = result_info
     except Exception as e:
         print(e)
         result["res"] = '创建失败。'
@@ -2158,15 +2202,69 @@ def zfs_snapshot_save(request):
 
 @login_required
 def zfs_snapshot_del(request):
-    id = request.POST.get('id', '')
+    result = {}
+    zfs_snapshot_list = []
+    utils_id = request.POST.get("utils_id", "")
+    snapshot_name = request.POST.get("snapshot_name", "")
     try:
-        id = int(id)
+        utils_id = int(utils_id)
     except:
-        raise Http404()
-    zfssnapshot = ZfsSnapshot.objects.get(id=id)
-    zfssnapshot.state = "9"
-    zfssnapshot.save()
-    return HttpResponse(1)
+        pass
+
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+    try:
+        result_info = KVMApi(kvm_credit).zfs_snapshot_del(snapshot_name)
+        result["res"] = result_info
+    except Exception as e:
+        print(e)
+        result["res"] = '删除失败。'
+
+    return JsonResponse(result)
+
+
+@login_required
+def zfs_snapshot_mount(request):
+    result = {}
+    # ①创建快照完成：tank/Test-1@2020-08-23
+    # ②克隆快照：zfs clone tank/Test-1/disk@2020-08-23 tank/Test-1/Test-1_clone
+    utils_id = request.POST.get("utils_id", "")
+    snapshot_id = request.POST.get("snapshot_id", "")
+    snapshot_name = request.POST.get("snapshot_name", "")
+    snapshot_clone_path = request.POST.get("snapshot_clone_path", "")
+    kvm_copy_name = request.POST.get("kvm_copy_name", "")
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+    try:
+        result_info = KVMApi(kvm_credit).zfs_clone_snapshot(snapshot_name, snapshot_clone_path)
+
+        if result_info == '克隆成功。':
+            # ③克隆成功，生成新的xml文件
+            result_info = KVMApi(kvm_credit).create_kvm_xml(snapshot_name, snapshot_clone_path, kvm_copy_name)
+            if result_info == '创建成功。':
+                # ④新的xml文件生成，开始定义虚拟机
+                result_info = KVMApi(kvm_credit).define_kvm(kvm_copy_name)
+                result['res'] = result_info
+            else:
+                result['res'] = '挂载快照失败。'
+        result['res'] = '挂载快照失败。'
+
+    except Exception as e:
+        print(e)
+        result['res'] = '挂载快照失败。'
+
+    return JsonResponse(result)
 
 
 def get_client_node(parent, select_id, request):

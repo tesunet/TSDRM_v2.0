@@ -240,5 +240,6 @@ urlpatterns = [
     url(r'^zfs_snapshot_data/$', zfs_snapshot_data),
     url(r'^zfs_snapshot_save/$', zfs_snapshot_save),
     url(r'^zfs_snapshot_del/$', zfs_snapshot_del),
+    url(r'^zfs_snapshot_mount/$', zfs_snapshot_mount),
 
 ]
