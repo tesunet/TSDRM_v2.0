@@ -330,12 +330,16 @@ class KvmMachine(models.Model):
     state = models.CharField("状态", blank=True, null=True, max_length=20)
 
 
-class ZfsSnapshot(models.Model):
+class KvmCopy(models.Model):
     """
-    ZFS快照
+    KVM副本
     """
-    utils = models.ForeignKey("UtilsManage", null=True, verbose_name="关联工具")
     kvmmachine = models.ForeignKey(KvmMachine, blank=True, null=True, verbose_name="kvm虚拟机")
-    name = models.CharField("zfs快照名称", blank=True, null=True, max_length=30)
+    utils = models.ForeignKey("UtilsManage", null=True, verbose_name="关联工具")
+    name = models.CharField("副本名称", blank=True, null=True, max_length=30)
+    ip = models.CharField("副本IP", blank=True, null=True, max_length=30)
+    hostname = models.CharField("副本主机名", blank=True, null=True, max_length=30)
     create_time = models.DateTimeField("创建时间", blank=True, null=True)
+    create_user = models.CharField("创建人", blank=True, null=True, max_length=20)
     state = models.CharField("状态", blank=True, null=True, max_length=20)
+
