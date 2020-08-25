@@ -484,7 +484,7 @@ function get_cv_detail() {
             //流程
             var processtext = ""
             for (var i = 0; i < data["process"].length; i++) {
-                processtext += "<div  class='form-group'><button onclick=\"runprocess(" + data["process"][i].process_id + ",'1')\"  type='button' class=' btn  green'>流程:" + data["process"][i].process_name + "</button> ";
+                processtext += "<div  class='form-group'><button onclick=\"runCVProcess(" + data["process"][i].process_id + ",'1')\"  type='button' class=' btn  green'>流程:" + data["process"][i].process_name + "</button> ";
                 processtext += "</div>"
             }
             $("#cv_processdiv").empty();
@@ -871,6 +871,28 @@ function getDbcopyinfo() {
     });
 
 }
+/**
+ * 流程模态框
+ * @param {*} processid 
+ * @param {*} process_type 
+ */
+function runCVProcess(processid, process_type) {
+    /**
+     * 自动化恢复流程
+     */
+    $("#static").modal({ backdrop: "static" });
+    $('#recovery_time').datetimepicker({
+        format: 'yyyy-mm-dd hh:ii:ss',
+        pickerPosition: 'top-right'
+    });
+    // 写入当前时间
+    var myDate = new Date();
+    $("#run_time").val(myDate.toLocaleString());
+    $("#processid").val(processid);
+    $("#process_type").val(process_type);
+
+}
+
 
 function runprocess(processid, process_type) {
     $("#static").modal({ backdrop: "static" });
@@ -2266,5 +2288,72 @@ $(document).ready(function () {
 
 
 });
+/**
+ * 启动流程
+ */
+$("#confirm").click(function () {
+    var process_id = $("#processid").val();
+    // File System
+    var iscover = $("input[name='cv_r_overwrite']:checked").val();
+    var mypath = "same"
+    if ($("input[name='cv_r_path']:checked").val() == "2"){
+        mypath = $('#cv_r_mypath').val()
+    }
+    var selectedfile = "";
+    $("#cv_r_fs_se_1 option").each(function () {
+        var txt = $(this).val();
+        selectedfile = selectedfile + txt + "*!-!*"
+    });
+    // SQL Server
+    var mssql_iscover = "FALSE"
+    if ($('#cv_r_isoverwrite').is(':checked')){
+        mssql_iscover = "TRUE"
+    }
+    // 目标端
+    var std = $('#cv_r_destClient').val();
+    if (std == "self"){
+        std = $("#cv_id").val();
+    } 
+    // 非邀请流程启动
+    $.ajax({
+        type: "POST",
+        dataType: 'json',
+        url: "../cv_oracle_run/",
+        data:
+            {
+                processid: process_id,
+                run_person: $("#run_person").val(),
+                run_time: $("#run_time").val(),
+                run_reason: $("#run_reason").val(),
 
+                pri: $("#cv_id").val(),
+                std: std,
+                agent_type: $("#cvclient_agentType").val(),
+                recovery_time: $("#cv_r_datetimepicker").val(),
+                browseJobId: $("#cv_r_browseJobId").val(),
+
+                data_path: $("#cv_r_data_path").val(),
+                copy_priority: $("#cv_r_copy_priority").val(),
+                db_open: $("#cv_r_db_open").val(),
+                log_restore: $("#cv_r_log_restore").val(),
+
+                // SQL Server
+                mssql_iscover: mssql_iscover,
+
+                // File System
+                iscover: iscover,
+                mypath: mypath,
+                selectedfile: selectedfile,
+            },
+        success: function (data) {
+            if (data["res"] == "新增成功。") {
+                window.open(data["data"], "”_blank”"); 
+            } else
+                alert(data["res"]);
+        },
+        error: function (e) {
+            alert("流程启动失败，请于管理员联系。");
+        }
+    });
+});
 
