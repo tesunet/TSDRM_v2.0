@@ -3,7 +3,7 @@
     <div   class="row" style="margin-top: -38px">
         <div class="col-md-2 col-lg-2" style="margin-top: 5px"></div>
         <div class="col-md-10 col-lg-10">
-            <select  class="form-control" id="util" name="util" style="width:250px; float:right;">
+            <select class="form-control btn green btn-circle btn-sm" id="util" name="util" style="width: 100px; float:right;margin-right: 10px;font-size: 10pt">
                 {% for util in util_manages %}
                     <option value="{{ util.id }}"   {% if util_id == util.id %} selected {% endif %} >{{ util.name }} </option>
                 {% endfor %}

@@ -25,7 +25,7 @@ import wmi
 ######################
 @login_required
 def dashboard(request, funid):
-    util_manages = UtilsManage.objects.exclude(state='9')
+    util_manages = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
 
     return render(request, "dashboard.html", {
         'username': request.user.userinfo.fullname,
@@ -83,7 +83,7 @@ def cv_joblist(request, funid):
     startdate = (datetime.datetime.now() - datetime.timedelta(hours=24)).strftime("%Y-%m-%d")
     enddate = (datetime.datetime.now()).strftime("%Y-%m-%d")
 
-    util_manages = UtilsManage.objects.exclude(state='9')
+    util_manages = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
     util = request.GET.get('util', '')
     try:
         util = int(util)
@@ -176,7 +176,7 @@ def display_error_job(request, funid):
     startdate = (datetime.datetime.now() - datetime.timedelta(hours=24)).strftime("%Y-%m-%d")
     enddate = datetime.datetime.now().strftime("%Y-%m-%d")
 
-    util_manages = UtilsManage.objects.exclude(state='9')
+    util_manages = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
     util = request.GET.get('util', '')
     try:
         util = int(util)
@@ -328,7 +328,7 @@ def get_frameworkstate(request):
 @login_required
 def framework(request, funid):
     util = request.GET.get("util", "")
-    util_manages = UtilsManage.objects.exclude(state='9')
+    util_manages = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
     try:
         util = int(util)
     except:
@@ -528,7 +528,7 @@ def get_csinfo(request):
 @login_required
 def client_list(request, funid):
     util = request.GET.get("util", "")
-    util_manages = UtilsManage.objects.exclude(state='9')
+    util_manages = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
     try:
         util = int(util)
     except:
@@ -545,7 +545,7 @@ def client_list(request, funid):
 @login_required
 def sla(request, funid):
     util = request.GET.get("util", "")
-    util_manages = UtilsManage.objects.exclude(state='9')
+    util_manages = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
     try:
         util = int(util)
     except:

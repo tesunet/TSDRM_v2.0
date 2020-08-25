@@ -2311,6 +2311,9 @@ def get_client_node(parent, select_id, request):
             node["text"] = "<i class='jstree-icon jstree-themeicon fa fa-folder icon-state-warning icon-lg jstree-themeicon-custom'></i>" + node["text"]
 
         if child.nodetype=="CLIENT":
+            kvm_client = KvmMachine.objects.exclude(state="9").filter(hostsmanage=child)
+            if len(kvm_client)>0:
+                node["text"] = "<img src = '/static/pages/images/ts.png' height='24px'> " + node["text"]
             db_client = DbCopyClient.objects.exclude(state="9").filter(hostsmanage=child)
             if len(db_client) > 0:
                 if db_client[0].dbtype=="1":
