@@ -2556,6 +2556,7 @@ def get_client_detail(request):
     hostinfo={}
     cvinfo={}
     dbcopyinfo={}
+    kvminfo = {}
     id = request.POST.get("id", "")
     try:
         id = int(id)
@@ -2603,9 +2604,6 @@ def get_client_detail(request):
                 cvinfo["instanceName"] = cc[0].instanceName
                 cvinfo["destination_id"] = cc[0].destination_id
 
-                # 所属流程
-                processes = cc[0].hostsmanage.process_set.exclude(state="9").values("name")
-                cvinfo["processes"] = str(processes)
                 # oracle
                 cvinfo["copy_priority"] = ""
                 cvinfo["db_open"] = ""
@@ -2680,12 +2678,20 @@ def get_client_detail(request):
                             dbcopyinfo["binlog"] = param_el[0].attrib.get("binlog", ""),
                     except:
                         pass
+
+            kc = KvmMachine.objects.exclude(state="9").filter(hostsmanage_id=id)
+            if len(kc) > 0:
+                kvminfo["id"] = kc[0].id
+                kvminfo["utils_id"] = kc[0].utils_id
+                kvminfo["name"] = kc[0].name
+                kvminfo["filesystem"] = kc[0].filesystem
     return JsonResponse({
         "ret": ret,
         "info": info,
         "data": hostinfo,
         "cvinfo":cvinfo,
-        "dbcopyinfo": dbcopyinfo
+        "dbcopyinfo": dbcopyinfo,
+        "kvminfo": kvminfo
     })
 
 

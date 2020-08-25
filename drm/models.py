@@ -115,6 +115,33 @@ class DbCopyClient(models.Model):
     state = models.CharField("状态", blank=True, null=True, max_length=20)
 
 
+class KvmMachine(models.Model):
+    """
+    KVM虚拟机
+    """
+    hostsmanage = models.ForeignKey(HostsManage, blank=True, null=True, verbose_name="客户端")
+    utils = models.ForeignKey("UtilsManage", null=True, verbose_name="关联工具")
+    name = models.CharField("kvm虚拟机名称", blank=True, null=True, max_length=20)
+    filesystem = models.TextField("kvm虚拟机文件系统路径", blank=True, null=True)
+    info = models.TextField("kvm虚拟机相关信息", blank=True, null=True)
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
+
+
+class KvmCopy(models.Model):
+    """
+    KVM副本
+    """
+    kvmmachine = models.ForeignKey(KvmMachine, blank=True, null=True, verbose_name="kvm虚拟机")
+    utils = models.ForeignKey("UtilsManage", null=True, verbose_name="关联工具")
+    name = models.CharField("副本名称", blank=True, null=True, max_length=30)
+    ip = models.CharField("副本IP", blank=True, null=True, max_length=30)
+    hostname = models.CharField("副本主机名", blank=True, null=True, max_length=30)
+    create_time = models.DateTimeField("创建时间", blank=True, null=True)
+    create_user = models.OneToOneField(User, blank=True, null=True, verbose_name="创建人")
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
+
+
+
 class Process(models.Model):
     pnode = models.ForeignKey('self', blank=True, null=True, related_name='children', verbose_name='父节点')
     code = models.CharField("预案编号", blank=True, max_length=50)
@@ -317,29 +344,4 @@ class DiskSpaceWeeklyData(models.Model):
     extract_time = models.DateTimeField("取数时间", null=True)
     point_tag = models.CharField("用以判断同一记录", null=True, default="", max_length=128)
 
-
-class KvmMachine(models.Model):
-    """
-    KVM虚拟机
-    """
-    hostsmanage = models.ForeignKey(HostsManage, blank=True, null=True, verbose_name="客户端")
-    utils = models.ForeignKey("UtilsManage", null=True, verbose_name="关联工具")
-    name = models.CharField("kvm虚拟机名称", blank=True, null=True, max_length=20)
-    filesystem = models.TextField("kvm虚拟机文件系统路径", blank=True, null=True)
-    info = models.TextField("kvm虚拟机相关信息", blank=True, null=True)
-    state = models.CharField("状态", blank=True, null=True, max_length=20)
-
-
-class KvmCopy(models.Model):
-    """
-    KVM副本
-    """
-    kvmmachine = models.ForeignKey(KvmMachine, blank=True, null=True, verbose_name="kvm虚拟机")
-    utils = models.ForeignKey("UtilsManage", null=True, verbose_name="关联工具")
-    name = models.CharField("副本名称", blank=True, null=True, max_length=30)
-    ip = models.CharField("副本IP", blank=True, null=True, max_length=30)
-    hostname = models.CharField("副本主机名", blank=True, null=True, max_length=30)
-    create_time = models.DateTimeField("创建时间", blank=True, null=True)
-    create_user = models.OneToOneField(User, blank=True, null=True, verbose_name="创建人")
-    state = models.CharField("状态", blank=True, null=True, max_length=20)
 
