@@ -1899,6 +1899,8 @@ def display_params(request):
     data = []
     info = ""
     script_id = request.POST.get("script_id", "")
+    script_instance_id = request.POST.get("script_instance_id", "")
+    if_instance = request.POST.get("if_instance", "")
     process_id = request.POST.get("process_id", "")
 
     try:
@@ -1908,38 +1910,53 @@ def display_params(request):
     else:
         script_text = script.script_text
 
-        # 流程参数
-        try:
-            process = Process.objects.get(id=int(process_id))
-        except:
-            pass
+        if if_instance == "1":
+            try:
+                script_instance = ScriptInstance.objects.get(id=int(script_instance_id))
+                cur_params = eval(script_instance.params)
+            except Exception as e:
+                print(e)
+            else:
+                print(cur_params)
+                data = [{
+                    "param_name": x["param_name"],
+                    "variable_name": x["variable_name"],
+                    "param_value": x["param_value"],
+                    "type": x["type"]
+                } for x in cur_params]
+
         else:
-            process_param_list = get_params(process.config)
-            process_variable_list = get_variable_name(script_text, "PROCESS")
-            for pv in process_variable_list:
-                for pp in process_param_list:
-                    if pv.strip() == pp["variable_name"]:
+            # 流程参数
+            try:
+                process = Process.objects.get(id=int(process_id))
+            except:
+                pass
+            else:
+                process_param_list = get_params(process.config)
+                process_variable_list = get_variable_name(script_text, "PROCESS")
+                for pv in process_variable_list:
+                    for pp in process_param_list:
+                        if pv.strip() == pp["variable_name"]:
+                            data.append({
+                                "param_name": pp["param_name"],
+                                "variable_name": pp["variable_name"],
+                                "param_value": pp["param_value"],
+                                "type": "PROCESS"
+                            })
+                            break
+
+            script_param_list = get_params(script.config)
+            script_variable_list = get_variable_name(script_text, "SCRIPT")
+            for sv in script_variable_list:
+                for sp in script_param_list:
+                    if sv.strip() == sp["variable_name"]:
                         data.append({
-                            "param_name": pp["param_name"],
-                            "variable_name": pp["variable_name"],
-                            "param_value": pp["param_value"],
-                            "type": "PROCESS"
+                            "param_name": sp["param_name"],
+                            "variable_name": sp["variable_name"],
+                            "param_value": sp["param_value"],
+                            "type": "SCRIPT"
                         })
                         break
-
-        # 脚本参数
-        script_param_list = get_params(script.config)
-        script_variable_list = get_variable_name(script_text, "SCRIPT")
-        for sv in script_variable_list:
-            for sp in script_param_list:
-                if sv.strip() == sp["variable_name"]:
-                    data.append({
-                        "param_name": sp["param_name"],
-                        "variable_name": sp["variable_name"],
-                        "param_value": sp["param_value"],
-                        "type": "SCRIPT"
-                    })
-                    break
 
     return JsonResponse({
         "status": status,

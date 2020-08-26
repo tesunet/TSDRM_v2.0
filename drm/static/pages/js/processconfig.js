@@ -25,9 +25,9 @@ function displayScriptTree() {
     });
 }
 
-function displayParams() {
+function displayParams(if_instance) {
     /*
-        参数： script_id, process_id
+        参数： if_instance: 区分脚本实例1、脚本0
         响应： 
             根据 脚本内容中 参数符号 从 主机参数、流程参数、脚本参数 匹配出 参数名称、变量、值、类别
     */
@@ -37,7 +37,9 @@ function displayParams() {
         url: "../display_params/",
         data: {
             process_id: $('#process').val(),
-            script_id: $('#scriptid').val()
+            script_id: $('#scriptid').val(),
+            script_instance_id: $('#script_instance_id').val(),
+            if_instance: if_instance,
         },
         success: function (data) {
             $('#process_param_div').children().eq(0).empty();
@@ -222,7 +224,7 @@ $("#load_script").click(function () {
             $("#interface_type").val(data.interface_type);
             $("#commv_interface").val(data.commv_interface);
 
-            displayParams();
+            displayParams(0);
             loadHostsParams();
             $("#static03").modal('hide');
         } else {
@@ -582,7 +584,7 @@ function customTree() {
                                                 $('#utils_id_div').hide();
                                             }
 
-                                            displayParams();
+                                            displayParams(1);
                                             loadHostsParams();
                                         } else {
                                             alert(data.info)
