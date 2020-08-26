@@ -541,7 +541,7 @@ function customTree() {
                                             $("#scriptcode").val(data.data.script_code);
                                             $("#script_name").val(data.data.script_name);
                                             $("#script_text").val(data.data.script_text);
-                                            $("#success_text").val(data.data.success_text);
+                                            $("#success_text").val(data.data.succeedtext);
                                             $("#interface_type").val(data.data.interface_type);
                                             $("#commv_interface").val(data.data.commv_interface);
 
