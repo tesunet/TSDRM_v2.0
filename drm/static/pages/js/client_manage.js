@@ -413,18 +413,35 @@ function getClientree() {
                                             $("#div_creatdbcopy").show();
                                             $("#div_dbcopy").hide();
                                         }
-
                                         //kvm信息
+
                                         if (JSON.stringify(data.kvminfo) != '{}') {
                                             $("#tabcheck4_1").click();
                                             $("#div_creatkvm").hide();
                                             $("#div_kvm").show();
                                             $("#kvm_del").show();
                                             $("#kvm_id").val(data.kvminfo.id);
-
                                             $("#kvm_machine_platform").val(data.kvminfo.utils_id);
+                                            try {
+                                                var all_kvm = $("#all_kvm_data").val();
+                                                var all_filesystem = $("#all_filesystem_data").val();
+                                                var all_kvm_filesystem_dict = JSON.parse(all_filesystem);
+                                                var all_kvm_dict = JSON.parse(all_kvm);
+                                            } catch(e){}
+
+                                            var utils_id = $('#kvm_machine_platform').val();
+                                            $('#kvm_machine').empty();
+                                            $('#kvm_filesystem').empty();
+                                            for (i = 0; i < all_kvm_dict[utils_id].length; i++) {
+                                                $("#kvm_machine").append('<option value="'+ all_kvm_dict[utils_id][i].name + '">'+ all_kvm_dict[utils_id][i].name + '</option>')
+                                            }
+                                            for (i = 0; i < all_kvm_filesystem_dict[utils_id].length; i++) {
+                                                $("#kvm_filesystem").append('<option value="'+ all_kvm_filesystem_dict[utils_id][i] + '">'+ all_kvm_filesystem_dict[utils_id][i] + '</option>')
+                                            }
+
                                             $("#kvm_machine").val(data.kvminfo.name);
                                             $("#kvm_filesystem").val(data.kvminfo.filesystem);
+
 
 
                                             get_kvm_detail();
@@ -916,6 +933,8 @@ function runprocess(processid, process_type) {
 
 //kvm
 function kvmFunction() {
+        $('#kvm_machine').empty();
+        $('#kvm_filesystem').empty();
         $.ajax({
             type: "POST",
             dataType: 'json',
@@ -946,23 +965,6 @@ function kvmFunction() {
 
 
 function get_kvm_detail(){
-    try {
-        var all_kvm = $("#all_kvm_data").val();
-        var all_filesystem = $("#all_filesystem_data").val();
-        var all_kvm_filesystem_dict = JSON.parse(all_filesystem);
-        var all_kvm_dict = JSON.parse(all_kvm);
-    } catch(e){}
-
-    var utils_id = $('#kvm_machine_platform').val();
-
-    for (i = 0; i < all_kvm_dict[utils_id].length; i++) {
-        $("#kvm_machine").append('<option value="'+ all_kvm_dict[utils_id][i].name + '">'+ all_kvm_dict[utils_id][i].name + '</option>')
-    }
-    for (i = 0; i < all_kvm_filesystem_dict[utils_id].length; i++) {
-        $("#kvm_filesystem").append('<option value="'+ all_kvm_filesystem_dict[utils_id][i] + '">'+ all_kvm_filesystem_dict[utils_id][i] + '</option>')
-    }
-
-
     var table = $('#zfs_snapshot').DataTable();
     table.ajax.url("../zfs_snapshot_data/?utils_id=" + $('#kvm_machine_platform').val() + "&filesystem=" + $('#kvm_filesystem').val()
     ).load();
@@ -2278,10 +2280,9 @@ $(document).ready(function () {
                 },
             success: function (data) {
                 var myres = data["res"];
-                if (myres == "创建成功。") {
-                    $("#id").val(data["data"]);
-                    $('#static02').modal('hide');
-                    table.ajax.reload();
+                if (myres == "挂载成功。") {
+                    $('#static03').modal('hide');
+                    alert(myres);
                 }
                 alert(myres);
             },

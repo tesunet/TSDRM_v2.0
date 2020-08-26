@@ -1,7 +1,6 @@
 from drm import remote
 from lxml import etree
 
-
 class KVMApi():
     def __init__(self, credit):
         self.ip = credit['KvmHost']
@@ -371,8 +370,10 @@ class KVMApi():
         kvm_snapshot_name
         kvm_snapshot_clone_name
         """
+        info = ''
         try:
-            exe_cmd = r'zfs clone {0} {0}'.format(snapshot_name)
+            snapshot_clone_name = snapshot_name.replace('@', '-')
+            exe_cmd = r'zfs clone {0} {1}'.format(snapshot_name, snapshot_clone_name)
             self.remote_linux(exe_cmd)
             info = '克隆成功。'
         except:
@@ -388,7 +389,8 @@ class KVMApi():
         """
         info = ''
         try:
-            kvm_disk_path = snapshot_name + '/' + kvm_machine + '.qcow2'
+            snapshot_clone_name = snapshot_name.replace('@', '-')
+            kvm_disk_path = snapshot_clone_name + '/' + kvm_machine + '.qcow2'
             exe_cmd = r'cat /etc/libvirt/qemu/{0}.xml'.format(kvm_machine)
 
             result = self.remote_linux(exe_cmd)
@@ -422,6 +424,7 @@ class KVMApi():
         """
         xml_path = '/etc/libvirt/qemu/{0}.xml'.format(copy_name)
         exe_cmd = r'virsh define {0}'.format(xml_path)
+
         result = self.remote_linux(exe_cmd)
         if result['data'] == 'Domain {0} defined from {1}'.format(copy_name, xml_path) or \
                 result['data'] == '定义域 {0}（从 {1}）'.format(copy_name, xml_path):
@@ -445,10 +448,11 @@ linuxserver_credit = {
 # result = KVMApi(linuxserver_credit).copy_kvm_disk('kvm_1', 'Test-1')
 # result = KVMApi(linuxserver_credit).zfs_create_snapshot('kvm_1', '2020-08-20')
 # result = KVMApi(linuxserver_credit).zfs_snapshot_list()
-# result = KVMApi(linuxserver_credit).zfs_clone_snapshot('tank/Test-1/disk@2020-08-23', 'Test-1_clone')
+# result = KVMApi(linuxserver_credit).zfs_clone_snapshot('tank/CentOS-7@2020-08-25')
 # result = KVMApi(linuxserver_credit).create_kvm_xml('tank/Test-1/disk@2020-08-23', 'Test-1_clone')
 # result = KVMApi(linuxserver_credit).define('kvm_1')
 # result = KVMApi(linuxserver_credit).start('kvm_1')
 # result = KVMApi(linuxserver_credit).shutdown('Test-1')
 # result = KVMApi(linuxserver_credit).zfs_list()
+# print(result)
 

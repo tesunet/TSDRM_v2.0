@@ -2218,7 +2218,6 @@ def zfs_snapshot_save(request):
 @login_required
 def zfs_snapshot_del(request):
     result = {}
-    zfs_snapshot_list = []
     utils_id = request.POST.get("utils_id", "")
     snapshot_name = request.POST.get("snapshot_name", "")
     try:
@@ -2249,10 +2248,8 @@ def zfs_snapshot_mount(request):
     utils_id = request.POST.get("utils_id", "")
     snapshot_name = request.POST.get("snapshot_name", "")
     copy_name = request.POST.get("kvm_copy_name", "")
-    copy_ip = request.POST.get("kvm_copy_ip", "")
-    copy_hostname = request.POST.get("kvm_copy_hostname", "")
-
     kvm_machine = request.POST.get("kvm_machine", "")
+
     try:
         utils_id = int(utils_id)
     except:
@@ -2271,27 +2268,11 @@ def zfs_snapshot_mount(request):
             if result_info == '生成成功。':
                 # ④新的xml文件生成，开始定义虚拟机
                 result_info = KVMApi(kvm_credit).define_kvm(copy_name)
-                if result_info == '挂载成功。':
-                    # 保存数据库
-                    try:
-                        kvmcopy_obj = KvmCopy.objects.exclude(state="9")
-                        kvmcopy_obj.create(**{
-                            'utils_id': utils_id,
-                            'name': copy_name,
-                            'ip': copy_ip,
-                            'hostname': copy_hostname,
-                            'create_time': datetime.datetime.now(),
-                            # 'create_user': create_user
-                        })
-                        result["res"] = "挂载成功。"
-                    except Exception as e:
-                        print(e)
-                        result["res"] = "挂载失败。"
-
                 result['res'] = result_info
             else:
                 result['res'] = '挂载失败。'
-        result['res'] = '挂载失败。'
+        else:
+            result['res'] = '克隆失败。'
 
     except Exception as e:
         print(e)
