@@ -215,7 +215,7 @@ function getClientree() {
                         $("#pid").val(data.node.parent);
                         $("#my_type").val(type);
                         $("#title").text(data.node.data.name);
-
+                        $('#pname').val(data.node.data.pname);
                         if (type == "CLIENT") {
                             $("#tabcheck1").click();
                             $.ajax({
@@ -329,6 +329,13 @@ function getClientree() {
 
                                             // 应用类型 -> 参数展示
                                             displayAgentParams(data.cvinfo.agentType);
+
+                                            /**
+                                             * 默认时间
+                                             */
+                                            $('#cv_r_datetimepicker').val("");
+                                            $("input[name='optionsRadios'][value='1']").prop("checked", true);
+                                            $("input[name='optionsRadios'][value='2']").prop("checked", false);
                                         }
                                         else {
                                             $("#div_creatcv").show();
