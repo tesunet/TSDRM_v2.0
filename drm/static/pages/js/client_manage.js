@@ -2282,7 +2282,6 @@ $(document).ready(function () {
                 var myres = data["res"];
                 if (myres == "挂载成功。") {
                     $('#static03').modal('hide');
-                    alert(myres);
                 }
                 alert(myres);
             },
