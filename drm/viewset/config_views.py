@@ -2071,71 +2071,77 @@ def kvm_data(request):
 
         all_kvm_filesystem_dict[utils_id] = kvm_filesystem_list
 
-    kvm_machine_list = []
-    all_kvmmachine = KvmMachine.objects.exclude(state='9')
-    for um in all_kvmmachine:
-        kvm_machine_list.append({
-            'id': um.id,
-            'name': um.name,
-            'filesystem': um.filesystem,
-            'utils_id': um.utils_id,
-
-        })
     return JsonResponse({'all_kvm_dict': all_kvm_dict,
                          'all_kvm_filesystem_dict': all_kvm_filesystem_dict,
-                         'kvm_machine_list': kvm_machine_list})
+                         })
 
 
 @login_required
 def kvm_save(request):
-    status = 1
-    info = '保存成功。'
-
+    hostsmanage_id = request.POST.get("hostsmanage_id", "")
+    id = request.POST.get("kvm_id", "")
     utils_id = request.POST.get("util_kvm_id", "")
     name = request.POST.get("name", "")
     filesystem = request.POST.get("filesystem", "")
-    kvm_user = request.POST.get("kvm_user", "")
-    kvm_password = request.POST.get("kvm_password", "")
-    kvm_os = request.POST.get("kvm_os", "")
+    kvm_id = ''
     try:
+        hostsmanage_id = int(hostsmanage_id)
+        id = int(id)
         utils_id = int(utils_id)
     except:
-        utils_id = ""
-
-    credit = """<?xml version="1.0" ?>
-        <vendor>
-            <KvmUser>{KvmUser}</KvmUser>
-            <KvmPasswd>{KvmPasswd}</KvmPasswd>
-            <KvmOs>{KvmOs}</KvmOs>
-        </vendor>""".format(**{
-        "KvmUser": kvm_user,
-        "KvmPasswd": base64.b64encode(kvm_password.encode()).decode(),
-        "KvmOs": kvm_os
-    })
-    try:
-        kvm_obj = KvmMachine.objects.filter(name=name).exclude(state='9')
-        if kvm_obj.exists():
-            kvm_obj.update(**{
-                'utils_id': utils_id,
-                'name': name,
-                'filesystem': filesystem,
-                'info': credit
-            })
-        else:
-            kvm_obj.create(**{
-                'utils_id': utils_id,
-                'name': name,
-                'filesystem': filesystem,
-                'info': credit
-            })
-    except Exception as e:
-        print(e)
         status = 0
-        info = '保存失败。'
+        info = '网络异常。'
+
+    else:
+        if not utils_id:
+            status = 0
+            info = '虚拟化平台未选择。'
+        elif not name.strip():
+            status = 0
+            info = '虚机未选择。'
+        elif not filesystem.strip():
+            status = 0
+            info = 'kvm文件系统未选择。'
+        else:
+            # 新增
+            if id == 0:
+                try:
+                    kvmmachine = KvmMachine()
+                    kvmmachine.utils_id = utils_id
+                    kvmmachine.hostsmanage_id = hostsmanage_id
+                    kvmmachine.name = name
+                    kvmmachine.filesystem = filesystem
+                    kvmmachine.save()
+                    kvm_id = kvmmachine.id
+
+                    status = 1
+                    info = "保存成功。"
+                except:
+                    status = 0
+                    info = "服务器异常。"
+
+            else:
+                # 修改
+                try:
+                    kvmmachine = KvmMachine.objects.get(id=id)
+                    kvmmachine.utils_id = utils_id
+                    kvmmachine.hostsmanage_id = hostsmanage_id
+                    kvmmachine.name = name
+                    kvmmachine.filesystem = filesystem
+
+                    kvmmachine.save()
+                    kvm_id = kvmmachine.id
+                    status = 1
+                    info = "修改成功。"
+
+                except:
+                    status = 0
+                    info = "服务器异常。"
 
     return JsonResponse({
         'status': status,
         'info': info,
+        'kvm_id': kvm_id
     })
 
 

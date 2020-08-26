@@ -413,7 +413,7 @@ function getClientree() {
                                             $("#div_creatkvm").hide();
                                             $("#div_kvm").show();
                                             $("#kvm_del").show();
-                                            $("#kvm_id").val(data.cvinfo.id);
+                                            $("#kvm_id").val(data.kvminfo.id);
 
                                             $("#kvm_machine_platform").val(data.kvminfo.utils_id);
                                             $("#kvm_machine").val(data.kvminfo.name);
@@ -931,21 +931,21 @@ function kvmFunction() {
                     $("#kvm_filesystem").append('<option value="'+ data.all_kvm_filesystem_dict[utils_id][i] + '">'+ data.all_kvm_filesystem_dict[utils_id][i] + '</option>')
                 }
 
-                $("#kvm_id").val(data.kvm_machine_list[0].id);
-                $("#kvm_machine_platform").val(data.kvm_machine_list[0].utils_id);
-                $("#kvm_machine").val(data.kvm_machine_list[0].name);
-                $("#kvm_filesystem").val(data.kvm_machine_list[0].filesystem);
             }
         }
         });
+
     }
 
-function get_kvm_detail(){
 
-    var all_kvm = $("#all_kvm_data").val();
-    var all_kvm_dict = JSON.parse(all_kvm);
-    var all_filesystem = $("#all_filesystem_data").val();
-    var all_kvm_filesystem_dict = JSON.parse(all_filesystem);
+function get_kvm_detail(){
+    try {
+        var all_kvm = $("#all_kvm_data").val();
+        var all_filesystem = $("#all_filesystem_data").val();
+        var all_kvm_filesystem_dict = JSON.parse(all_filesystem);
+        var all_kvm_dict = JSON.parse(all_kvm);
+    } catch(e){}
+
     var utils_id = $('#kvm_machine_platform').val();
 
     for (i = 0; i < all_kvm_dict[utils_id].length; i++) {
@@ -954,6 +954,12 @@ function get_kvm_detail(){
     for (i = 0; i < all_kvm_filesystem_dict[utils_id].length; i++) {
         $("#kvm_filesystem").append('<option value="'+ all_kvm_filesystem_dict[utils_id][i] + '">'+ all_kvm_filesystem_dict[utils_id][i] + '</option>')
     }
+
+
+    var table = $('#zfs_snapshot').DataTable();
+    table.ajax.url("../zfs_snapshot_data/?utils_id=" + $('#kvm_machine_platform').val() + "&filesystem=" + $('#kvm_filesystem').val()
+    ).load();
+
 }
 
 
@@ -2062,13 +2068,15 @@ $(document).ready(function () {
             url: "../kvm_save/",
             data:
                 {
+                    hostsmanage_id: $("#id").val(),
                     kvm_id:$("#kvm_id").val(),
                     util_kvm_id: $("#kvm_machine_platform").val(),
                     name: $("#kvm_machine").val(),
                     filesystem: $("#kvm_filesystem").val(),
+
                 },
             success: function (data) {
-                if (data.ret == 1) {
+                if (data.status == 1) {
                     if ($("#kvm_id").val() == "0") {
                         $("#kvm_id").val(data.kvm_id);
                         $("#kvm_del").show();
@@ -2079,9 +2087,15 @@ $(document).ready(function () {
                         newtext = "<img src = '/static/pages/images/ts.png' height='24px'> " + curnode.text
                         $('#tree_client').jstree('set_text', $("#id").val(), newtext);
                     }
+                    $("#kvm_id").val(data.kvm_id);
+
+                    get_kvm_detail();
+                    alert(data.info);
+
+                }else{
+                    alert(data.info)
                 }
-                get_kvm_detail();
-                alert(data.info);
+
             },
             error: function (e) {
                 alert("页面出现错误，请于管理员联系。");
@@ -2118,8 +2132,6 @@ $(document).ready(function () {
     })
 
     $('#kvm_machine_platform').change(function () {
-        $('#kvm_machine').empty();
-        $('#kvm_filesystem').empty();
         get_kvm_detail()
     });
     $('#zfs_snapshot_create').click(function () {
@@ -2174,7 +2186,7 @@ $(document).ready(function () {
         "bSort": false,
         "iDisplayLength": 25,
         "bProcessing": true,
-        "ajax": "../zfs_snapshot_data/?utils_id=" + $('#kvm_machine_platform').val() + "&filesystem=" + $('#kvm_filesystem').val(),
+        // "ajax": "../zfs_snapshot_data/?utils_id=" + $('#kvm_machine_platform').val() + "&filesystem=" + $('#kvm_filesystem').val(),
         "columns": [
             {"data": "name"},
             {"data": null}
@@ -2334,6 +2346,7 @@ $(document).ready(function () {
             });
         }
     });
+
 
 });
 /**
