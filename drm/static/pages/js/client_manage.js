@@ -2408,6 +2408,8 @@ $("#confirm").click(function () {
             },
         success: function (data) {
             if (data["res"] == "新增成功。") {
+                alert("流程启动成功。");
+                $("#static").modal("hide");
                 window.open(data["data"], "”_blank”"); 
             } else
                 alert(data["res"]);
