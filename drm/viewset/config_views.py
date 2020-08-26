@@ -272,6 +272,8 @@ def script(request, funid):
         except ValueError as e:
             errors.append('网络连接异常。')
         else:
+            error = ""
+            status = ""
             # NODE/INTERFACE
             if my_type == "NODE":
                 node_hidden = ""
@@ -288,8 +290,6 @@ def script(request, funid):
                     "type": my_type,
                 }
                 status, error, select_id = node_save(save_data)
-                if not status:
-                    errors.append(error)
             else:
                 interface_hidden = ""
 
@@ -338,8 +338,6 @@ def script(request, funid):
                                         "commv_interface_div": "",
                                     }
                                     status, error, select_id = interface_save(save_data)
-                                    if not status:
-                                        errors.append(error)
                             else:
                                 interface_divs = {
                                     "script_text_div": "",
@@ -350,8 +348,10 @@ def script(request, funid):
                                     errors.append('脚本内容不能为空。')
                                 else:
                                     status, error, select_id = interface_save(save_data)
-                                    if not status:
-                                        errors.append(error)
+            if not status:
+                errors.append(error)
+            else:
+                id = select_id
 
     tree_data = []
     root_nodes = Script.objects.order_by("sort").exclude(state="9").filter(pnode=None).filter(type="NODE")
