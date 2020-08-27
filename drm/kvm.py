@@ -28,8 +28,8 @@ class KVMApi():
         # 获取虚拟机的状态
         exe_cmd = r'virsh domstate {0}'.format(kvm_name)
         result = self.remote_linux(exe_cmd)
-
-        return result['data']
+        result = result['data'].strip()
+        return result
 
     def kvm_all_list(self):
         # 获取所有kvm虚拟机
@@ -76,12 +76,11 @@ class KVMApi():
 
     def start(self, kvm_name):
         # 开启虚拟机:是关闭的状态
-        state = self.domstate(kvm_name).strip()
+        state = self.domstate(kvm_name)
         if state == 'shut off' or state == '关闭':
             exe_cmd = r'virsh start {0}'.format(kvm_name)
             result = self.remote_linux(exe_cmd)
-            print(result['data'].strip())
-            if result['data'].strip() == 'Domain{0}started'.format(kvm_name) or \
+            if result['data'].strip() == 'Domain {0} started'.format(kvm_name) or \
                     result['data'].strip() == '域 {0} 已开始'.format(kvm_name):
                 result = '开启成功。'
             else:
@@ -367,7 +366,7 @@ class KVMApi():
         kvm_snapshot_name
         kvm_snapshot_clone_name
         """
-        info = ''
+
         try:
             snapshot_clone_name = snapshot_name.replace('@', '-')
             exe_cmd = r'zfs clone {0} {1}'.format(snapshot_name, snapshot_clone_name)
@@ -384,7 +383,7 @@ class KVMApi():
         kvm_name_new = 'kvm_1                            新虚拟机
         kvm_disk_path = '/tank/kvm_1/kvm_1_clone/Test-1.qcow2'   新虚拟机磁盘
         """
-        info = ''
+
         try:
             snapshot_clone_name = snapshotname.replace('@', '-')
             kvm_disk_path = snapshot_clone_name + '/' + kvm_machine + '.qcow2'
@@ -423,8 +422,8 @@ class KVMApi():
         exe_cmd = r'virsh define {0}'.format(xml_path)
 
         result = self.remote_linux(exe_cmd)
-        print(result['data'])
-        if result['data'] == 'Domain {0} defined from {1}'.format(copy_name, xml_path) or \
+
+        if result['data'].strip() == 'Domain {0} defined from {1}'.format(copy_name, xml_path) or \
                 '定义域 {0}'.format(copy_name) in result['data']:
             result = '定义成功。'
         else:

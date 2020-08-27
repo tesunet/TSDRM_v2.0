@@ -2380,8 +2380,8 @@ def kvm_copy_data(request):
             'shut off': '关闭'
         }
 
-        if copy_state.strip() in copy_state_dict:
-            copy_state = copy_state_dict[copy_state.strip()]
+        if copy_state in copy_state_dict:
+            copy_state = copy_state_dict[copy_state]
         result.append({
             "id": kvmcopy.id,
             "name": kvmcopy.name,
