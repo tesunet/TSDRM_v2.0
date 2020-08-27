@@ -2140,9 +2140,24 @@ $(document).ready(function () {
             });
         }
     })
-
     $('#kvm_machine_platform').change(function () {
-        get_kvm_detail()
+        try {
+            var all_kvm = $("#all_kvm_data").val();
+            var all_filesystem = $("#all_filesystem_data").val();
+            var all_kvm_filesystem_dict = JSON.parse(all_filesystem);
+            var all_kvm_dict = JSON.parse(all_kvm);
+        } catch(e){}
+
+        var utils_id = $('#kvm_machine_platform').val();
+        $('#kvm_machine').empty();
+        $('#kvm_filesystem').empty();
+        for (i = 0; i < all_kvm_dict[utils_id].length; i++) {
+            $("#kvm_machine").append('<option value="'+ all_kvm_dict[utils_id][i].name + '">'+ all_kvm_dict[utils_id][i].name + '</option>')
+        }
+        for (i = 0; i < all_kvm_filesystem_dict[utils_id].length; i++) {
+            $("#kvm_filesystem").append('<option value="'+ all_kvm_filesystem_dict[utils_id][i] + '">'+ all_kvm_filesystem_dict[utils_id][i] + '</option>')
+        }
+        // get_kvm_detail()
     });
     $('#zfs_snapshot_create').click(function () {
         $.ajax({
@@ -2265,6 +2280,8 @@ $(document).ready(function () {
         }
     });
     $('#zfs_snapshot_mount').click(function () {
+        var table = $('#kvm_copy').DataTable();
+
         $.ajax({
             type: "POST",
             dataType: 'json',
@@ -2285,6 +2302,7 @@ $(document).ready(function () {
                 var myres = data["res"];
                 if (myres == "挂载成功。") {
                     $('#static03').modal('hide');
+                    table.ajax.reload();
                 }
                 alert(myres);
             },
@@ -2314,7 +2332,7 @@ $(document).ready(function () {
             "data": null,
             "width": "100px",
             "defaultContent": "<button  id='edit' title='编辑' data-toggle='modal'  data-target='#static04'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-edit'></i></button>" +
-                "<button title='删除副本'  id='delrow' class='btn btn-xs btn-primary' type='button'><i class='fa fa-trash-o'></i></button>"
+                "<button title='删除'  id='delrow' class='btn btn-xs btn-primary' type='button'><i class='fa fa-trash-o'></i></button>"
         }
         ],
         "oLanguage": {
@@ -2333,7 +2351,6 @@ $(document).ready(function () {
             "sZeroRecords": "没有检索到数据",
         },
     });
-
     $('#kvm_copy tbody').on('click', 'button#edit', function () {
         var table = $('#kvm_copy').DataTable();
         var data = table.row($(this).parents('tr')).data();
@@ -2349,20 +2366,22 @@ $(document).ready(function () {
 
     });
     $('#kvm_copy tbody').on('click', 'button#delrow', function () {
+        var table = $('#kvm_copy').DataTable();
+
         if (confirm("确定要删除该条数据？")) {
             var table = $('#kvm_copy').DataTable();
             var data = table.row($(this).parents('tr')).data();
             $.ajax({
                 type: "POST",
-                url: "",
+                url: "../kvm_copy_del/",
                 data:
-                {
-                    id: data.id,
-                },
+                    {
+                        id: data.id,
+                    },
                 success: function (data) {
                     if (data == 1) {
-                        table.ajax.reload();
                         alert("删除成功！");
+                        table.ajax.reload();
                     } else
                         alert("删除失败，请于管理员联系。");
                 },

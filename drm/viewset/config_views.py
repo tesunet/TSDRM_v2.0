@@ -2395,6 +2395,22 @@ def kvm_copy_data(request):
     return JsonResponse({"data": result})
 
 
+@login_required
+def kvm_copy_del(request):
+    if 'id' in request.POST:
+        id = request.POST.get('id', '')
+        try:
+            id = int(id)
+        except:
+            return HttpResponse(0)
+        kvmcopy = KvmCopy.objects.get(id=id)
+        kvmcopy.state = '9'
+        kvmcopy.save()
+        return HttpResponse(1)
+    else:
+        return HttpResponse(0)
+
+
 def get_client_node(parent, select_id, request):
     nodes = []
     children = parent.children.order_by("sort").exclude(state="9")
