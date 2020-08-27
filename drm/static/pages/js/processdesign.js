@@ -99,6 +99,8 @@ $('#p_tree').jstree({
     $("#process_color").val(data.process_color);
     $("#type").val(data.type);
     $("#cv_client").val(data.cv_client)
+    $("#process_main_database").val(data.main_database)
+
     // 动态参数
     $('#param_se').empty();
     var variable_param_list = data.variable_param_list;

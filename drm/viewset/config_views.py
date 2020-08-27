@@ -727,7 +727,7 @@ def process_design(request, funid):
             errors.append('是否签到不能为空。')
         else:
             try:
-                if type=="Oracle ADG":
+                if type=="Oracle ADG" or type=="Oracle ADG":
                     main_database = int(main_database)
             except ValueError as e:
                 errors.append('主数据库不能为空。')
@@ -752,7 +752,7 @@ def process_design(request, funid):
                     else:
                         try:
                             processsave = Process()
-                            processsave.url = '/falconstor'
+                            processsave.url = '/cv_oracler'
                             processsave.code = code
                             processsave.name = name
                             processsave.remark = remark
@@ -849,7 +849,7 @@ def process_design(request, funid):
     }
     all_main_database = []
     all_processes_back = []
-    all_processes = Process.objects.exclude(state="9").filter(type='Oracle ADG')
+    all_processes = Process.objects.exclude(state="9")
     all_hosts = DbCopyClient.objects.exclude(state="9").filter(hosttype="1")
     for host in all_hosts:
         all_main_database.append({
@@ -984,7 +984,8 @@ def get_process_tree(parent, select_id):
             "process_color": child.color,
             "type": child.type,
             "variable_param_list": param_list,
-            "cv_client": child.hosts_id
+            "cv_client": child.hosts_id,
+            "main_database": child.primary_id
         }
 
         try:
@@ -3315,7 +3316,7 @@ def get_adg_status(request):
                 })
 
     if id != 0:
-        processlist = Process.objects.filter(primary=id,type='Oracle ADG').exclude(state="9")
+        processlist = Process.objects.filter(primary=id,type='Oracle ADG',pnode_id=22).exclude(state="9")
         for process in processlist:
             adg_process_list.append({
                 "process_id": process.id,
@@ -3354,7 +3355,7 @@ def client_dbcopy_get_his(request):
     if type=='ADG':
         type='Oracle ADG'
 
-    processlist = Process.objects.filter(primary=id,type=type).exclude(state="9")
+    processlist = Process.objects.filter(primary=id,type=type,pnode_id=22).exclude(state="9")
     for process in processlist:
         allprocess.append(process.id)
         frontprocess.append(process.id)
@@ -3740,7 +3741,7 @@ def get_mysql_status(request):
 
 
     if id != 0:
-        processlist = Process.objects.filter(primary=id,type='MYSQL').exclude(state="9")
+        processlist = Process.objects.filter(primary=id,type='MYSQL',pnode_id=22).exclude(state="9")
         for process in processlist:
             mysql_process_list.append({
                 "process_id": process.id,

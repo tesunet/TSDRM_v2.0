@@ -776,7 +776,7 @@ function get_dbcopy_oracle_detail() {
             for (var i = 0; i < data["process"].length; i++) {
                 processtext += "<div  class='form-group'><button onclick=\"runprocess(" + data["process"][i].process_id + ",'1')\"  type='button' class=' btn  green'>流程:" + data["process"][i].process_name + "</button> ";
                 if (data["process"][i].back_id != null && data["process"][i].back_id != "") {
-                    processtext += "<button onclick=\"runprocess(" + data["process"][i].process_id + ",'2')\" type='button' class='backprocessbtn btn  green'>回切</button>";
+                    processtext += "<button onclick=\"runprocess(" + data["process"][i].back_id + ",'2')\" type='button' class='backprocessbtn btn  green'>回切</button>";
                 }
                 processtext += "</div>"
             }
@@ -842,7 +842,7 @@ function get_dbcopy_mysql_detail() {
             for (var i = 0; i < data["process"].length; i++) {
                 processtext += "<div  class='form-group'><button onclick=\"runprocess(" + data["process"][i].process_id + ",'1')\"  type='button' class=' btn  green'>流程:" + data["process"][i].process_name + "</button> ";
                 if (data["process"][i].back_id != null && data["process"][i].back_id != "") {
-                    processtext += "<button onclick=\"runprocess(" + data["process"][i].process_id + ",'2')\" type='button' class='backprocessbtn btn  green'>回切</button>";
+                    processtext += "<button onclick=\"runprocess(" + data["process"][i].back_id + ",'2')\" type='button' class='backprocessbtn btn  green'>回切</button>";
                 }
                 processtext += "</div>"
             }
