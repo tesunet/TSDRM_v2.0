@@ -2203,7 +2203,7 @@ $(document).ready(function () {
             "targets": -1,
             "data": null,
             "width": "100px",
-            "defaultContent": "<button  id='edit' title='挂载快照' data-toggle='modal'  data-target='#static03'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-edit'></i></button>" +
+            "defaultContent": "<button  id='edit' title='挂载快照' data-toggle='modal'  data-target='#static03'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-anchor'></i></button>" +
                 "<button title='删除快照'  id='delrow' class='btn btn-xs btn-primary' type='button'><i class='fa fa-trash-o'></i></button>"
         }
         ],
@@ -2229,8 +2229,7 @@ $(document).ready(function () {
         $("#snapshot_id").val(data.id);
         $("#utils_id").val(data.utils_id);
         $("#snapshot_name1").val(data.name);
-        var kvm_copy_name = $("#snapshot_name1").val().split('/');
-        $('#kvm_copy_name').val(kvm_copy_name[1]);
+        $('#kvm_copy_name').val(data.name);
         $("#kvm_copy_ip").val("");
         $("#kvm_copy_hostname").val("")
 
@@ -2246,7 +2245,8 @@ $(document).ready(function () {
                     {
                         id: data.id,
                         utils_id: $('#kvm_machine_platform').val(),
-                        snapshot_name: data.name
+                        snapshot_name: data.name,
+                        filesystem: $("#kvm_filesystem").val(),
                     },
                 success: function (data) {
                     var myres = data["res"];
@@ -2270,11 +2270,13 @@ $(document).ready(function () {
                 {
                     utils_id: $("#kvm_machine_platform").val(),
                     snapshot_name: $("#snapshot_name1").val(),
+
                     kvm_copy_name: $("#kvm_copy_name").val(),
                     kvm_copy_ip: $("#kvm_copy_ip").val(),
                     kvm_copy_hostname: $("#kvm_copy_hostname").val(),
-
                     kvm_machine: $("#kvm_machine").val(),
+                    kvm_machine_id: $("#kvm_id").val(),
+                    filesystem: $("#kvm_filesystem").val(),
                 },
             success: function (data) {
                 var myres = data["res"];

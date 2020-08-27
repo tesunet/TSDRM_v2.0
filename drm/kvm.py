@@ -37,7 +37,7 @@ class KVMApi():
         result = self.remote_linux(exe_cmd)
         kvm_list = [x for x in result['data'].split(' ') if x]
 
-        del kvm_list[0:3]
+        del kvm_list[0:4]
         kvm_list_filter = []
         for i in kvm_list:
             if i == 'shut':
@@ -45,7 +45,6 @@ class KVMApi():
             if i == 'off':
                 i = 'shut off'
             kvm_list_filter.append(i)
-
         end_list = self.list_of_groups(kvm_list_filter, 3)
         kvm_all_list_dict = []
         for item in end_list:
@@ -77,17 +76,18 @@ class KVMApi():
 
     def start(self, kvm_name):
         # 开启虚拟机:是关闭的状态
-        state = self.domstate(kvm_name)
+        state = self.domstate(kvm_name).strip()
         if state == 'shut off' or state == '关闭':
             exe_cmd = r'virsh start {0}'.format(kvm_name)
             result = self.remote_linux(exe_cmd)
-            if result['data'] == 'Domain {0} started'.format(kvm_name) or \
-                    result['data'] == '域 {0} 已开始'.format(kvm_name):
-                result = '虚拟机{0}开启成功。'.format(kvm_name)
+            print(result['data'].strip())
+            if result['data'].strip() == 'Domain{0}started'.format(kvm_name) or \
+                    result['data'].strip() == '域 {0} 已开始'.format(kvm_name):
+                result = '开启成功。'
             else:
-                result = '虚拟机{0}开启失败。'.format(kvm_name)
+                result = '开启失败。'
         else:
-            result = '虚拟机{0}已开启。'.format(kvm_name)
+            result = '虚拟机已开启。'
 
         return result
 
@@ -278,7 +278,8 @@ class KVMApi():
     def zfs_kvm_filesystem(self):
         exe_cmd = r'ls /tank'.format()
         result = self.remote_linux(exe_cmd)
-        kvm_filesystem = [x for x in result['data'].split(' ') if x]
+
+        kvm_filesystem = [x.replace('\t', '') for x in result['data'].split(' ') if x]
         return kvm_filesystem
 
     def zfs_create_filesystem(self, kvm_name):
@@ -323,7 +324,6 @@ class KVMApi():
         """
         try:
             exe_cmd = r'zfs snapshot {0}'.format(snapshot_name)
-            print(exe_cmd)
             self.remote_linux(exe_cmd)
             info = '创建成功。'
         except:
@@ -337,17 +337,14 @@ class KVMApi():
         exe_cmd = r'zfs list -t snapshot -r {0}'.format(filesystem)
         result = self.remote_linux(exe_cmd)
         snapshot_list = [x for x in result['data'].split(' ') if x]
-        split_monutpoint = snapshot_list[4].lstrip('MOUNTPOINT')
-        snapshot_list[4] = split_monutpoint
-        del snapshot_list[0:4]
-        del snapshot_list[-1]
-        end_list = self.list_of_groups(snapshot_list, 4)
+        del snapshot_list[0:5]
+
+        end_list = self.list_of_groups(snapshot_list, 5)
         zfs_snapshot_list_dict = []
         for item in end_list:
-            if item[0][0] == '-':
-                item[0] = item[0].lstrip('-')
             data = {}
-            data['name'] = item[0]
+            item = item[0].split('@')
+            data['name'] = item[1]
             zfs_snapshot_list_dict.append(data)
         return zfs_snapshot_list_dict
 
@@ -380,7 +377,7 @@ class KVMApi():
             info = '克隆失败。'
         return info
 
-    def create_kvm_xml(self, kvm_machine, snapshot_name, copy_name):
+    def create_kvm_xml(self, kvm_machine, snapshotname, copyname):
         """
         读取文件，修改文件，追加到新文件
         kvm_name = 'Test-1                               老虚拟机
@@ -389,7 +386,7 @@ class KVMApi():
         """
         info = ''
         try:
-            snapshot_clone_name = snapshot_name.replace('@', '-')
+            snapshot_clone_name = snapshotname.replace('@', '-')
             kvm_disk_path = snapshot_clone_name + '/' + kvm_machine + '.qcow2'
             exe_cmd = r'cat /etc/libvirt/qemu/{0}.xml'.format(kvm_machine)
 
@@ -403,13 +400,13 @@ class KVMApi():
             kvm_mac = config.xpath("//mac")[0]
 
             # 修改名字、修改磁盘路径、删除uuid、删除mac
-            kvm_name.text = copy_name
+            kvm_name.text = copyname
             kvm_diskpath.attrib['file'] = kvm_disk_path
             config.remove(kvm_uuid)
             kvm_interface.remove(kvm_mac)
             xml_content = etree.tounicode(config)
 
-            xml_path = '/etc/libvirt/qemu/{0}.xml'.format(copy_name)
+            xml_path = '/etc/libvirt/qemu/{0}.xml'.format(copyname)
             exe_cmd = r'cat > {0} << \EOH'.format(xml_path) + '\n' + xml_content + '\nEOH'
             self.remote_linux(exe_cmd)
             info = '生成成功。'
@@ -426,11 +423,12 @@ class KVMApi():
         exe_cmd = r'virsh define {0}'.format(xml_path)
 
         result = self.remote_linux(exe_cmd)
+        print(result['data'])
         if result['data'] == 'Domain {0} defined from {1}'.format(copy_name, xml_path) or \
-                result['data'] == '定义域 {0}（从 {1}）'.format(copy_name, xml_path):
-            result = '挂载成功。'
+                '定义域 {0}'.format(copy_name) in result['data']:
+            result = '定义成功。'
         else:
-            result = '挂载失败。'
+            result = '定义失败。'
 
         return result
 
@@ -447,12 +445,13 @@ linuxserver_credit = {
 # result = KVMApi(linuxserver_credit).zfs_create_filesystem('kvm_1')
 # result = KVMApi(linuxserver_credit).copy_kvm_disk('kvm_1', 'Test-1')
 # result = KVMApi(linuxserver_credit).zfs_create_snapshot('kvm_1', '2020-08-20')
-# result = KVMApi(linuxserver_credit).zfs_snapshot_list()
+# result = KVMApi(linuxserver_credit).zfs_snapshot_list('tank/CentOS-7')
 # result = KVMApi(linuxserver_credit).zfs_clone_snapshot('tank/CentOS-7@2020-08-25')
-# result = KVMApi(linuxserver_credit).create_kvm_xml('tank/Test-1/disk@2020-08-23', 'Test-1_clone')
+# result = KVMApi(linuxserver_credit).create_kvm_xml('CentOS-7', 'tank/CentOS-7@2020-08-28', 'CentOS-7@2020-08-28')
 # result = KVMApi(linuxserver_credit).define('kvm_1')
-# result = KVMApi(linuxserver_credit).start('kvm_1')
+# result = KVMApi(linuxserver_credit).start('CentOS-7@2020-08-30')
 # result = KVMApi(linuxserver_credit).shutdown('Test-1')
 # result = KVMApi(linuxserver_credit).zfs_list()
+# result = KVMApi(linuxserver_credit).zfs_kvm_filesystem()
 # print(result)
 
