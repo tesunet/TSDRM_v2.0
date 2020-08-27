@@ -2349,6 +2349,52 @@ def zfs_snapshot_mount(request):
     return JsonResponse(result)
 
 
+@login_required
+def kvm_copy_data(request):
+    kvmmachine_id = request.GET.get("kvmmachine_id", "")
+    utils_id = request.GET.get("utils_id", "")
+    try:
+        utils_id = int(utils_id)
+        kvmmachine_id = int(kvmmachine_id)
+    except:
+        pass
+
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+    result = []
+    all_kvmcopy = KvmCopy.objects.filter(kvmmachine_id=kvmmachine_id).exclude(state='9')
+
+    for kvmcopy in all_kvmcopy:
+
+        copy_state = ''
+        try:
+            copy_state = KVMApi(kvm_credit).domstate(kvmcopy.name)
+        except:
+            pass
+
+        copy_state_dict = {
+            'running': '运行中',
+            'shut off': '关闭'
+        }
+
+        if copy_state.strip() in copy_state_dict:
+            copy_state = copy_state_dict[copy_state.strip()]
+        result.append({
+            "id": kvmcopy.id,
+            "name": kvmcopy.name,
+            "ip": kvmcopy.ip,
+            "hostname": kvmcopy.hostname,
+            "create_time": kvmcopy.create_time.strftime(
+                            '%Y-%m-%d %H:%M:%S') if kvmcopy.create_time else '',
+            "create_user": kvmcopy.create_user.userinfo.fullname if kvmcopy.create_user.userinfo.fullname else '',
+            "copy_state": copy_state,
+        })
+    return JsonResponse({"data": result})
+
+
 def get_client_node(parent, select_id, request):
     nodes = []
     children = parent.children.order_by("sort").exclude(state="9")

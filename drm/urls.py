@@ -244,4 +244,6 @@ urlpatterns = [
     url(r'^zfs_snapshot_del/$', zfs_snapshot_del),
     url(r'^zfs_snapshot_mount/$', zfs_snapshot_mount),
 
+    url(r'^kvm_copy_data/$', kvm_copy_data),
+
 ]

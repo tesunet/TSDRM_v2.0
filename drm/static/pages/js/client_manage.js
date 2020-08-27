@@ -965,10 +965,13 @@ function kvmFunction() {
 
 
 function get_kvm_detail(){
-    var table = $('#zfs_snapshot').DataTable();
-    table.ajax.url("../zfs_snapshot_data/?utils_id=" + $('#kvm_machine_platform').val() + "&filesystem=" + $('#kvm_filesystem').val()
+    var table1 = $('#zfs_snapshot').DataTable();
+    table1.ajax.url("../zfs_snapshot_data/?utils_id=" + $('#kvm_machine_platform').val() + "&filesystem=" + $('#kvm_filesystem').val()
     ).load();
 
+    var table2 = $('#kvm_copy').DataTable();
+    table2.ajax.url("../kvm_copy_data/?kvmmachine_id=" + $('#kvm_id').val() + "&utils_id=" + $('#kvm_machine_platform').val()
+    ).load();
 }
 
 
@@ -2295,14 +2298,14 @@ $(document).ready(function () {
         "bSort": false,
         "iDisplayLength": 25,
         "bProcessing": true,
-        "ajax": "",
+        // "ajax": "../kvm_copy_data/?kvmmachine_id=" + $('#kvm_id').val(),
         "columns": [
             { "data": "id" },
-            { "data": "kvm_copy_ip" },
-            { "data": "kvm_copy_name" },
-            { "data": "kvm_copy_hostname" },
-            { "data": "createtime" },
-            { "data": "createuser" },
+            { "data": "ip" },
+            { "data": "name" },
+            { "data": "hostname" },
+            { "data": "create_time" },
+            { "data": "create_user" },
             { "data": null }
         ],
 
@@ -2310,7 +2313,8 @@ $(document).ready(function () {
             "targets": -1,
             "data": null,
             "width": "100px",
-            "defaultContent": "<button title='删除副本'  id='delrow' class='btn btn-xs btn-primary' type='button'><i class='fa fa-trash-o'></i></button>"
+            "defaultContent": "<button  id='edit' title='编辑' data-toggle='modal'  data-target='#static04'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-edit'></i></button>" +
+                "<button title='删除副本'  id='delrow' class='btn btn-xs btn-primary' type='button'><i class='fa fa-trash-o'></i></button>"
         }
         ],
         "oLanguage": {
@@ -2328,6 +2332,21 @@ $(document).ready(function () {
             },
             "sZeroRecords": "没有检索到数据",
         },
+    });
+
+    $('#kvm_copy tbody').on('click', 'button#edit', function () {
+        var table = $('#kvm_copy').DataTable();
+        var data = table.row($(this).parents('tr')).data();
+        $("#copy_id").val(data.id);
+        $("#copy_name").val(data.name);
+        $("#copy_state").val(data.copy_state)
+        $("#copy_ip").val(data.ip);
+
+        $("#copy_hostname").val(data.hostname);
+        $('#copy_createtime').val(data.create_time);
+        $('#copy_createuser').val(data.create_user);
+
+
     });
     $('#kvm_copy tbody').on('click', 'button#delrow', function () {
         if (confirm("确定要删除该条数据？")) {
