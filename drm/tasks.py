@@ -111,6 +111,63 @@ def content_load_params(script_instance):
     return script_text
 
 
+def content_load_params(script_instance):
+    """
+    脚本中传入参数
+    :return:
+    """
+    params = eval(script_instance.params)
+    script = script_instance.script
+    script_text = script.script_text
+    # 匹配出参数，替换
+    def get_variable_name(content, param_type):
+        variable_list = []
+        variable_list_with_symbol = []
+        com = ""
+        com_with_symbol = ""
+        if param_type == "HOST":
+            com = re.compile("\(\((.*?)\)\)")
+            com_with_symbol = re.compile("(\(\(.*?\)\))")
+        if param_type == "PROCESS":
+            com = re.compile("\{\{(.*?)\}\}")
+            com_with_symbol = re.compile("(\{\{.*?\}\})")
+        if param_type == "SCRIPT":
+            com = re.compile("\[\[(.*?)\]\]")
+            com_with_symbol = re.compile("(\[\[.*?\]\])")
+        if com:
+            variable_list = com.findall(content)
+        if com_with_symbol:
+            variable_list_with_symbol = com_with_symbol.findall(content)
+        return variable_list, variable_list_with_symbol
+
+    def get_value_from_params(variable_name, params):
+        param_value = ""
+        for param in params:
+            if variable_name.strip() == param["variable_name"]:
+                param_value = param["param_value"]
+                break
+        return param_value
+
+    # 流程参数参数 注意空格
+    process_variable_list, process_variable_list_with_symbol = get_variable_name(script_text, "PROCESS")
+    for n, pv in enumerate(process_variable_list):
+        param_value = get_value_from_params(pv, params)
+        script_text = script_text.replace(process_variable_list_with_symbol[n], param_value)
+
+    # 主机参数
+    host_variable_list, host_variable_list_with_symbol = get_variable_name(script_text, "HOST")
+    for n, hv in enumerate(host_variable_list):
+        param_value = get_value_from_params(hv, params)
+        script_text = script_text.replace(host_variable_list_with_symbol[n], param_value)
+    # 脚本参数
+    script_variable_list, script_variable_list_with_symbol = get_variable_name(script_text, "SCRIPT")
+    for n, sv in enumerate(script_variable_list):
+        param_value = get_value_from_params(sv, params)
+        script_text = script_text.replace(script_variable_list_with_symbol[n], param_value)
+
+    return script_text
+
+
 @shared_task
 def force_exec_script(processrunid):
     try:
@@ -246,6 +303,18 @@ def force_exec_script(processrunid):
                                 script_run.save()
                                 steprun.state = "ERROR"
                                 steprun.save()
+                                #
+                                # script_name = script.script.name if script.script.name else ""
+                                # myprocesstask = ProcessTask()
+                                # myprocesstask.processrun = steprun.processrun
+                                # myprocesstask.starttime = datetime.datetime.now()
+                                # myprocesstask.senduser = steprun.processrun.creatuser
+                                # myprocesstask.receiveauth = steprun.step.group
+                                # myprocesstask.type = "ERROR"
+                                # myprocesstask.state = "0"
+                                # myprocesstask.content = "脚本" + script_name + "上传windows脚本文件失败，请处理。"
+                                # myprocesstask.steprun_id = steprun.id
+                                # myprocesstask.save()
 
                         exe_cmd = windows_temp_script_file
 
@@ -728,6 +797,57 @@ def exec_process(processrunid, if_repeat=False):
     end_step_tag = 0
     processrun = ProcessRun.objects.filter(id=processrunid)
     processrun = processrun[0]
+    process = processrun.process
+
+    # Commvault流程恢复 nextSCN选项
+    # 流程恢复 ...ProcessRun>>copy_priority
+    # 计划流程 ...Origin>>copy_priority
+    #   先获取优先级 再获取nextSCN选项(主拷贝、辅助拷贝) 
+    if processrun.process.type.upper() == "COMMVAULT":
+        # nextSCN-1
+        # 获取流程客户端
+        origin = processrun.origin
+        utils = origin.utils
+
+        from .viewset.config_views import get_credit_info
+        _, sqlserver_credit = get_credit_info(utils.content if utils else None)
+        dm = SQLApi.CVApi(sqlserver_credit)
+        ret = dm.get_oracle_backup_job_list(origin.client_name)
+
+        # 无联机全备记录，请修改配置，完成联机全备后，待辅助拷贝结束后重启
+        if not ret:
+            dm.close()
+            end_step_tag = 0
+            myprocesstask = ProcessTask()
+            myprocesstask.processrun = processrun
+            myprocesstask.starttime = datetime.datetime.now()
+            myprocesstask.senduser = processrun.creatuser
+            myprocesstask.receiveuser = processrun.creatuser
+            myprocesstask.type = "ERROR"
+            myprocesstask.state = "0"
+            myprocesstask.content = "无联机全备记录，请修改配置，完成联机全备后，待辅助拷贝结束后重启。"
+            myprocesstask.save()
+        else:
+            curSCN = None
+
+            # ** 获取 主拷贝 辅助拷贝优先级
+            copy_priority = processrun.copy_priority
+
+            # ** 获得SCN号
+            # 指定时间 匹配该时间点的SCN
+            # 最新时间 匹配最新的SCN号
+            recover_time = '{:%Y-%m-%d %H:%M:%S}'.format(processrun.recover_time) if processrun.recover_time else ""
+            if recover_time:
+                for i in ret:
+                    if i["subclient"] == "default" and i['LastTime'] == recover_time:
+                        curSCN = i["cur_SCN"]
+                        break
+            else:
+                # 当前时间点，选择最新的SCN号
+                for i in ret:
+                    if i["subclient"] == "default":
+                        curSCN = i["cur_SCN"]
+                        break
 
     # processrun_params 流程参数 传递
     processrun_params = {}
