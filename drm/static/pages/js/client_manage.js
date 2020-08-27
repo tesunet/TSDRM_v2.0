@@ -1499,55 +1499,86 @@ $(document).ready(function () {
             if ($('#cv_r_destClient').val() == "")
                 alert("请选择目标客户端。");
             else {
-                var myrestoreTime = "";
-                if ($("input[name='optionsRadios']:checked").val() == "2" && $('#cv_r_datetimepicker').val() != "") {
-                    myrestoreTime = $('#cv_r_datetimepicker').val();
-                }
-                var destClient = $('#cv_r_destClient option:selected').text().trim();
-                if ($('#cv_r_destClient').val() == "self") {
-                    destClient = $('#cv_r_sourceClient').val()
-                }
-
-                // 区分应用
-                var agent = $("#cvclient_agentType").val();
-                if (agent.indexOf("Oracle") != -1) {
-                    $.ajax({
-                        type: "POST",
-                        url: "../../client_cv_recovery/",
-                        data: {
-                            cv_id: $('#cv_id').val(),
-                            sourceClient: $('#cv_r_sourceClient').val(),
-                            destClient: destClient,
-                            restoreTime: myrestoreTime,
-                            browseJobId: $("#cv_r_browseJobId").val(),
-                            // 判断是oracle还是oracle rac
-                            agent: agent,
-                            data_path: $("#cv_r_data_path").val(),
-                            copy_priority: $("#cv_r_copy_priority").val(),
-                            data_sp: $("#cv_r_data_sp").val(),
-                        },
-                        success: function (data) {
-                            alert(data);
-                            var table1 = $('#cv_restore_his').DataTable();
-                            table1.ajax.reload();
-                        },
-                        error: function (e) {
-                            alert("恢复失败，请于客服联系。");
-                        }
-                    });
-                } else if (agent.indexOf('File System') != -1) {
-                    if ($("input[name='cv_r_path']:checked").val() == "2" && $('#cv_r_mypath').val() == "")
-                        alert("请输入指定路径。");
-                    else {
-                        var iscover = $("input[name='cv_r_overwrite']:checked").val();
-                        var mypath = "same"
-                        if ($("input[name='cv_r_path']:checked").val() == "2")
-                            mypath = $('#cv_r_mypath').val()
-                        var selectedfile = ""
-                        $("#cv_r_fs_se_1 option").each(function () {
-                            var txt = $(this).val();
-                            selectedfile = selectedfile + txt + "*!-!*"
+                if (confirm('是否确定启动自主恢复？')){
+                    var myrestoreTime = "";
+                    if ($("input[name='optionsRadios']:checked").val() == "2" && $('#cv_r_datetimepicker').val() != "") {
+                        myrestoreTime = $('#cv_r_datetimepicker').val();
+                    }
+                    var destClient = $('#cv_r_destClient option:selected').text().trim();
+                    if ($('#cv_r_destClient').val() == "self") {
+                        destClient = $('#cv_r_sourceClient').val()
+                    }
+    
+                    // 区分应用
+                    var agent = $("#cvclient_agentType").val();
+                    if (agent.indexOf("Oracle") != -1) {
+                        $.ajax({
+                            type: "POST",
+                            url: "../../client_cv_recovery/",
+                            data: {
+                                cv_id: $('#cv_id').val(),
+                                sourceClient: $('#cv_r_sourceClient').val(),
+                                destClient: destClient,
+                                restoreTime: myrestoreTime,
+                                browseJobId: $("#cv_r_browseJobId").val(),
+                                // 判断是oracle还是oracle rac
+                                agent: agent,
+                                data_path: $("#cv_r_data_path").val(),
+                                copy_priority: $("#cv_r_copy_priority").val(),
+                                data_sp: $("#cv_r_data_sp").val(),
+                            },
+                            success: function (data) {
+                                alert(data);
+                                var table1 = $('#cv_restore_his').DataTable();
+                                table1.ajax.reload();
+                            },
+                            error: function (e) {
+                                alert("恢复失败，请于客服联系。");
+                            }
                         });
+                    } else if (agent.indexOf('File System') != -1) {
+                        if ($("input[name='cv_r_path']:checked").val() == "2" && $('#cv_r_mypath').val() == "")
+                            alert("请输入指定路径。");
+                        else {
+                            var iscover = $("input[name='cv_r_overwrite']:checked").val();
+                            var mypath = "same"
+                            if ($("input[name='cv_r_path']:checked").val() == "2")
+                                mypath = $('#cv_r_mypath').val()
+                            var selectedfile = ""
+                            $("#cv_r_fs_se_1 option").each(function () {
+                                var txt = $(this).val();
+                                selectedfile = selectedfile + txt + "*!-!*"
+                            });
+                            $.ajax({
+                                type: "POST",
+                                url: "../../client_cv_recovery/",
+                                data: {
+                                    cv_id: $('#cv_id').val(),
+                                    sourceClient: $('#cv_r_sourceClient').val(),
+                                    destClient: destClient,
+                                    restoreTime: myrestoreTime,
+                                    browseJobId: $("#cv_r_browseJobId").val(),
+                                    agent: agent,
+    
+                                    iscover: iscover,
+                                    mypath: mypath,
+                                    selectedfile: selectedfile,
+                                },
+                                success: function (data) {
+                                    alert(data);
+                                    var table1 = $('#cv_restore_his').DataTable();
+                                    table1.ajax.reload();
+                                },
+                                error: function (e) {
+                                    alert("恢复失败，请于客服联系。");
+                                }
+                            });
+                        }
+                    } else if (agent.indexOf('SQL Server') != -1) {
+                        var mssql_iscover = "FALSE"
+                        if ($('#cv_r_isoverwrite').is(':checked')) {
+                            mssql_iscover = "TRUE"
+                        }
                         $.ajax({
                             type: "POST",
                             url: "../../client_cv_recovery/",
@@ -1558,10 +1589,8 @@ $(document).ready(function () {
                                 restoreTime: myrestoreTime,
                                 browseJobId: $("#cv_r_browseJobId").val(),
                                 agent: agent,
-
-                                iscover: iscover,
-                                mypath: mypath,
-                                selectedfile: selectedfile,
+    
+                                mssql_iscover: mssql_iscover,
                             },
                             success: function (data) {
                                 alert(data);
@@ -1573,38 +1602,7 @@ $(document).ready(function () {
                             }
                         });
                     }
-                } else if (agent.indexOf('SQL Server') != -1) {
-                    var mssql_iscover = "FALSE"
-                    if ($('#cv_r_isoverwrite').is(':checked')) {
-                        mssql_iscover = "TRUE"
-                    }
-                    $.ajax({
-                        type: "POST",
-                        url: "../../client_cv_recovery/",
-                        data: {
-                            cv_id: $('#cv_id').val(),
-                            sourceClient: $('#cv_r_sourceClient').val(),
-                            destClient: destClient,
-                            restoreTime: myrestoreTime,
-                            browseJobId: $("#cv_r_browseJobId").val(),
-                            agent: agent,
-
-                            mssql_iscover: mssql_iscover,
-                        },
-                        success: function (data) {
-                            alert(data);
-                            var table1 = $('#cv_restore_his').DataTable();
-                            table1.ajax.reload();
-                        },
-                        error: function (e) {
-                            alert("恢复失败，请于客服联系。");
-                        }
-                    });
                 }
-
-
-
-
             }
         }
     });
