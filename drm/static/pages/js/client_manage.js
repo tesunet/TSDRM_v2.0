@@ -2230,8 +2230,8 @@ $(document).ready(function () {
         $("#utils_id").val(data.utils_id);
         $("#snapshot_name1").val(data.name);
         $('#kvm_copy_name').val(data.name);
-        $("#kvm_copy_ip").val("");
-        $("#kvm_copy_hostname").val("")
+        // $("#kvm_copy_ip").val("");
+        // $("#kvm_copy_hostname").val("")
 
     });
     $('#zfs_snapshot tbody').on('click', 'button#delrow', function () {
@@ -2272,8 +2272,8 @@ $(document).ready(function () {
                     snapshot_name: $("#snapshot_name1").val(),
 
                     kvm_copy_name: $("#kvm_copy_name").val(),
-                    kvm_copy_ip: $("#kvm_copy_ip").val(),
-                    kvm_copy_hostname: $("#kvm_copy_hostname").val(),
+                    // kvm_copy_ip: $("#kvm_copy_ip").val(),
+                    // kvm_copy_hostname: $("#kvm_copy_hostname").val(),
                     kvm_machine: $("#kvm_machine").val(),
                     kvm_machine_id: $("#kvm_id").val(),
                     filesystem: $("#kvm_filesystem").val(),

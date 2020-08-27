@@ -2274,8 +2274,8 @@ def zfs_snapshot_mount(request):
     kvm_machine_id = request.POST.get("kvm_machine_id", "")
     filesystem = request.POST.get("filesystem", "")
 
-    kvm_copy_ip = request.POST.get("kvm_copy_ip", "")
-    kvm_copy_hostname = request.POST.get("kvm_copy_hostname", "")
+    # kvm_copy_ip = request.POST.get("kvm_copy_ip", "")
+    # kvm_copy_hostname = request.POST.get("kvm_copy_hostname", "")
 
     user_id = request.user.id
 
@@ -2322,8 +2322,8 @@ def zfs_snapshot_mount(request):
                                 else:
                                     kvm_copy.create(**{
                                         'name': copyname,
-                                        'ip': kvm_copy_ip,
-                                        'hostname': kvm_copy_hostname,
+                                        # 'ip': kvm_copy_ip,
+                                        # 'hostname': kvm_copy_hostname,
                                         'create_time': datetime.datetime.now(),
                                         'create_user_id': user_id,
                                         'utils_id': utils_id,
