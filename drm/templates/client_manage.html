@@ -866,17 +866,6 @@
 
                                                         </div>
                                                     </div>
-
-                                                    <div class="form-group">
-                                                        <label class="col-md-2 control-label"><span style="color:red; ">*</span>kvm文件系统</label>
-                                                        <div class="col-md-10">
-                                                            <select class="form-control" id="kvm_filesystem" name="kvm_filesystem">
-
-                                                            </select>
-                                                            <div class="form-control-focus"></div>
-
-                                                        </div>
-                                                    </div>
                                                     <div class="form-group" hidden>
                                                         <label class="col-md-2 control-label">虚拟机</label>
                                                         <div class="col-md-10">
@@ -884,15 +873,6 @@
                                                             <div class="form-control-focus"></div>
                                                         </div>
                                                     </div>
-                                                    <div class="form-group" hidden>
-                                                        <label class="col-md-2 control-label">文件系统</label>
-                                                        <div class="col-md-10">
-                                                            <textarea class="form-control" id="all_filesystem_data" name="all_filesystem_data" readonly></textarea>
-                                                            <div class="form-control-focus"></div>
-
-                                                        </div>
-                                                    </div>
-
                                                     <div class="form-group " style="text-align:center">
                                                         <button type="button" id="kvm_protect_save" name="kvm_protect_save" class="btn green">
                                                                 保存
@@ -933,6 +913,7 @@
                                                             <th> 实例主机名</th>
                                                             <th> 创建时间</th>
                                                             <th> 创建人</th>
+                                                            <th> 状态</th>
                                                             <th style="width:50px;"> 操作</th>
                                                         </tr>
                                                         </thead>
@@ -1147,11 +1128,26 @@
                                     <div class="form-control-focus"></div>
                                 </div>
                             </div>
-
                             <div class="form-group">
                                  <label class="col-md-3 control-label"><span style="color:red; ">*</span>实例名称</label>
                                 <div class="col-md-9">
                                     <input id="kvm_copy_name" type="text" name="kvm_copy_name" class="form-control"
+                                           placeholder="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                 <label class="col-md-3 control-label">副本CPU</label>
+                                <div class="col-md-9">
+                                    <input id="kvm_copy_cpu" type="number" name="kvm_copy_cpu" class="form-control"
+                                           placeholder="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                 <label class="col-md-3 control-label">副本内存</label>
+                                <div class="col-md-9">
+                                    <input id="kvm_copy_memory" type="number" name="kvm_copy_memory" class="form-control"
                                            placeholder="">
                                     <div class="form-control-focus"></div>
                                 </div>
