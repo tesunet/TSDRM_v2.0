@@ -133,7 +133,7 @@ $('#tree_2').jstree({
                         },
                     success: function (data) {
                         if (data == "重名") {
-                            alert("目标组织下存在重名。");
+                            alert("目标节点下存在重名。");
                             location.reload()
                         } else {
                             if (data == "接口") {
