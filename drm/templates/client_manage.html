@@ -31,14 +31,14 @@
                                         <a href="#tab_1_1" id='tabcheck1' data-toggle="tab"> 基础信息 </a>
                                     </li>
                                     <li>
-                                        <a href="#tab_1_2" id='tabcheck2' data-toggle="tab"> Commvault保护 </a>
+                                        <a href="#tab_1_2" id='tabcheck2' data-toggle="tab"> 备份保护 </a>
                                     </li>
                                     <li>
                                         <a href="#tab_1_3" id='tabcheck3' data-toggle="tab"> 数据库复制 </a>
                                     </li>
                                     <li>
                                         <a href="#tab_1_4" id='tabcheck4' data-toggle="tab">
-                                            多副本保护 </a>
+                                            CDM保护 </a>
                                     </li>
                                 </ul>
                                 <div class="tab-content" style="margin-top: 10px">
@@ -126,7 +126,7 @@
                                     <div class="tab-pane fade" id="tab_1_2" style="margin-top: -10px">
                                         <div  hidden id="div_creatcv" style="text-align:center;padding-top: 10px">
                                             <button type="button" id="creatcv" name="creatcv" class="btn green">
-                                                创建Commvault保护
+                                                创建备份保护
                                             </button>
                                         </div>
                                         <div id="div_cv" class="tab " role="tabpanel">
@@ -826,7 +826,7 @@
                                     <div class="tab-pane fade" id="tab_1_4" style="margin-top: -10px">
                                         <div hidden id="div_creatkvm" style="text-align:center;padding-top: 10px">
                                             <button type="button" id="creatkvm" name="creatkvm" class="btn green">
-                                                创建多副本保护
+                                                创建CMD保护
                                             </button>
                                         </div>
                                         <div id="div_kvm" class="tab " role="tabpanel">
@@ -838,7 +838,7 @@
                                                         <a href="#tab_4_2"  id='tabcheck4_2' data-toggle="tab"> 快照管理 </a>
                                                     </li>
                                                      <li>
-                                                        <a href="#tab_4_3"  id='tabcheck4_3' data-toggle="tab"> 副本管理 </a>
+                                                        <a href="#tab_4_3"  id='tabcheck4_3' data-toggle="tab"> 实例管理 </a>
                                                     </li>
                                             </ul>
                                             <div class="tab-content">
@@ -928,9 +928,9 @@
                                                         <thead>
                                                         <tr>
                                                             <th style="width:40px;"> 序号</th>
-                                                            <th> 副本IP</th>
-                                                            <th> 副本名称</th>
-                                                            <th> 副本主机名</th>
+                                                            <th> 实例IP</th>
+                                                            <th> 实例名称</th>
+                                                            <th> 实例主机名</th>
                                                             <th> 创建时间</th>
                                                             <th> 创建人</th>
                                                             <th style="width:50px;"> 操作</th>
@@ -1130,7 +1130,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
-                    <h4 class="modal-title">挂载快照</h4>
+                    <h4 class="modal-title">创建实例</h4>
                 </div>
                 <div class="panel-body">
 
@@ -1147,7 +1147,7 @@
                             </div>
 
                             <div class="form-group">
-                                 <label class="col-md-3 control-label"><span style="color:red; ">*</span>副本名称</label>
+                                 <label class="col-md-3 control-label"><span style="color:red; ">*</span>实例名称</label>
                                 <div class="col-md-9">
                                     <input id="kvm_copy_name" type="text" name="kvm_copy_name" class="form-control"
                                            placeholder="">
@@ -1159,7 +1159,7 @@
                             <div class="modal-footer">
                                 <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
                                 </button>
-                                <button type="button" id="zfs_snapshot_mount" name="save" class="btn green">挂载快照</button>
+                                <button type="button" id="zfs_snapshot_mount" name="save" class="btn green">创建实例</button>
                             </div>
                         </div>
                     </form>
@@ -1173,7 +1173,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
-                    <h4 class="modal-title">副本管理</h4>
+                    <h4 class="modal-title">实例管理</h4>
                     <input hidden id="copy_id" type="text" name="id">
                 </div>
                 <div class="panel-body">
@@ -1183,7 +1183,7 @@
                         <div class="form-body">
                             <div class="form-group">
                                 <label class="col-md-2 control-label"><span
-                                        style="color:red; ">*</span>副本名称</label>
+                                        style="color:red; ">*</span>实例名称</label>
                                 <div class="col-md-4">
                                     <input readonly id="copy_name" type="text" name="copy_name" class="form-control "
                                            placeholder="" autocomplete="off">
@@ -1201,7 +1201,7 @@
                             </div>
                             <div class="form-group">
                                 <label class="col-md-2 control-label"><span
-                                        style="color:red; ">*</span>副本主机名</label>
+                                        style="color:red; ">*</span>实例主机名</label>
                                 <div class="col-md-4">
                                     <input readonly id="copy_hostname" type="text" name="copy_hostname" class="form-control "
                                            placeholder="" autocomplete="off">
@@ -1210,7 +1210,7 @@
                                 </div>
 
                                 <label class="col-md-2 control-label"><span
-                                        style="color:red; ">*</span>副本IP</label>
+                                        style="color:red; ">*</span>实例IP</label>
                                 <div class="col-md-4">
                                     <input readonly id="copy_ip" type="text" name="copy_ip" class="form-control "
                                            placeholder="" autocomplete="off">
@@ -1243,7 +1243,7 @@
                             <div class="modal-footer">
                                 <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
                                 </button>
-                                <button type="button" id="save" name="save" class="btn green">保存</button>
+
                             </div>
                         </div>
                     </form>

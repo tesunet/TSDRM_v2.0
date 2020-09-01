@@ -99,6 +99,8 @@ function getClientree() {
                                         $("#tabcheck2").parent().attr("style", "pointer-events:none;");
                                         $('#tabcheck3').attr("style", "color: #cbd5dd");
                                         $("#tabcheck3").parent().attr("style", "pointer-events:none;");
+                                        $('#tabcheck4').attr("style", "color: #cbd5dd");
+                                        $("#tabcheck4").parent().attr("style", "pointer-events:none;");
                                         $("#tabcheck1").click();
                                         $("#title").text("新建")
                                         $("#pname").val(obj.data["name"])
@@ -217,6 +219,12 @@ function getClientree() {
                         $("#title").text(data.node.data.name);
                         $('#pname').val(data.node.data.pname);
                         if (type == "CLIENT") {
+                            $('#tabcheck2').removeAttr("style", "color: #cbd5dd");
+                            $("#tabcheck2").parent().removeAttr("style", "pointer-events:none;");
+                            $('#tabcheck3').removeAttr("style", "color: #cbd5dd");
+                            $("#tabcheck3").parent().removeAttr("style", "pointer-events:none;");
+                            $('#tabcheck4').removeAttr("style", "color: #cbd5dd");
+                            $("#tabcheck4").parent().removeAttr("style", "pointer-events:none;");
                             $("#tabcheck1").click();
                             $.ajax({
                                 type: "POST",
@@ -1075,6 +1083,8 @@ $(document).ready(function () {
                         $("#tabcheck2").parent().removeAttr("style", "pointer-events:none;");
                         $('#tabcheck3').removeAttr("style", "color: #cbd5dd");
                         $("#tabcheck3").parent().removeAttr("style", "pointer-events:none;");
+                        $('#tabcheck4').removeAttr("style", "color: #cbd5dd");
+                        $("#tabcheck4").parent().removeAttr("style", "pointer-events:none;");
                     }
                     else {
                         var curnode = $('#tree_client').jstree('get_node', $("#id").val());
@@ -2221,7 +2231,7 @@ $(document).ready(function () {
             "targets": -1,
             "data": null,
             "width": "100px",
-            "defaultContent": "<button  id='edit' title='挂载快照' data-toggle='modal'  data-target='#static03'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-anchor'></i></button>" +
+            "defaultContent": "<button  id='edit' title='创建实例' data-toggle='modal'  data-target='#static03'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-anchor'></i></button>" +
                 "<button title='删除快照'  id='delrow' class='btn btn-xs btn-primary' type='button'><i class='fa fa-trash-o'></i></button>"
         }
         ],
