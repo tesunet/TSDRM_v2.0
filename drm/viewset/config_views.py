@@ -689,6 +689,7 @@ def process_design(request, funid):
     process_back = ""
     type = ""
     config = ""
+    nodetype=""
     
     # POST
     if request.method == "POST":
