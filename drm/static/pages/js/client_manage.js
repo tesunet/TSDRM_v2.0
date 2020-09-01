@@ -422,7 +422,6 @@ function getClientree() {
                                             $("#div_dbcopy").hide();
                                         }
                                         //kvm信息
-
                                         if (JSON.stringify(data.kvminfo) != '{}') {
                                             $("#tabcheck4_1").click();
                                             $("#div_creatkvm").hide();
@@ -437,10 +436,12 @@ function getClientree() {
 
                                             var utils_id = $('#kvm_machine_platform').val();
                                             $('#kvm_machine').empty();
-                                            $('#kvm_filesystem').empty();
+
+                                            try {
                                             for (i = 0; i < all_kvm_dict[utils_id].length; i++) {
                                                 $("#kvm_machine").append('<option value="'+ all_kvm_dict[utils_id][i].name + '">'+ all_kvm_dict[utils_id][i].name + '</option>')
                                             }
+                                            } catch (e) {}
 
                                             $("#kvm_machine").val(data.kvminfo.name);
 
@@ -2146,7 +2147,6 @@ $(document).ready(function () {
 
         var utils_id = $('#kvm_machine_platform').val();
         $('#kvm_machine').empty();
-        $('#kvm_filesystem').empty();
         for (i = 0; i < all_kvm_dict[utils_id].length; i++) {
             $("#kvm_machine").append('<option value="'+ all_kvm_dict[utils_id][i].name + '">'+ all_kvm_dict[utils_id][i].name + '</option>')
         }
@@ -2272,7 +2272,6 @@ $(document).ready(function () {
                     kvm_copy_memory: $("#kvm_copy_memory").val(),
                     kvm_machine: $("#kvm_machine").val(),
                     kvm_machine_id: $("#kvm_id").val(),
-                    filesystem: $("#kvm_filesystem").val(),
                 },
             success: function (data) {
                 var myres = data["res"];
@@ -2294,8 +2293,8 @@ $(document).ready(function () {
         "bProcessing": true,
         "columns": [
             { "data": "id" },
-            { "data": "ip" },
             { "data": "name" },
+            { "data": "ip" },
             { "data": "hostname" },
             { "data": "create_time" },
             { "data": "create_user" },
