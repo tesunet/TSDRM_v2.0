@@ -1,4 +1,10 @@
-﻿var csrfToken = $("[name='csrfmiddlewaretoken']").val();
+﻿function isEmptyObject(obj) {
+  for (var key in obj) {
+    return false;
+  }
+  return true;
+}﻿
+var csrfToken = $("[name='csrfmiddlewaretoken']").val();
 var state = '',
     refresh= true,
     interval = 0,
@@ -6,6 +12,7 @@ var state = '',
     headerTitle = '',
     end = false;
 var allState = ['run', 'done', 'error', 'stop', 'confirm', 'edit'];
+var oldwalkthroughinfo ={}
 var util = {
     run: function () {
         util.request();
@@ -30,6 +37,7 @@ var util = {
                 dataType: 'json',
                 success: function (data) {
                     util.makeHtml(data);
+                    oldwalkthroughinfo=data;
                 },
                 // error: function(xhr) {
                 //     alert('网络错误')
@@ -40,7 +48,11 @@ var util = {
     makeHtml: function (data) {
         state = data.state;
         var sTag = $("#s_tag").val()
-        util.makeCommand(data.showtasks,data.oldwalkthroughinfo.showtasks);
+        var oldshowtasks = []
+        if (!isEmptyObject(oldwalkthroughinfo)) {
+            oldshowtasks = oldwalkthroughinfo.showtasks;
+        }
+        util.makeCommand(data.showtasks,oldshowtasks);
 
 
         if (headerTitle === '') {
@@ -140,9 +152,9 @@ var util = {
     },
     makeCommand: function (showtasks,oldshowtasks) {
         var console = $(".console");
-        console.html("")
-        if (oldshowtasks) {
-            var showtext = ""
+        // console.html("")
+        if (oldshowtasks.length>0) {
+            var showlist = []
             for (var i = 0; i < showtasks.length; i++) {
                 var isshow=false;
                 for(var j = 0; j < oldshowtasks.length; j++) {
@@ -154,47 +166,25 @@ var util = {
                 var str =  showtasks[i].taskcontent + "(" + showtasks[i].tasktime + ")"
                     if (str.length > 45)
                         str = str.substring(0, 45) + "<br>    " + str.substring(45)
-                if(isshow) {
-                    console.append("<span class=\"prompt\">➜</span> ");
-                    console.append("<span class=\"path\">~</span>" + str)
-                    console.append("<br>");
-                    console.append("<br>");
-                }
-                else{
-                    showtext = showtext + "➜" + "~" + str + "^";
-                    showtext = showtext.replace("<br>","$");
+                if(!isshow) {
+                    showlist.push("<span class=\"prompt\">➜</span><span class=\"path\">~</span> " + str + "<br><br>")
                 }
             }
-            if(showtext.length>0) {
-                var str = showtext
+            if(showlist.length>0) {
                 var myindex = 0;
                 //$text.html()和$(this).html('')有区别
                 var timer = setInterval(function () {
                     refresh = false;
-                    var current = str.substr(myindex, 1);
+                    console.append(showlist[myindex]);
                     myindex++;
-                    if(current=="➜")
-                        console.append("<span class=\"prompt\">➜</span> ");
-                    else if(current=="~")
-                        console.append("<span class=\"path\">~</span>");
-                    else if(current=="^"){
-                        console.append("<br>");
-                        console.append("<br>");
-                        console[0].scrollTop = console[0].scrollHeight;
-                    }
-                    else if(current=="$"){
-                        console.append("<br>");
-                        console[0].scrollTop = console[0].scrollHeight;
-                    }
-                    else{
-                        console.append(current);
-                    }
+                    console[0].scrollTop = console[0].scrollHeight;
+
                     if (myindex >= str.length) {
                         clearInterval(timer);
                         refresh =true;
                     }
                 },
-                100);
+                1000);
             }
 
             console[0].scrollTop = console[0].scrollHeight;

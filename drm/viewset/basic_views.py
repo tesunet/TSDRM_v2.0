@@ -14,7 +14,7 @@ from drm.api.commvault import SQLApi
 from drm.api.commvault.RestApi import *
 from .public_func import *
 
-walkthroughinfo = {}
+#walkthroughinfo = {}
 funlist = []
 
 ######################
@@ -330,7 +330,7 @@ def processindex(request, processrun_id):
         errors = []
         s_tag = request.GET.get("s", "")
         # exclude
-        global walkthroughinfo
+        #global walkthroughinfo
         walkthroughinfo = {}
         c_process_run = ProcessRun.objects.filter(id=processrun_id).select_related("process")
         if c_process_run.exists():
@@ -574,10 +574,10 @@ def get_process_index_data(request):
                 "steps": steps,
                 "showtasks": showtasks
             }
-            global walkthroughinfo
-            oldwalkthroughinfo = walkthroughinfo
-            walkthroughinfo = c_step_run_data
-            c_step_run_data["oldwalkthroughinfo"] = oldwalkthroughinfo
+            #global walkthroughinfo
+            #oldwalkthroughinfo = walkthroughinfo
+            #walkthroughinfo = c_step_run_data
+            #c_step_run_data["oldwalkthroughinfo"] = oldwalkthroughinfo
         else:
             c_step_run_data = {}
 

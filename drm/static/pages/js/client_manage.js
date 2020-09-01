@@ -2408,70 +2408,75 @@ $(document).ready(function () {
  * 启动流程
  */
 $("#confirm").click(function () {
-    var process_id = $("#processid").val();
-    // File System
-    var iscover = $("input[name='cv_r_overwrite']:checked").val();
-    var mypath = "same"
-    if ($("input[name='cv_r_path']:checked").val() == "2"){
-        mypath = $('#cv_r_mypath').val()
+    if($("#confirmtext")!="确认启动流程") {
+        alert("请在文本框内输入\"确认启动流程\"");
     }
-    var selectedfile = "";
-    $("#cv_r_fs_se_1 option").each(function () {
-        var txt = $(this).val();
-        selectedfile = selectedfile + txt + "*!-!*"
-    });
-    // SQL Server
-    var mssql_iscover = "FALSE"
-    if ($('#cv_r_isoverwrite').is(':checked')){
-        mssql_iscover = "TRUE"
-    }
-    // 目标端
-    var std = $('#cv_r_destClient').val();
-    if (std == "self"){
-        std = $("#cv_id").val();
-    } 
-    // 非邀请流程启动
-    $.ajax({
-        type: "POST",
-        dataType: 'json',
-        url: "../cv_oracle_run/",
-        data:
-            {
-                processid: process_id,
-                run_person: $("#run_person").val(),
-                run_time: $("#run_time").val(),
-                run_reason: $("#run_reason").val(),
-
-                pri: $("#cv_id").val(),
-                std: std,
-                agent_type: $("#cvclient_agentType").val(),
-                recovery_time: $("#cv_r_datetimepicker").val(),
-                browseJobId: $("#cv_r_browseJobId").val(),
-
-                data_path: $("#cv_r_data_path").val(),
-                copy_priority: $("#cv_r_copy_priority").val(),
-                db_open: $("#cv_r_db_open").val(),
-                log_restore: $("#cv_r_log_restore").val(),
-
-                // SQL Server
-                mssql_iscover: mssql_iscover,
-
-                // File System
-                iscover: iscover,
-                mypath: mypath,
-                selectedfile: selectedfile,
-            },
-        success: function (data) {
-            if (data["res"] == "新增成功。") {
-                alert("流程启动成功。");
-                $("#static").modal("hide");
-                window.open(data["data"], "_blank"); 
-            } else
-                alert(data["res"]);
-        },
-        error: function (e) {
-            alert("流程启动失败，请于管理员联系。");
+    else{
+        var process_id = $("#processid").val();
+        // File System
+        var iscover = $("input[name='cv_r_overwrite']:checked").val();
+        var mypath = "same"
+        if ($("input[name='cv_r_path']:checked").val() == "2") {
+            mypath = $('#cv_r_mypath').val()
         }
-    });
+        var selectedfile = "";
+        $("#cv_r_fs_se_1 option").each(function () {
+            var txt = $(this).val();
+            selectedfile = selectedfile + txt + "*!-!*"
+        });
+        // SQL Server
+        var mssql_iscover = "FALSE"
+        if ($('#cv_r_isoverwrite').is(':checked')) {
+            mssql_iscover = "TRUE"
+        }
+        // 目标端
+        var std = $('#cv_r_destClient').val();
+        if (std == "self") {
+            std = $("#cv_id").val();
+        }
+        // 非邀请流程启动
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../cv_oracle_run/",
+            data:
+                {
+                    processid: process_id,
+                    run_person: $("#run_person").val(),
+                    run_time: $("#run_time").val(),
+                    run_reason: $("#run_reason").val(),
+
+                    pri: $("#cv_id").val(),
+                    std: std,
+                    agent_type: $("#cvclient_agentType").val(),
+                    recovery_time: $("#cv_r_datetimepicker").val(),
+                    browseJobId: $("#cv_r_browseJobId").val(),
+
+                    data_path: $("#cv_r_data_path").val(),
+                    copy_priority: $("#cv_r_copy_priority").val(),
+                    db_open: $("#cv_r_db_open").val(),
+                    log_restore: $("#cv_r_log_restore").val(),
+
+                    // SQL Server
+                    mssql_iscover: mssql_iscover,
+
+                    // File System
+                    iscover: iscover,
+                    mypath: mypath,
+                    selectedfile: selectedfile,
+                },
+            success: function (data) {
+                if (data["res"] == "新增成功。") {
+                    alert("流程启动成功。");
+                    $("#static").modal("hide");
+                    window.open(data["data"], "_blank");
+                } else
+                    alert(data["res"]);
+            },
+            error: function (e) {
+                alert("流程启动失败，请于管理员联系。");
+            }
+        });
+    }
 });
 
