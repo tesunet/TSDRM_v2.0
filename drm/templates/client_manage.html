@@ -1079,7 +1079,6 @@
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
                     <h4 class="modal-title">创建快照</h4>
-{#                    <input hidden id="id" type="text" name="id">#}
                 </div>
                 <div class="panel-body">
 
@@ -1137,7 +1136,7 @@
                                 </div>
                             </div>
                             <div class="form-group">
-                                 <label class="col-md-3 control-label">副本CPU</label>
+                                 <label class="col-md-3 control-label">实例CPU</label>
                                 <div class="col-md-9">
                                     <input id="kvm_copy_cpu" type="number" name="kvm_copy_cpu" class="form-control"
                                            placeholder="">
@@ -1145,7 +1144,7 @@
                                 </div>
                             </div>
                             <div class="form-group">
-                                 <label class="col-md-3 control-label">副本内存</label>
+                                 <label class="col-md-3 control-label">实例内存</label>
                                 <div class="col-md-9">
                                     <input id="kvm_copy_memory" type="number" name="kvm_copy_memory" class="form-control"
                                            placeholder="">
@@ -1199,23 +1198,20 @@
                             </div>
                             <div class="form-group">
                                 <label class="col-md-2 control-label"><span
-                                        style="color:red; ">*</span>实例主机名</label>
-                                <div class="col-md-4">
-                                    <input readonly id="copy_hostname" type="text" name="copy_hostname" class="form-control "
-                                           placeholder="" autocomplete="off">
-                                    <div class="form-control-focus"></div>
-
-                                </div>
-
-                                <label class="col-md-2 control-label"><span
                                         style="color:red; ">*</span>实例IP</label>
                                 <div class="col-md-4">
                                     <input readonly id="copy_ip" type="text" name="copy_ip" class="form-control "
                                            placeholder="" autocomplete="off">
                                     <div class="form-control-focus"></div>
-
                                 </div>
 
+                                <label class="col-md-2 control-label"><span
+                                        style="color:red; ">*</span>实例主机名</label>
+                                <div class="col-md-4">
+                                    <input readonly id="copy_hostname" type="text" name="copy_hostname" class="form-control "
+                                           placeholder="" autocomplete="off">
+                                    <div class="form-control-focus"></div>
+                                </div>
                             </div>
                             <div class="form-group">
                                 <label class="col-md-2 control-label"><span
@@ -1235,13 +1231,96 @@
 
                                 </div>
                             </div>
-
+                            <hr>
+                            <div class="form-group " style="text-align:center">
+                                <button type="button" id="alter_ip" name="alter_ip" class="btn green">
+                                        修改实例IP
+                                </button>
+                                <button type="button" id="alter_hostname" name="alter_hostname" class="btn green">
+                                        修改实例主机名
+                                </button>
+                                <button type="button" id="kvm_start" name="kvm_start" class="btn green">
+                                        开机
+                                </button>
+                                <button type="button" id="kvm_shutdown" name="kvm_shutdown" class="btn green">
+                                        关机
+                                </button>
+                            </div>
                         </div>
+
                         <div class="form-actions ">
                             <div class="modal-footer">
                                 <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
                                 </button>
 
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div id="static05" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
+                    <h4 class="modal-title">修改实例IP</h4>
+                </div>
+                <div class="panel-body">
+
+                    <form class="bs-example form-horizontal activate-form">{% csrf_token %}
+
+                        <div class="form-body">
+                            <div class="form-group">
+                                 <label class="col-md-3 control-label"><span style="color:red; ">*</span>实例IP</label>
+                                <div class="col-md-9">
+                                    <input id="kvm_ip" type="text" name="kvm_ip" class="form-control"
+                                           placeholder="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-actions ">
+                            <div class="modal-footer">
+                                <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
+                                </button>
+                                <button type="button" id="kvm_ip_save" name="save" class="btn green">保存</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div id="static06" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
+                    <h4 class="modal-title">修改实例主机名</h4>
+                </div>
+                <div class="panel-body">
+
+                    <form class="bs-example form-horizontal activate-form">{% csrf_token %}
+
+                        <div class="form-body">
+                            <div class="form-group">
+                                 <label class="col-md-3 control-label"><span style="color:red; ">*</span>实例主机名</label>
+                                <div class="col-md-9">
+                                    <input id="kvm_hostname" type="text" name="kvm_hostname" class="form-control"
+                                           placeholder="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-actions ">
+                            <div class="modal-footer">
+                                <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
+                                </button>
+                                <button type="button" id="kvm_hostname_save" name="save" class="btn green">保存</button>
                             </div>
                         </div>
                     </form>

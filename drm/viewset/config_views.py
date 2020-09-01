@@ -2281,7 +2281,7 @@ def zfs_snapshot_mount(request):
             for i in kvm_list:
                 kvm_exist.append(i['name'])
             if copyname in kvm_exist:
-                result['res'] = '副本已存在。'
+                result['res'] = '实例' + copy_name + '已存在。'
             else:
                 result_info = KVMApi(kvm_credit).zfs_clone_snapshot(snapshotname, filesystemname)
                 if result_info == '克隆成功。':
@@ -2292,13 +2292,13 @@ def zfs_snapshot_mount(request):
                         result_info = KVMApi(kvm_credit).define_kvm(copyname)
                         if result_info == '定义成功。':
                             # ⑤定义成功，开启虚拟机
-                            result_info = KVMApi(kvm_credit).start(copyname)
-                            if result_info == '开启成功。':
+                            result_info = KVMApi(kvm_credit).kvm_start(copyname)
+                            if result_info == '开机成功。':
                                 # 副本开启成功，保存数据库
                                 try:
                                     kvm_copy = KvmCopy.objects.filter(name=copyname).exclude(state='9')
                                     if kvm_copy.exists():
-                                        result['res'] = '副本已存在。'
+                                        result['res'] = '实例已存在。'
                                     else:
                                         kvm_copy.create(**{
                                             'name': copyname,
@@ -2312,7 +2312,7 @@ def zfs_snapshot_mount(request):
                                     print(e)
                                     result['res'] = '保存失败。'
                             else:
-                                result['res'] = '开启失败。'
+                                result['res'] = '开机失败。'
                         else:
                             result['res'] = '定义失败。'
                     else:
@@ -2407,6 +2407,84 @@ def kvm_copy_del(request):
         print(e)
         result["res"] = '删除失败。'
 
+    return JsonResponse(result)
+
+
+@login_required
+def kvm_ip_save(request):
+    # 远程修改 + 数据库修改
+    result = {}
+    utils_id = request.POST.get("utils_id", "")
+    id = request.POST.get("id", "")
+    kvm_ip = request.POST.get("kvm_ip", "")
+    username = request.POST.get("username", "")
+    password = request.POST.get("password", "")
+    password = request.POST.get("password", "")
+    os = request.POST.get("os", "")
+    try:
+        id = int(id)
+        utils_id = int(utils_id)
+    except:
+        pass
+
+    # 登录kvm虚拟机: virsh console CentOS-7@test4
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+
+@login_required
+def kvm_hostname_save(request):
+    id = request.POST.get("id", "")
+    kvm_hostname = request.POST.get("kvm_hostname", "")
+
+
+@login_required
+def kvm_start(request):
+    result = {}
+    utils_id = request.POST.get("utils_id", "")
+    kvm_name = request.POST.get("kvm_name", "")
+
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+    try:
+        result_info = KVMApi(kvm_credit).kvm_start(kvm_name)
+        result['res'] = result_info
+    except Exception as e:
+        print(e)
+        result["res"] = '开机失败。'
+    return JsonResponse(result)
+
+
+@login_required
+def kvm_shutdown(request):
+    result = {}
+    utils_id = request.POST.get("utils_id", "")
+    kvm_name = request.POST.get("kvm_name", "")
+
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+    try:
+        result_info = KVMApi(kvm_credit).kvm_shutdown(kvm_name)
+        result['res'] = result_info
+    except Exception as e:
+        print(e)
+        result["res"] = '关机失败。'
     return JsonResponse(result)
 
 

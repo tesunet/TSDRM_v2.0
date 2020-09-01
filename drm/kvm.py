@@ -74,36 +74,34 @@ class KVMApi():
 
         return kvm_all_list_dict
 
-    def start(self, kvm_name):
-        # 开启虚拟机:是关闭的状态
-        state = self.domstate(kvm_name)
-        if state == 'shut off' or state == '关闭':
-            exe_cmd = r'virsh start {0}'.format(kvm_name)
-            result = self.remote_linux(exe_cmd)
-            if result['data'].strip() == 'Domain {0} started'.format(kvm_name) or \
-                    result['data'].strip() == '域 {0} 已开始'.format(kvm_name):
-                result = '开启成功。'
-            else:
-                result = '开启失败。'
+    def kvm_start(self, kvm_name):
+        # 开启虚拟机:是关闭的状态（shut off/关闭）
+        exe_cmd = r'virsh start {0}'.format(kvm_name)
+        result = self.remote_linux(exe_cmd)
+        if result['data'].strip() == 'Domain {0} started'.format(kvm_name) or \
+                result['data'].strip() == '域 {0} 已开始'.format(kvm_name):
+            result = '开机成功。'
         else:
-            result = '虚拟机已开启。'
+            result = '开机失败。'
 
         return result
 
-    def shutdown(self, kvm_name):
-        # 关闭虚拟机:是开启的状态
-        state = self.domstate(kvm_name)
-        if state == 'running':
-            exe_cmd = r'virsh shutdown {}'.format(kvm_name)
-            result = self.remote_linux(exe_cmd)
-            if result['data'] == 'Domain {0} is being shutdown'.format(kvm_name) or \
-                    result['data'] == '域 {0} 被关闭'.format(kvm_name):
-                result = '虚拟机{0}关闭成功。'.format(kvm_name)
-            else:
-                result = '虚拟机{0}关闭失败。'.format(kvm_name)
+    def kvm_shutdown(self, kvm_name):
+        # 关闭虚拟机:是开启的状态（running）
+        exe_cmd = r'virsh shutdown {}'.format(kvm_name)
+        result = self.remote_linux(exe_cmd)
+        if result['data'].strip() == 'Domain {0} is being shutdown'.format(kvm_name) or \
+                result['data'].strip() == '域 {0} 被关闭'.format(kvm_name):
+            result = '关机成功。'
         else:
-            result = '虚拟机{0}未开启。'.format(kvm_name)
+            result = '关机失败。'
+
         return result
+
+    def console(self, kvm_name):
+        """
+        登录虚拟机：virsh console CentOS-7@test4
+        """
 
     def undefine(self, kvm_name, state, filesystem):
 

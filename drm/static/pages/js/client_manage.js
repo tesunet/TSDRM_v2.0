@@ -2292,7 +2292,6 @@ $(document).ready(function () {
         "bSort": false,
         "iDisplayLength": 25,
         "bProcessing": true,
-        // "ajax": "../kvm_copy_data/?kvmmachine_id=" + $('#kvm_id').val(),
         "columns": [
             { "data": "id" },
             { "data": "ip" },
@@ -2353,11 +2352,18 @@ $(document).ready(function () {
         $('#copy_createtime').val(data.create_time);
         $('#copy_createuser').val(data.create_user);
 
+        if($("#copy_state").val() == '运行中'){
+            $("#kvm_start").hide();
+            $("#kvm_shutdown").show()
+        }
+        if($("#copy_state").val() == '关闭'){
+            $("#kvm_start").show();
+            $("#kvm_shutdown").hide()
+        }
+
 
     });
     $('#kvm_copy tbody').on('click', 'button#delrow', function () {
-        var table = $('#kvm_copy').DataTable();
-
         if (confirm("确定要删除该条数据？")) {
             var table = $('#kvm_copy').DataTable();
             var data = table.row($(this).parents('tr')).data();
@@ -2384,7 +2390,122 @@ $(document).ready(function () {
             });
         }
     });
+    $('#alter_ip').click(function () {
+        $('#static05').modal('show');
+        $('#kvm_ip').val("")
+    });
+    $('#alter_hostname').click(function () {
+        $('#static06').modal('show');
+        $('#kvm_ip').val("")
+    });
+    $('#kvm_ip_save').click(function () {
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            // url: "../kvm_ip_save/",
+            data:
+                {
+                    utils_id: $("#kvm_machine_platform").val(),
+                    id: $("#copy_id").val(),
+                    kvm_ip: $("#kvm_ip").val(),
+                    root: $("#username").val(),
+                    password: $("#password").val(),
+                    os: $("#os").val(),
+                },
+            success: function (data) {
+                var myres = data["res"];
+                if (myres == "创建成功。") {
+                    $('#static05').modal('hide');
+                    $('#static04').modal('hide');
+                    table.ajax.reload();
+                }
+                alert(myres);
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+            }
+        });
+    });
+    $('#kvm_hostname_save').click(function () {
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            // url: "../kvm_hostname_save/",
+            data:
+                {
+                    utils_id: $("#kvm_machine_platform").val(),
+                    id: $("#copy_id").val(),
+                    kvm_hostname: $("#kvm_hostname").val(),
+                    root: $("#username").val(),
+                    password: $("#password").val(),
+                    os: $("#os").val(),
+                },
+            success: function (data) {
+                var myres = data["res"];
+                if (myres == "创建成功。") {
+                    $('#static06').modal('hide');
+                    $('#static04').modal('hide');
+                    table.ajax.reload();
+                }
+                alert(myres);
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+            }
+        });
+    });
 
+
+    $('#kvm_start').click(function () {
+        var table = $('#kvm_copy').DataTable();
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../kvm_start/",
+            data:
+                {
+                    utils_id: $("#kvm_machine_platform").val(),
+                    id: $("#copy_id").val(),
+                    kvm_name: $("#copy_name").val(),
+                },
+            success: function (data) {
+                var myres = data["res"];
+                if (myres == "开机成功。") {
+                    $('#static04').modal('hide');
+                    table.ajax.reload();
+                }
+                alert(myres);
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+            }
+        });
+    });
+    $('#kvm_shutdown').click(function () {
+        var table = $('#kvm_copy').DataTable();
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../kvm_shutdown/",
+            data:
+                {
+                    utils_id: $("#kvm_machine_platform").val(),
+                    id: $("#copy_id").val(),
+                    kvm_name: $("#copy_name").val(),
+                },
+            success: function (data) {
+                var myres = data["res"];
+                if (myres == "关机成功。") {
+                    $('#static04').modal('hide');
+                    table.ajax.reload();
+                }
+                alert(myres);
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+            }
+        });
+    });
 
 });
 /**

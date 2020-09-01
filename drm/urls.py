@@ -246,5 +246,8 @@ urlpatterns = [
 
     url(r'^kvm_copy_data/$', kvm_copy_data),
     url(r'^kvm_copy_del/$', kvm_copy_del),
-
+    url(r'^kvm_ip_save/$', kvm_ip_save),
+    url(r'^kvm_hostname_save/$', kvm_hostname_save),
+    url(r'^kvm_start/$', kvm_start),
+    url(r'^kvm_shutdown/$', kvm_shutdown),
 ]
