@@ -2104,7 +2104,6 @@ def kvm_data(request):
     util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
 
     all_kvm_dict = {}
-    all_kvm_filesystem_dict = {}
     for utils in util_manage:
         utils_id = utils.id
         utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
@@ -2122,6 +2121,26 @@ def kvm_data(request):
             })
 
     return JsonResponse({'all_kvm_dict': all_kvm_dict})
+
+
+@login_required
+def kvm_machine_data(request):
+    kvminfo = {}
+    ret = 1
+    id = request.POST.get("id", "")
+    utils_id = request.POST.get("utils_id", "")
+    try:
+        id = int(id)
+        utils_id = int(utils_id)
+    except:
+        pass
+    kc = KvmMachine.objects.exclude(state="9").filter(hostsmanage_id=id).filter(utils_id=utils_id)
+    if len(kc) > 0:
+        kvminfo["id"] = kc[0].id
+        kvminfo["utils_id"] = kc[0].utils_id
+        kvminfo["name"] = kc[0].name
+        kvminfo["filesystem"] = kc[0].filesystem
+    return JsonResponse({'ret': 1, 'kvminfo': kvminfo})
 
 
 @login_required
@@ -2283,7 +2302,7 @@ def zfs_snapshot_del(request):
     util_type = utils_kvm_info[0].util_type
     kvm_credit = get_credit_info(content, util_type.upper())
 
-    # 删除快照：快照已挂载，无法删除
+    # 删除快照：快照已创建实例，无法删除
     filesystem = 'tank/' + kvm_name
     snapshotname = filesystem + '@' + snapshot_name
     filesystem_exist = []
@@ -2294,7 +2313,7 @@ def zfs_snapshot_del(request):
             filesystem_exist.append(i)
         snapname = snapshotname.replace('@', '-')
         if snapname in filesystem_exist:
-            result['res'] = '快照已挂载，无法删除。'
+            result['res'] = '快照已创建实例，无法删除。'
         else:
             result_info = KVMApi(kvm_credit).zfs_snapshot_del(snapshotname)
             result["res"] = result_info
@@ -2410,32 +2429,32 @@ def kvm_copy_data(request):
 
     result = []
     all_kvmcopy = KvmCopy.objects.filter(kvmmachine_id=kvmmachine_id).exclude(state='9')
+    if len(all_kvmcopy) > 0:
+        for kvmcopy in all_kvmcopy:
 
-    for kvmcopy in all_kvmcopy:
+            copy_state = ''
+            try:
+                copy_state = KVMApi(kvm_credit).domstate(kvmcopy.name)
+            except:
+                pass
 
-        copy_state = ''
-        try:
-            copy_state = KVMApi(kvm_credit).domstate(kvmcopy.name)
-        except:
-            pass
+            copy_state_dict = {
+                'running': '运行中',
+                'shut off': '关闭'
+            }
 
-        copy_state_dict = {
-            'running': '运行中',
-            'shut off': '关闭'
-        }
-
-        if copy_state in copy_state_dict:
-            copy_state = copy_state_dict[copy_state]
-        result.append({
-            "id": kvmcopy.id,
-            "name": kvmcopy.name,
-            "ip": kvmcopy.ip,
-            "hostname": kvmcopy.hostname,
-            "create_time": kvmcopy.create_time.strftime(
-                            '%Y-%m-%d %H:%M:%S') if kvmcopy.create_time else '',
-            "create_user": kvmcopy.create_user.userinfo.fullname if kvmcopy.create_user.userinfo.fullname else '',
-            "copy_state": copy_state,
-        })
+            if copy_state in copy_state_dict:
+                copy_state = copy_state_dict[copy_state]
+            result.append({
+                "id": kvmcopy.id,
+                "name": kvmcopy.name,
+                "ip": kvmcopy.ip,
+                "hostname": kvmcopy.hostname,
+                "create_time": kvmcopy.create_time.strftime(
+                                '%Y-%m-%d %H:%M:%S') if kvmcopy.create_time else '',
+                "create_user": kvmcopy.create_user.userinfo.fullname if kvmcopy.create_user.userinfo.fullname else '',
+                "copy_state": copy_state,
+            })
     return JsonResponse({"data": result})
 
 

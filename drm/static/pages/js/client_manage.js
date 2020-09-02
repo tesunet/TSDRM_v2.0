@@ -450,7 +450,7 @@ function getClientree() {
                                             get_kvm_detail();
                                             $("#tabcheck4_1").parent().show();
                                             $("#tabcheck4_2").parent().show();
-                                            $("#tabcheck3_3").parent().show();
+                                            $("#tabcheck4_3").parent().show();
                                         }
                                         else {
                                             $("#div_creatkvm").show();
@@ -2096,7 +2096,7 @@ $(document).ready(function () {
                         newtext = "<img src = '/static/pages/images/ts.png' height='24px'> " + curnode.text
                         $('#tree_client').jstree('set_text', $("#id").val(), newtext);
                     }
-                    $("#kvm_id").val(data.kvm_id);
+                    $("#kvm_id").val(data.id);
 
                     get_kvm_detail();
                     alert(data.info);
@@ -2150,7 +2150,29 @@ $(document).ready(function () {
         for (i = 0; i < all_kvm_dict[utils_id].length; i++) {
             $("#kvm_machine").append('<option value="'+ all_kvm_dict[utils_id][i].name + '">'+ all_kvm_dict[utils_id][i].name + '</option>')
         }
-        // get_kvm_detail()
+        if ($('#kvm_id').val() != 0){
+            $.ajax({
+                type: "POST",
+                url: "../kvm_machine_data/",
+                data:
+                {
+                    utils_id: $("#kvm_machine_platform").val(),
+                    id: $("#id").val(),
+                },
+                success: function (data) {
+                    if (data.ret == 1){
+                        if (data.kvminfo != ''){
+                            $('#kvm_machine').val(data.kvminfo.name)
+                            get_kvm_detail()
+                        }
+                    }
+                },
+                error: function (e) {
+                    alert("页面出现错误，请于管理员联系。");
+                }
+        });
+        }
+
     });
     $('#zfs_snapshot_create').click(function () {
         $('#snapshot_name').val("")
