@@ -11,6 +11,9 @@ $('#p_tree').jstree({
         "NODE": {
             "icon": "fa fa-folder icon-state-warning icon-lg"
         },
+        "PROCESS": {
+            "icon": "fa fa-file-code-o icon-state-warning icon-lg"
+        }
     },
     "contextmenu": {
         "items": {
@@ -18,28 +21,68 @@ $('#p_tree').jstree({
             "rename": null,
             "remove": null,
             "ccp": null,
-            "新建": {
-                "label": "新建",
+            "新建节点": {
+                "label": "新建节点",
                 "action": function (data) {
                     var inst = jQuery.jstree.reference(data.reference),
                         obj = inst.get_node(data.reference);
-                    $("#form_div").show();
-                    $("#title").text("新建");
-                    $("#id").val("0");
-                    $("#pid").val(obj.id);
-                    $("#pname").val(obj.text);
-                    $("#code").val("");
-                    $("#name").val("");
-                    $("#remark").val("");
-                    $("#sign").val("");
-                    $("#rto").val("");
-                    $("#rpo").val("");
-                    $("#sort").val("");
-                    $("#process_color").val("");
-                    $("#type").val("");
-                    $('#param_se').empty();
-                    $("#adg_div").hide();
-                    $("#cv_clients_div").hide();
+                    if (obj.type == "PROCESS") {
+                        alert("无法在接口下新建节点。");
+                    } else {
+                        $("#form_div").show();
+                        $("#title").text("新建");
+                        $("#id").val("0");
+                        $("#pid").val(obj.id);
+                        $("#my_type").val("NODE");
+                        $("#node_name").val("");
+                        $("#node_pname").val(obj.text);
+                        $("#remark").val("");
+
+                        $("#processdiv").hide();
+                        $("#nodediv").show();
+                        $("#node_save").show();
+                    }
+                }
+            },
+            "新建预案": {
+                "label": "新建预案",
+                "action": function (data) {
+                    var inst = jQuery.jstree.reference(data.reference),
+                        obj = inst.get_node(data.reference);
+                    if (obj.type == "PROCESS" && obj.data.processtype != "1") {
+                            alert("无法在子预案下新建预案。");
+                    } else {
+                        $("#processtype").empty()
+                        if (obj.type == "PROCESS"){
+                            $('#processtype').append('<option selected value="2">回切流程</option>');
+                            $('#processtype').append('<option value="3">排错流程</option>');
+                        }else{
+                            $('#processtype').append('<option value="1" selected>主流程</option>');
+                        }
+
+                        $("#form_div").show();
+                        $("#processdiv").show();
+                        $("#nodediv").hide();
+                        $("#interface_save").show();
+                        $("#title").text("新建");
+                        $("#my_type").val("PROCESS");
+                        $("#id").val("0");
+                        $("#pid").val(obj.id);
+                        $("#pname").val(obj.text);
+                        $("#code").val("");
+                        $("#name").val("");
+                        $("#remark").val("");
+                        $("#sign").val("");
+                        $("#rto").val("");
+                        $("#rpo").val("");
+                        $("#sort").val("");
+                        $("#process_color").val("");
+                        $("#type").val("");
+                        $('#param_se').empty();
+                        $("#adg_div").hide();
+                        $("#cv_clients_div").hide();
+
+                    }
                 }
             },
             "删除": {
@@ -79,46 +122,72 @@ $('#p_tree').jstree({
 }).bind('select_node.jstree', function (event, data) {
     if (data.node.parent == "#"){
         $("#form_div").hide();
+        $("#node_save").hide()
+        $("#interface_save").hide()
     } else {
         $("#form_div").show();
+        $("#node_save").show()
+        $("#interface_save").show()
     }
     var node = data.node;
     var data = node.data;
+    var type = node.original.type;
 
     $("#id").val(node.id);
     $("#pid").val(node.parent);
     $("#pname").val(data.pname);
     $("#title").text(node.text);
-    $("#code").val(data.process_code);
-    $("#name").val(data.process_name);
-    $("#remark").val(data.process_remark);
-    $("#sign").val(data.process_sign);
-    $("#rto").val(data.process_rto);
-    $("#rpo").val(data.process_rpo);
-    $("#sort").val(data.process_sort);
-    $("#process_color").val(data.process_color);
-    $("#type").val(data.type);
-    $("#cv_client").val(data.cv_client)
-    $("#process_main_database").val(data.main_database)
+    $("#my_type").val(type);
+    if (type == "PROCESS") {
+        $("#processdiv").show()
+        $("#nodediv").hide()
+        $("#code").val(data.process_code);
+        $("#name").val(data.process_name);
+        $("#remark").val(data.process_remark);
+        $("#sign").val(data.process_sign);
+        $("#rto").val(data.process_rto);
+        $("#rpo").val(data.process_rpo);
+        $("#sort").val(data.process_sort);
+        $("#process_color").val(data.process_color);
+        $("#type").val(data.type);
+        $("#cv_client").val(data.cv_client)
+        $("#process_main_database").val(data.main_database)
+        $("#processtype").empty()
+        if (data.processtype=="1") {
+            $('#processtype').append('<option value="1">主流程</option>');
+        }else{
+            $('#processtype').append('<option value="2">回切流程</option>');
+            $('#processtype').append('<option value="3">排错流程</option>');
+        }
+        $("#processtype").val(data.processtype)
 
-    // 动态参数
-    $('#param_se').empty();
-    var variable_param_list = data.variable_param_list;
-    for (var i = 0; i < variable_param_list.length; i++) {
-        $('#param_se').append('<option value="' + variable_param_list[i].variable_name + '">' + variable_param_list[i].param_name + ':' + variable_param_list[i].variable_name + ':' + variable_param_list[i].param_value + '</option>');
-    }
+        // 动态参数
+        $('#param_se').empty();
+        var variable_param_list = data.variable_param_list;
+        for (var i = 0; i < variable_param_list.length; i++) {
+            $('#param_se').append('<option value="' + variable_param_list[i].variable_name + '">' + variable_param_list[i].param_name + ':' + variable_param_list[i].variable_name + ':' + variable_param_list[i].param_value + '</option>');
+        }
 
-    if (data.type=="Oracle ADG"||data.type=="MYSQL"){
-        $("#adg_div").show();
-    } else{
-        $("#adg_div").hide();
+        if (data.type == "Oracle ADG" || data.type == "MYSQL") {
+            $("#adg_div").show();
+        } else {
+            $("#adg_div").hide();
+        }
+        if (data.type == "Commvault") {
+            $("#cv_clients_div").show();
+        } else {
+            $("#cv_clients_div").hide();
+        }
     }
-    if (data.type == "Commvault"){
-        $("#cv_clients_div").show();
-    } else{
-        $("#cv_clients_div").hide();
-    }
-}).on('move_node.jstree', function (e, data) {
+    if (type == "NODE") {
+            $("#node_pname").val(data.pname)
+            $("#node_name").val(node.text)
+            $("#node_remark").val(data.remark)
+            $("#processdiv").hide()
+            $("#nodediv").show()
+        }
+})
+    .on('move_node.jstree', function (e, data) {
     var moveid = data.node.id;
     if (data.old_parent == "#") {
         alert("根节点禁止移动。");
@@ -140,19 +209,24 @@ $('#p_tree').jstree({
                 },
                 success: function (data) {
                     if (data == "重名") {
-                        alert("目标组织下存在重名。");
+                        alert("目标节点下存在重名。");
                         location.reload()
                     } else {
-                        if (data == "接口") {
-                            alert("不能移动至接口下。");
+                        if (data == "主预案") {
+                            alert("主预案不能移动至预案下。");
                             location.reload()
                         } else {
-                            if (data != "0") {
-                                if (selectid == moveid) {
-                                    var res = data.split('^')
-                                    $("#pid").val(res[1])
-                                    $("#pname").val(res[0])
-                                    $("#node_pname").val(res[0])
+                            if (data == "子预案") {
+                                alert("子预案不能移动至节点下。");
+                                location.reload()
+                            }else {
+                                if (data != "0") {
+                                    if (selectid == moveid) {
+                                        var res = data.split('^')
+                                        $("#pid").val(res[1])
+                                        $("#pname").val(res[0])
+                                        $("#node_pname").val(res[0])
+                                    }
                                 }
                             }
                         }

@@ -153,7 +153,7 @@ class Process(models.Model):
     state = models.CharField("状态", blank=True, null=True, max_length=20)
     sort = models.IntegerField("排序", blank=True, null=True)
     url = models.CharField("页面链接", blank=True, max_length=100)
-    type = models.CharField("预案类型", blank=True, max_length=100, null=True)
+    type = models.CharField("客户端类型", blank=True, max_length=100, null=True)
     color = models.CharField("颜色", blank=True, max_length=50)
     config = models.TextField("流程参数", null=True, default="<root></root>")
     primary = models.ForeignKey(HostsManage, blank=True, null=True, verbose_name='主数据库',
@@ -161,6 +161,8 @@ class Process(models.Model):
     backprocess = models.ForeignKey('self', blank=True, null=True, verbose_name='回切流程',
                                     related_name="process_backprocess_set")
     hosts = models.ForeignKey(HostsManage, blank=True, null=True, verbose_name='关联客户端')
+    processtype = models.CharField("预案类型", blank=True, max_length=100, null=True)
+
 
 
 class Step(models.Model):

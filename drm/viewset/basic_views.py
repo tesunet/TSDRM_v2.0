@@ -769,16 +769,16 @@ def index(request, funid):
                 if len(alltask) >= 50:
                     break
         # 成功率，恢复次数，平均RTO，最新切换
-        all_processrun_objs = ProcessRun.objects.filter(Q(state="DONE") | Q(state="STOP"))
-        successful_processruns = ProcessRun.objects.filter(state="DONE")
-        processrun_times_obj = ProcessRun.objects.exclude(state__in=["RUN", "REJECT"]).exclude(state="9")
+        all_processrun_objs = ProcessRun.objects.filter(Q(state="DONE") | Q(state="STOP"),process__processtype__in=["1","2"])
+        successful_processruns = ProcessRun.objects.filter(state="DONE",process__processtype__in=["1","2"])
+        processrun_times_obj = ProcessRun.objects.filter(process__processtype__in=["1","2"]).exclude(state__in=["RUN", "REJECT"]).exclude(state="9")
 
         success_rate = "%.0f" % (len(successful_processruns) / len(
             all_processrun_objs) * 100) if all_processrun_objs and successful_processruns else 0
         last_processrun_time = successful_processruns.last().starttime if successful_processruns else ""
         all_processruns = len(processrun_times_obj) if processrun_times_obj else 0
 
-        current_processruns = ProcessRun.objects.exclude(state__in=["DONE", "STOP", "REJECT"]).exclude(
+        current_processruns = ProcessRun.objects.filter(process__processtype__in=["1","2"]).exclude(state__in=["DONE", "STOP", "REJECT"]).exclude(
             state="9").select_related("process")
         curren_processrun_info_list = []
         state_dict = {
@@ -848,30 +848,34 @@ def index(request, funid):
         ##################################
         today_process_run_length = 0
         today_date = datetime.datetime.now().date()
-        pre_client = ""
+        pre_process = ""
         for processrun_obj in all_processrun_objs:
-            if today_date == processrun_obj.starttime.date():
-                info = processrun_obj.info
+            if today_date == processrun_obj.starttime.date() and processrun_obj.process.processtype=="1":
+                if pre_process == processrun_obj.process_id:
+                    continue
+                today_process_run_length += 1
+                pre_process = processrun_obj.process_id
+                # info = processrun_obj.info
+                #
+                # try:
+                #     info = etree.XML(info)
+                # except Exception:
+                #     pass
+                # else:
+                #     pri_id = info.xpath("//param")[0].attrib.get("pri_id")
+                #     try:
+                #         pri = CvClient.objects.get(id=int(pri_id))
+                #         pri_client_name = pri.client_name
+                #     except Exception:
+                #         pass
+                #     else:
+                #         if pre_client == pri_client_name:
+                #             continue
+                #         today_process_run_length += 1
+                #
+                #         pre_client = pri_client_name
 
-                try:
-                    info = etree.XML(info)
-                except Exception:
-                    pass
-                else:
-                    pri_id = info.xpath("//param")[0].attrib.get("pri_id")
-                    try:
-                        pri = CvClient.objects.get(id=int(pri_id))
-                        pri_client_name = pri.client_name
-                    except Exception:
-                        pass
-                    else:
-                        if pre_client == pri_client_name:
-                            continue
-                        today_process_run_length += 1
-
-                        pre_client = pri_client_name
-
-        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None)
+        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")| Q(type="NODE")).filter(processtype="1")
         # 右上角消息任务
         return render(request, "index.html",
                       {'username': request.user.userinfo.fullname, "alltask": alltask, "homepage": True,
@@ -1021,13 +1025,13 @@ def get_monitor_data(request):
             else:
                 today_datetime = today_datetime - datetime.timedelta(days=i)
             today_drills = ProcessRun.objects.exclude(state__in=["RUN", "REJECT", "9"]).filter(
-                starttime__startswith=today_datetime.date())
+                starttime__startswith=today_datetime.date(),process__processtype="1")
             drill_day.append("{0:%m-%d}".format(today_datetime.date()))
             drill_times.append(len(today_drills))
 
             # 平均RTO趋势
             cur_client_succeed_process = ProcessRun.objects.filter(state="DONE").filter(
-                starttime__startswith=today_datetime.date())
+                starttime__startswith=today_datetime.date(),process__processtype="1")
 
             if cur_client_succeed_process:
                 rto_sum_seconds = 0
@@ -1057,7 +1061,7 @@ def get_monitor_data(request):
         }
 
         # 系统演练次数TOP5
-        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None)
+        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(processtype="1")
         drill_name = []
         drill_time = []
         for process in all_process:
@@ -1079,13 +1083,13 @@ def get_monitor_data(request):
                 drill_time.append(cur_drill_time)
 
         drill_top_time = {
-            "drill_name": drill_name[:5][::-1] if len(drill_name[::-1]) > 5 else drill_name,
-            "drill_time": drill_time[:5][::-1] if len(drill_time[::-1]) > 5 else drill_time
+            "drill_name": drill_name[:5] if len(drill_name) > 5 else drill_name,
+            "drill_time": drill_time[:5] if len(drill_time) > 5 else drill_time
         }
         # print(drill_top_time)
         # 演练成功率
-        all_processrun_objs = ProcessRun.objects.filter(Q(state="DONE") | Q(state="STOP"))
-        successful_processruns = ProcessRun.objects.filter(state="DONE")
+        all_processrun_objs = ProcessRun.objects.filter(Q(state="DONE") | Q(state="STOP"),process__processtype="1")
+        successful_processruns = ProcessRun.objects.filter(state="DONE",process__processtype="1")
 
         success_rate = "%.0f" % (len(successful_processruns) / len(
             all_processrun_objs) * 100) if all_processrun_objs and successful_processruns else 0
@@ -1111,7 +1115,7 @@ def get_monitor_data(request):
             })
         # 今日作业
         running_job, success_job, error_job = 0, 0, 0
-        all_processes = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None)
+        all_processes = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(processtype="1")
         has_run_process = 0
         for process in all_processes:
             process_run = process.processrun_set.exclude(state__in=["9", "REJECT"]).filter(
@@ -1275,7 +1279,7 @@ def get_process_run_facts(request):
         #######################################################
         cv_oracle_process_list = []
 
-        all_process = Process.objects.exclude(state="9").order_by("sort").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None)
+        all_process = Process.objects.exclude(state="9").order_by("sort").exclude(Q(type=None) | Q(type="")).filter(processtype="1")
 
         for cur_process in all_process:
             # 今日演练(状态)  0/1/2
@@ -1353,7 +1357,7 @@ def get_process_run_facts(request):
 def get_process_rto(request):
     if request.user.is_authenticated():
         # 不同流程最近的12次切换RTO
-        all_processes = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None)
+        all_processes = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(processtype="1")
         process_rto_list = []
         if all_processes:
             for process in all_processes:
@@ -1377,7 +1381,7 @@ def get_process_rto(request):
 
 def get_daily_processrun(request):
     if request.user.is_authenticated():
-        all_processrun_objs = ProcessRun.objects.select_related("process").filter(state__in=["DONE", "STOP", "PLAN"])
+        all_processrun_objs = ProcessRun.objects.select_related("process").filter(state__in=["DONE", "STOP", "PLAN"],process__processtype__in=["1","2"])
         process_success_rate_list = []
 
         for process_run in all_processrun_objs:
