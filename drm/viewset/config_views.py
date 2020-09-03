@@ -2358,7 +2358,7 @@ def zfs_snapshot_mount(request):
     copyname = kvm_machine + '@' + copy_name
 
     if not copy_name:
-        result['res'] = '副本名称未填写。'
+        result['res'] = '实例名称未填写。'
     else:
         try:
             kvm_exist = []
@@ -2392,7 +2392,7 @@ def zfs_snapshot_mount(request):
                                             'utils_id': utils_id,
                                             'kvmmachine_id': kvm_machine_id
                                         })
-                                        result['res'] = '挂载成功。'
+                                        result['res'] = '创建成功。'
                                 except Exception as e:
                                     print(e)
                                     result['res'] = '保存失败。'
@@ -2407,7 +2407,7 @@ def zfs_snapshot_mount(request):
 
         except Exception as e:
             print(e)
-            result['res'] = '挂载失败。'
+            result['res'] = '创建失败。'
 
     return JsonResponse(result)
 

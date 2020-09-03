@@ -432,21 +432,14 @@ function getClientree() {
                                             try {
                                                 var all_kvm = $("#all_kvm_data").val();
                                                 var all_kvm_dict = JSON.parse(all_kvm);
+                                                var utils_id = $('#kvm_machine_platform').val();
+                                                $('#kvm_machine').empty();
+                                                for (i = 0; i < all_kvm_dict[utils_id].length; i++) {
+                                                    $("#kvm_machine").append('<option value="'+ all_kvm_dict[utils_id][i].name + '">'+ all_kvm_dict[utils_id][i].name + '</option>')
+                                                }
                                             } catch(e){}
 
-                                            var utils_id = $('#kvm_machine_platform').val();
-                                            $('#kvm_machine').empty();
-
-                                            try {
-                                            for (i = 0; i < all_kvm_dict[utils_id].length; i++) {
-                                                $("#kvm_machine").append('<option value="'+ all_kvm_dict[utils_id][i].name + '">'+ all_kvm_dict[utils_id][i].name + '</option>')
-                                            }
-                                            } catch (e) {}
-
                                             $("#kvm_machine").val(data.kvminfo.name);
-
-
-
                                             get_kvm_detail();
                                             $("#tabcheck4_1").parent().show();
                                             $("#tabcheck4_2").parent().show();
@@ -936,15 +929,15 @@ function runprocess(processid, process_type) {
 
 //kvm
 function kvmFunction() {
-        $('#kvm_machine').empty();
-        $.ajax({
-            type: "POST",
-            dataType: 'json',
-            url: "../kvm_data/",
-            data: {
-                utils_kvm_id: $('#kvm_machine_platform').val()
-            },
-            success: function (data) {
+    $('#kvm_machine').empty();
+    $.ajax({
+        type: "POST",
+        dataType: 'json',
+        url: "../kvm_data/",
+        data: {
+            utils_kvm_id: $('#kvm_machine_platform').val()
+        },
+        success: function (data) {
             if (data.ret == 0) {
                 alert(data.data)
             } else {
@@ -957,9 +950,8 @@ function kvmFunction() {
 
             }
         }
-        });
-
-    }
+    });
+}
 
 
 function get_kvm_detail(){
@@ -2092,8 +2084,7 @@ $(document).ready(function () {
                         $("#tabcheck4_2").parent().show();
                         $("#tabcheck4_3").parent().show();
                         var curnode = $('#tree_client').jstree('get_node', $("#id").val());
-                        var newtext = curnode
-                        newtext = "<img src = '/static/pages/images/ts.png' height='24px'> " + curnode.text
+                        var newtext = "<img src = '/static/pages/images/ts.png' height='24px'> " + curnode.text;
                         $('#tree_client').jstree('set_text', $("#id").val(), newtext);
                     }
                     $("#kvm_id").val(data.id);
@@ -2138,18 +2129,18 @@ $(document).ready(function () {
                 }
             });
         }
-    })
+    });
     $('#kvm_machine_platform').change(function () {
         try {
             var all_kvm = $("#all_kvm_data").val();
             var all_kvm_dict = JSON.parse(all_kvm);
+            var utils_id = $('#kvm_machine_platform').val();
+            $('#kvm_machine').empty();
+            for (i = 0; i < all_kvm_dict[utils_id].length; i++) {
+                $("#kvm_machine").append('<option value="'+ all_kvm_dict[utils_id][i].name + '">'+ all_kvm_dict[utils_id][i].name + '</option>')
+            }
         } catch(e){}
 
-        var utils_id = $('#kvm_machine_platform').val();
-        $('#kvm_machine').empty();
-        for (i = 0; i < all_kvm_dict[utils_id].length; i++) {
-            $("#kvm_machine").append('<option value="'+ all_kvm_dict[utils_id][i].name + '">'+ all_kvm_dict[utils_id][i].name + '</option>')
-        }
         if ($('#kvm_id').val() != 0){
             $.ajax({
                 type: "POST",
@@ -2175,10 +2166,13 @@ $(document).ready(function () {
 
     });
     $('#zfs_snapshot_create').click(function () {
+        $('#loading1').hide();
+        $('#create_snapshot_div').show();
         $('#snapshot_name').val("")
     });
     $('#zfs_snapshot_save').click(function () {
-        var table = $('#zfs_snapshot').DataTable();
+        $('#create_snapshot_div').hide();
+        $('#loading1').show();
 
         $.ajax({
             type: "POST",
@@ -2194,10 +2188,14 @@ $(document).ready(function () {
                 var myres = data["res"];
                 if (myres == "创建成功。") {
                     $("#id").val(data["data"]);
+                    $('#loading1').hide();
                     $('#static02').modal('hide');
+                    var table = $('#zfs_snapshot').DataTable();
                     table.ajax.reload();
                 }
                 alert(myres);
+                $('#loading1').hide();
+                $('#create_snapshot_div').show();
             },
             error: function (e) {
                 alert("页面出现错误，请于管理员联系。");
@@ -2239,6 +2237,9 @@ $(document).ready(function () {
         },
     });
     $('#zfs_snapshot tbody').on('click', 'button#edit', function () {
+        $('#loading2').hide();
+        $('#create_copy_div').show();
+
         var table = $('#zfs_snapshot').DataTable();
         var data = table.row($(this).parents('tr')).data();
         $("#snapshot_id").val(data.id);
@@ -2247,7 +2248,6 @@ $(document).ready(function () {
         $('#kvm_copy_name').val(data.name);
         $("#kvm_copy_cpu").val("");
         $("#kvm_copy_memory").val("")
-
     });
     $('#zfs_snapshot tbody').on('click', 'button#delrow', function () {
         if (confirm("确定要删除该条数据？")) {
@@ -2278,7 +2278,8 @@ $(document).ready(function () {
         }
     });
     $('#zfs_snapshot_mount').click(function () {
-        var table = $('#kvm_copy').DataTable();
+        $('#create_copy_div').hide();
+        $('#loading2').show();
 
         $.ajax({
             type: "POST",
@@ -2297,11 +2298,15 @@ $(document).ready(function () {
                 },
             success: function (data) {
                 var myres = data["res"];
-                if (myres == "挂载成功。") {
+                if (myres == "创建成功。") {
+                    $('#loading2').hide();
                     $('#static03').modal('hide');
+                    var table = $('#kvm_copy').DataTable();
                     table.ajax.reload();
                 }
                 alert(myres);
+                $('#loading2').hide();
+                $('#create_copy_div').show();
             },
             error: function (e) {
                 alert("页面出现错误，请于管理员联系。");
