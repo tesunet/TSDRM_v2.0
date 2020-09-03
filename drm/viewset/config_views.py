@@ -2358,7 +2358,7 @@ def zfs_snapshot_mount(request):
     copyname = kvm_machine + '@' + copy_name
 
     if not copy_name:
-        result['res'] = '实例名称未填写。'
+        result['res'] = '名称未填写。'
     else:
         try:
             kvm_exist = []

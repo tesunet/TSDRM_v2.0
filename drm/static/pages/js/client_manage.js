@@ -2199,6 +2199,8 @@ $(document).ready(function () {
             },
             error: function (e) {
                 alert("页面出现错误，请于管理员联系。");
+                $('#loading1').hide();
+                $('#create_snapshot_div').show();
             }
         });
     });
@@ -2216,7 +2218,7 @@ $(document).ready(function () {
             "targets": -1,
             "data": null,
             "width": "100px",
-            "defaultContent": "<button  id='edit' title='创建实例' data-toggle='modal'  data-target='#static03'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-anchor'></i></button>" +
+            "defaultContent": "<button  id='edit' title='创建实例' data-toggle='modal'  data-target='#static03'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-plus'></i></button>" +
                 "<button title='删除快照'  id='delrow' class='btn btn-xs btn-primary' type='button'><i class='fa fa-trash-o'></i></button>"
         }
         ],
@@ -2281,37 +2283,84 @@ $(document).ready(function () {
         $('#create_copy_div').hide();
         $('#loading2').show();
 
-        $.ajax({
-            type: "POST",
-            dataType: 'json',
-            url: "../zfs_snapshot_mount/",
-            data:
-                {
-                    utils_id: $("#kvm_machine_platform").val(),
-                    snapshot_name: $("#snapshot_name1").val(),
-
-                    kvm_copy_name: $("#kvm_copy_name").val(),
-                    kvm_copy_cpu: $("#kvm_copy_cpu").val(),
-                    kvm_copy_memory: $("#kvm_copy_memory").val(),
-                    kvm_machine: $("#kvm_machine").val(),
-                    kvm_machine_id: $("#kvm_id").val(),
-                },
-            success: function (data) {
-                var myres = data["res"];
-                if (myres == "创建成功。") {
-                    $('#loading2').hide();
-                    $('#static03').modal('hide');
-                    var table = $('#kvm_copy').DataTable();
-                    table.ajax.reload();
-                }
-                alert(myres);
+        var kvm_copy_memory = $("#kvm_copy_memory").val();
+        if (kvm_copy_memory != ''){
+            if(kvm_copy_memory % 4 != 0){
+                alert('内存大小必须为4MB的倍数。');
                 $('#loading2').hide();
                 $('#create_copy_div').show();
-            },
-            error: function (e) {
-                alert("页面出现错误，请于管理员联系。");
+            }else{
+                $.ajax({
+                    type: "POST",
+                    dataType: 'json',
+                    url: "../zfs_snapshot_mount/",
+                    data:
+                        {
+                            utils_id: $("#kvm_machine_platform").val(),
+                            snapshot_name: $("#snapshot_name1").val(),
+
+                            kvm_copy_name: $("#kvm_copy_name").val(),
+                            kvm_copy_cpu: $("#kvm_copy_cpu").val(),
+                            kvm_copy_memory: $("#kvm_copy_memory").val(),
+                            kvm_machine: $("#kvm_machine").val(),
+                            kvm_machine_id: $("#kvm_id").val(),
+                        },
+                    success: function (data) {
+                        var myres = data["res"];
+                        if (myres == "创建成功。") {
+                            $('#loading2').hide();
+                            $('#static03').modal('hide');
+                            var table = $('#kvm_copy').DataTable();
+                            table.ajax.reload();
+                        }
+                        alert(myres);
+                        $('#loading2').hide();
+                        $('#create_copy_div').show();
+                    },
+                    error: function (e) {
+                        alert("页面出现错误，请于管理员联系。");
+                        $('#loading2').hide();
+                        $('#create_copy_div').show();
+                    }
+                });
             }
-        });
+        }
+        else{
+            $.ajax({
+                type: "POST",
+                dataType: 'json',
+                url: "../zfs_snapshot_mount/",
+                data:
+                    {
+                        utils_id: $("#kvm_machine_platform").val(),
+                        snapshot_name: $("#snapshot_name1").val(),
+
+                        kvm_copy_name: $("#kvm_copy_name").val(),
+                        kvm_copy_cpu: $("#kvm_copy_cpu").val(),
+                        kvm_copy_memory: $("#kvm_copy_memory").val(),
+                        kvm_machine: $("#kvm_machine").val(),
+                        kvm_machine_id: $("#kvm_id").val(),
+                    },
+                success: function (data) {
+                    var myres = data["res"];
+                    if (myres == "创建成功。") {
+                        $('#loading2').hide();
+                        $('#static03').modal('hide');
+                        var table = $('#kvm_copy').DataTable();
+                        table.ajax.reload();
+                    }
+                    alert(myres);
+                    $('#loading2').hide();
+                    $('#create_copy_div').show();
+                },
+                error: function (e) {
+                    alert("页面出现错误，请于管理员联系。");
+                    $('#loading2').hide();
+                    $('#create_copy_div').show();
+                }
+            });
+        }
+
     });
     $('#kvm_copy').dataTable({
         "bAutoWidth": true,
