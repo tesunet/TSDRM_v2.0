@@ -224,7 +224,7 @@ def get_process_run_rto(processrun):
     return delta_time
 
 
-def get_fun_tree(parent, selectid):
+def get_fun_node(parent, selectid):
     nodes = []
     children = parent.children.order_by("sort").all()
     for child in children:
@@ -232,8 +232,8 @@ def get_fun_tree(parent, selectid):
         node["text"] = child.name
         node["id"] = child.id
         node["type"] = child.type
-        node["data"] = {"url": child.url, "icon": child.icon, "pname": parent.name}
-        node["children"] = get_fun_tree(child, selectid)
+        node["data"] = {"name": child.name, "pname": parent.name}
+        node["children"] = get_fun_node(child, selectid)
         try:
             if int(selectid) == child.id:
                 node["state"] = {"selected": True}

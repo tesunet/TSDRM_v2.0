@@ -259,8 +259,6 @@ function getScriptTree(){
             }
         }
     });
-
-
 }
 getScriptTree();
 

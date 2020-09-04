@@ -816,87 +816,20 @@ def group_save_process_tree(request):
 ######################
 @login_required
 def function(request, funid):
+    return render(request, 'function.html', {
+        'username': request.user.userinfo.fullname,
+        "pagefuns": getpagefuns(funid, request=request)
+    })
+
+
+@login_required
+def get_fun_tree(request):
+    status = 1
+    info = ""
+    data = []
+    select_id = request.POST.get("id", "")
+
     try:
-        errors = []
-        title = "请选择功能"
-        selectid = ""
-        id = ""
-        pid = ""
-        pname = ""
-        name = ""
-        mytype = ""
-        url = ""
-        icon = ""
-        hiddendiv = "hidden"
-
-        if request.method == 'POST':
-            hiddendiv = ""
-            id = request.POST.get('id')
-            pid = request.POST.get('pid')
-            pname = request.POST.get('pname')
-            name = request.POST.get('name')
-            mytype = request.POST.get('radio2')
-            url = request.POST.get('url')
-            icon = request.POST.get('icon')
-            try:
-                id = int(id)
-
-            except:
-                raise Http404()
-            try:
-                pid = int(pid)
-            except:
-                raise Http404()
-            if id == 0:
-                selectid = pid
-                title = "新建"
-            else:
-
-                selectid = id
-                title = name
-
-            if name.strip() == '':
-                errors.append('功能名称不能为空。')
-
-            else:
-                try:
-                    pfun = Fun.objects.get(id=pid)
-                except:
-                    raise Http404()
-                try:
-                    if id == 0:
-                        sort = 1
-
-                        try:
-                            maxfun = Fun.objects.filter(pnode=pfun).latest('sort')
-                            sort = maxfun.sort + 1
-                        except:
-                            pass
-                        funsave = Fun()
-                        funsave.pnode = pfun
-                        funsave.name = name
-                        funsave.type = mytype
-                        funsave.url = url
-                        funsave.icon = icon
-                        funsave.sort = sort if sort else None
-                        funsave.save()
-                        title = name
-                        id = funsave.id
-                        selectid = id
-                    else:
-                        funsave = Fun.objects.get(id=id)
-                        if funsave.type == "node" and mytype == "fun" and len(funsave.children.all()) > 0:
-                            errors.append('节点下还有其他节点或功能，无法修改为功能。')
-                        else:
-                            funsave.name = name
-                            funsave.type = mytype
-                            funsave.url = url
-                            funsave.icon = icon
-                            funsave.save()
-                            title = name
-                except:
-                    errors.append('保存失败。')
-        treedata = []
         rootnodes = Fun.objects.order_by("sort").filter(pnode=None)
         if len(rootnodes) > 0:
             for rootnode in rootnodes:
@@ -906,22 +839,120 @@ def function(request, funid):
                 root["type"] = "node"
                 root["data"] = {"url": rootnode.url, "icon": rootnode.icon, "pname": "无"}
                 try:
-                    if int(selectid) == rootnode.id:
+                    if int(select_id) == rootnode.id:
                         root["state"] = {"opened": True, "selected": True}
                     else:
                         root["state"] = {"opened": True}
                 except:
                     root["state"] = {"opened": True}
-                root["children"] = get_fun_tree(rootnode, selectid)
-                treedata.append(root)
-        treedata = json.dumps(treedata)
-        return render(request, 'function.html',
-                      {'username': request.user.userinfo.fullname, 'errors': errors, "id": id,
-                       "pid": pid, "pname": pname, "name": name, "url": url, "icon": icon, "title": title,
-                       "mytype": mytype, "hiddendiv": hiddendiv, "treedata": treedata,
-                       "pagefuns": getpagefuns(funid, request=request)})
+                root["children"] = get_fun_node(rootnode, select_id)
+                data.append(root)
+    except Exception as e:
+        status = 0
+        info = "获取流程树失败。"
+    return JsonResponse({
+        "status": status,
+        "data": data,
+        "info": info
+    })
+
+
+@login_required
+def get_fun_detail(request):
+    status = 1
+    info = ""
+    data = {}
+
+    fun_id = request.POST.get("id", "")
+
+    try:
+        fun_id = int(fun_id)
+        cur_fun = Fun.objects.get(id=fun_id)
+    except Exception as e:
+        status = 0
+        info = "获取功能信息失败。"
+    else:
+        data = {
+            "url": cur_fun.url, 
+            "icon": cur_fun.icon, 
+        }
+
+    return JsonResponse({
+        "status": status,
+        "data": data,
+        "info": info
+    })
+
+
+@login_required
+def fun_save(request):
+    status = 1
+    info = "保存成功。"
+
+    id = request.POST.get('id')
+    pid = request.POST.get('pid')
+    name = request.POST.get('name')
+    mytype = request.POST.get('radio2')
+    url = request.POST.get('url')
+    icon = request.POST.get('icon')
+    try:
+        id = int(id)
     except:
-        return HttpResponseRedirect("/index")
+        pass
+    try:
+        pid = int(pid)
+    except:
+        pass
+
+    if name.strip() == '':
+        info = '功能名称不能为空。'
+        status = 0
+    else:
+        try:
+            pfun = Fun.objects.get(id=pid)
+        except:
+            info = "保存失败，父节点不存在。"
+            status = 0
+        else:
+            try:
+                if id == 0:
+                    sort = 1
+
+                    try:
+                        maxfun = Fun.objects.filter(pnode=pfun).latest('sort')
+                        sort = maxfun.sort + 1
+                    except:
+                        pass
+                    funsave = Fun()
+                    funsave.pnode = pfun
+                    funsave.name = name
+                    funsave.type = mytype
+                    funsave.url = url
+                    funsave.icon = icon
+                    funsave.sort = sort if sort else None
+                    funsave.save()
+                    id = funsave.id
+                else:
+                    funsave = Fun.objects.get(id=id)
+                    if funsave.type == "node" and mytype == "fun" and len(funsave.children.all()) > 0:
+                        info = '节点下还有其他节点或功能，无法修改为功能。'
+                        status = 0
+                    else:
+                        funsave.name = name
+                        funsave.type = mytype
+                        funsave.url = url
+                        funsave.icon = icon
+                        funsave.save()
+            except Exception as e:
+                print(e)
+                info = '保存失败。'
+                status = 0
+
+    return JsonResponse({
+        "status": status,
+        "info": info,
+        "data": id
+    })
 
 
 @login_required
