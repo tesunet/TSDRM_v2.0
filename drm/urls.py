@@ -34,6 +34,9 @@ urlpatterns = [
 
     # 系统维护
     url(r'^organization/$', organization, {'funid': '61'}),
+    url(r'^get_org_tree/$', get_org_tree),
+    url(r'^get_org_detail/$', get_org_detail),
+    url(r'^org_user_save/$', org_user_save),
     url(r'^orgdel/$', orgdel),
     url(r'^orgmove/$', orgmove),
     url(r'^orgpassword/$', orgpassword),

@@ -12,36 +12,30 @@
             <div class="row">
                 <div id="tree_2" class="col-md-4 tree-demo"> </div>
                 <div  class="col-md-8" >
-                    <div id="formdiv"  class="portlet light bordered" {{hiddendiv}}>
-                        {% if errors %}
-                            {% for error in errors %}
-                            <div ID="error" class="alert alert-danger ">{{ error }}</div>
-                            <span> {% endfor %}</span>
-                    {% endif %}
+                    <div id="formdiv"  class="portlet light bordered" hidden>
                         <div class="portlet-title" >
                             <div class="caption font-green-sharp" >
-                                <label id="title"  class="caption-subject bold uppercase" >{{title}}</label>
+                                <label id="title"  class="caption-subject bold uppercase" ></label>
                             </div>
                         </div>
-                        <div  class="portlet-body form" >
-
-                            <form action="#" class="form-horizontal" method="post">{% csrf_token %}
-                                <input type="text"  hidden  id="id" name="id" value="{{id}}" >
-                                <input type="text" hidden  id="pid" name="pid"  value="{{pid}}">
-                                <input type="text"  hidden  id="mytype" name="mytype"  value="{{mytype}}">
-                                <div id="user" {{hiddenuser}}>
-                                    <div class="form-body"  >
+                        <div class="portlet-body form" >
+                            <form class="form-horizontal" id="org_form">{% csrf_token %}
+                                <input type="text"  hidden  id="id" name="id">
+                                <input type="text" hidden  id="pid" name="pid">
+                                <input type="text"  hidden  id="mytype" name="mytype">
+                                <div id="user" hidden>
+                                    <div class="form-body">
                                         <div class="form-group"  style="margin-top:-20px">
-                                            <label class="col-md-2 control-label"  >所属组织</label>
+                                            <label class="col-md-2 control-label">所属组织</label>
                                             <div class="col-md-10">
-                                                <input readonly type="text" class="form-control" id="pname" name="pname" placeholder="所属组织"  value="{{pname}}">
+                                                <input readonly type="text" class="form-control" id="pname" name="pname" placeholder="所属组织">
                                                 <div class="form-control-focus"> </div>
                                             </div>
                                         </div>
                                         <div class="form-group ">
                                             <label class="col-md-2 control-label" for="form_control_1">姓名</label>
                                             <div class="col-md-10">
-                                                <input id="fullname" type="text" name="fullname" class="form-control" placeholder="" value="{{fullname}}">
+                                                <input id="fullname" type="text" name="fullname" class="form-control">
                                                 <div class="form-control-focus"> </div>
 
                                             </div>
@@ -49,15 +43,15 @@
                                         <div class="form-group ">
                                             <label class="col-md-2 control-label" for="form_control_1">用户名</label>
                                             <div class="col-md-10">
-                                                <input id="username" type="text" name="myusername" class="form-control" placeholder="" value="{{myusername}}">
+                                                <input id="username" type="text" name="myusername" class="form-control">
                                                 <div class="form-control-focus"> </div>
 
                                             </div>
                                         </div>
-                                        <div class="form-group ">
+                                        <div class="form-group">
                                             <label class="col-md-2 control-label" for="form_control_1">密码</label>
                                             <div id="newpassword" {{newpassword}} class="col-md-10">
-                                                <input id="password" type="password" name="password" class="form-control" placeholder="" value="{{password}}">
+                                                <input id="password" type="password" name="password" class="form-control">
                                                 <div class="form-control-focus"> </div>
                                             </div>
                                             <div id="editpassword" {{editpassword}} class="col-md-10" style="padding-top:6px">
@@ -69,7 +63,7 @@
                                         <div class="form-group ">
                                             <label class="col-md-2 control-label" for="form_control_1">电话</label>
                                             <div class="col-md-10">
-                                                <input  id="phone"  type="text" name="phone" class="form-control" placeholder="" value="{{phone}}">
+                                                <input  id="phone"  type="text" name="phone" class="form-control">
                                                 <div class="form-control-focus"> </div>
 
                                             </div>
@@ -77,7 +71,7 @@
                                         <div class="form-group ">
                                             <label class="col-md-2 control-label" for="form_control_1">邮箱</label>
                                             <div class="col-md-10">
-                                                <input id="email" type="text" name="email" class="form-control" placeholder="" value="{{email}}">
+                                                <input id="email" type="text" name="email" class="form-control">
                                                 <div class="form-control-focus"> </div>
 
                                             </div>
@@ -85,52 +79,44 @@
                                         <div class="form-group ">
                                             <label class="col-md-2 control-label" for="form_control_1">角色</label>
                                             <div class="col-md-10">
-                                                <select  id="source" name="source" placeholder="testt test" class="form-control select2" multiple>
-                                                {% for group in selectgroup %}
-                                                    <option selected value="{{group.id}}">{{group.groupname}} </option>
-                                                {% endfor %}
-                                                {% for group in noselectgroup %}
-                                                    <option value="{{group.id}}">{{group.groupname}} </option>
-                                                {% endfor %}
+                                                <select  id="source" name="source" class="form-control select2" multiple>
+                                                    {% for g in allgroup %}
+                                                    <option value="{{ g.id }}">{{ g.name }}</option>
+                                                    {% endfor %}
                                                 </select>
                                             </div>
                                         </div>
-
-
                                     </div>
                                     <div class="form-actions noborder"  style="margin-top:-30px;text-align:center">
-                                        <button  type="submit"  id="usersave" name="usersave" class="btn blue">保存</button>
+                                        <button type="button" id="usersave" name="usersave" class="btn blue">保存</button>
                                     </div>
                                 </div>
-                                <div id="org" {{hiddenorg}}>
+                                <div id="org" hidden>
                                     <div class="form-body"  >
                                         <div class="form-group"  style="margin-top:-20px">
-                                            <label class="col-md-2 control-label"  >所属组织</label>
+                                            <label class="col-md-2 control-label">所属组织</label>
                                             <div class="col-md-10">
-                                                <input readonly type="text" class="form-control" id="orgpname" name="orgpname" placeholder="所属组织"  value="{{pname}}">
+                                                <input readonly type="text" class="form-control" id="orgpname" name="orgpname" placeholder="所属组织">
                                                 <div class="form-control-focus"> </div>
                                             </div>
                                         </div>
                                         <div class="form-group ">
                                             <label class="col-md-2 control-label" for="form_control_1">名称</label>
                                             <div class="col-md-10">
-                                                <input type="text" class="form-control" id="orgname" name="orgname" placeholder="组织名称"  value="{{orgname}}">
+                                                <input type="text" class="form-control" id="orgname" name="orgname" placeholder="组织名称">
                                                 <div class="form-control-focus"> </div>
                                             </div>
                                          </div>
                                         <div class="form-group ">
                                             <label class="col-md-2 control-label" for="form_control_1">组织说明</label>
                                             <div class="col-md-10">
-                                                <textarea class="form-control" placeholder="最大限制2500个汉字" rows="3" id="remark" name="remark"  >{{remark}}</textarea>
+                                                <textarea class="form-control" placeholder="最大限制2500个汉字" rows="3" id="remark" name="remark"  ></textarea>
                                                 <div class="form-control-focus"> </div>
-
                                             </div>
                                          </div>
-
-
                                     </div>
                                     <div class="form-actions noborder"  style="margin-top:-30px;text-align:center">
-                                        <button  type="submit"  id="orgsave" name="orgsave" class="btn blue">保存</button>
+                                        <button type="button" id="orgsave" name="orgsave" class="btn blue">保存</button>
                                     </div>
                                 </div>
 
@@ -184,11 +170,6 @@
  {% endblock %}
 
 {% block script %}
- <script>
-
-var treedata = {{treedata|safe}};
-
-</script>
     <link href="/static/assets/global/plugins/jquery-multi-select/css/multi-select.css" rel="stylesheet" type="text/css" />
     <link href="/static/assets/global/plugins/jstree/dist/themes/default/style.min.css" rel="stylesheet" type="text/css" />
     <link href="/static/assets/global/plugins/select2/css/select2.min.css" rel="stylesheet" type="text/css" />

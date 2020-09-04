@@ -243,7 +243,7 @@ def get_fun_tree(parent, selectid):
     return nodes
 
 
-def get_org_tree(parent, selectid, allgroup):
+def get_org_node(parent, selectid, allgroup):
     nodes = []
     children = parent.children.order_by("sort").exclude(state="9").all()
     for child in children:
@@ -252,23 +252,15 @@ def get_org_tree(parent, selectid, allgroup):
         node["id"] = child.id
         node["type"] = child.type
         if child.type == "org":
-            myallgroup = []
-            for group in allgroup:
-                myallgroup.append({"groupname": group.name, "id": group.id})
-            node["data"] = {"remark": child.remark, "pname": parent.fullname, "myallgroup": myallgroup}
+            node["data"] = {
+                "remark": child.remark, 
+                "pname": parent.fullname
+            }
         if child.type == "user":
-            noselectgroup = []
-            selectgroup = []
-            allselectgroup = child.group.all()
-            for group in allgroup:
-                if group in allselectgroup:
-                    selectgroup.append({"groupname": group.name, "id": group.id})
-                else:
-                    noselectgroup.append({"groupname": group.name, "id": group.id})
-            node["data"] = {"pname": parent.fullname, "username": child.user.username, "fullname": child.fullname,
-                            "phone": child.phone, "email": child.user.email, "noselectgroup": noselectgroup,
-                            "selectgroup": selectgroup}
-        node["children"] = get_org_tree(child, selectid, allgroup)
+            node["data"] = {
+                "pname": parent.fullname
+            }
+        node["children"] = get_org_node(child, selectid, allgroup)
         try:
             if int(selectid) == child.id:
                 node["state"] = {"selected": True}
