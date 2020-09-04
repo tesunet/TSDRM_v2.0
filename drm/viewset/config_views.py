@@ -667,246 +667,6 @@ def script_move(request):
 ######################
 @login_required
 def process_design(request, funid):
-    errors = []
-    select_id = ""
-
-    process_hidden = "hidden"
-    node_hidden = "hidden"
-    right_info_hidden = "hidden"
-
-    # init info
-    id = ""
-    pid = ""
-    pname = ""
-    code = ""
-    name = ""
-    remark = ""
-    sign = ""
-    rto = ""
-    rpo = ""
-    sort = ""
-    color = ""
-    cv_client = ""
-    main_database = ""
-    process_back = ""
-    type = ""
-    config = ""
-    nodetype=""
-    processtype = ""
-    
-    # POST
-    if request.method == "POST":
-        right_info_hidden = ""
-        id = request.POST.get('id', '')
-        pid = request.POST.get('pid', '')
-        code = request.POST.get('code', '')
-        name = request.POST.get('name', '')
-        remark = request.POST.get('remark', '')
-        sign = request.POST.get('sign', '')
-        rto = request.POST.get('rto', '')
-        rpo = request.POST.get('rpo', '')
-        sort = request.POST.get('sort', '')
-        color = request.POST.get('color', '')
-        cv_client = request.POST.get('cv_client', '')
-        type = request.POST.get('type', '')
-        nodetype = request.POST.get('my_type', '')
-        processtype = request.POST.get('processtype', '')
-        config = request.POST.get('config', [])
-        node_name = request.POST.get('node_name', '')
-        node_remark = request.POST.get('node_name', '')
-
-        main_database = request.POST.get('process_main_database', '')
-        process_back = request.POST.get('process_back', '')
-        try:
-            id = int(id)
-            pid = int(pid)
-            process_back = int(process_back)
-            cv_client = int(cv_client)
-        except Exception as e:
-            pass
-
-        if nodetype == "NODE":
-            if node_name.strip() == '':
-                errors.append('节点名称不能为空。')
-            else:
-                if id == 0:
-                    try:
-                        sort = 1
-                        try:
-                            max_sort = Process.objects.exclude(state="9").filter(pnode_id=pid).aggregate(
-                                max_sort=Max('sort', distinct=True))["max_sort"]
-                            sort = max_sort + 1
-                        except:
-                            pass
-                        processsave = Process()
-                        processsave.name = node_name
-                        processsave.sort = sort if sort else None
-                        processsave.remark = node_remark
-                        processsave.type = "NODE"
-                        processsave.pnode_id = pid
-
-                        processsave.save()
-                        name=node_name
-                        select_id = processsave.id
-
-                        process_hidden ="hidden"
-                        node_hidden=""
-                    except Exception as e:
-                        errors.append("保存失败：{0}".format(e))
-                else:
-                    # 修改
-                    try:
-                        processsave = Process.objects.get(id=id)
-                        processsave.name = node_name
-                        processsave.remark = node_remark
-                        processsave.save()
-                        select_id = processsave.id
-                        process_hidden = "hidden"
-                        node_hidden = ""
-                    except Exception as e:
-                        errors.append("保存失败：{0}".format(e))
-
-        else:
-            if code.strip() == '':
-                errors.append('预案编码不能为空。')
-            elif name.strip() == '':
-                errors.append('预案名称不能为空。')
-            elif type.strip() == '':
-                errors.append('预案类型不能为空。')
-            elif sign.strip() == '':
-                errors.append('是否签到不能为空。')
-            else:
-                try:
-                    if type=="Oracle ADG" or type=="Oracle ADG":
-                        main_database = int(main_database)
-                except ValueError as e:
-                    errors.append('主数据库不能为空。')
-                else:
-                    # 流程参数
-                    root = etree.Element("root")
-
-                    if config:
-                        config = json.loads(config)
-                        # 动态参数
-                        for c_config in config:
-                            param_node = etree.SubElement(root, "param")
-                            param_node.attrib["param_name"] = c_config["param_name"].strip()
-                            param_node.attrib["variable_name"] = c_config["variable_name"].strip()
-                            param_node.attrib["param_value"] = c_config["param_value"].strip()
-                    xml_config = etree.tounicode(root)
-
-                    if id == 0:
-                        all_process = Process.objects.filter(code=code).exclude(state="9").exclude(Q(type=None) | Q(type=""))
-                        if (len(all_process) > 0):
-                            errors.append('预案编码:' + code + '已存在。')
-                        else:
-                            try:
-                                processsave = Process()
-                                processsave.url = '/cv_oracler'
-                                processsave.code = code
-                                processsave.name = name
-                                processsave.remark = remark
-                                processsave.sign = sign
-                                processsave.rto = rto if rto else None
-                                processsave.rpo = rpo if rpo else None
-                                processsave.sort = sort if sort else None
-                                processsave.color = color
-                                processsave.type = type
-                                processsave.processtype = processtype
-                                processsave.primary_id = main_database
-                                processsave.backprocess_id = process_back
-                                processsave.hosts_id = cv_client if cv_client else None
-                                processsave.config = xml_config
-                                processsave.pnode_id = pid
-
-                                # 排序
-                                sort = 1
-                                try:
-                                    max_sort = Process.objects.exclude(state="9").filter(pnode_id=pid).aggregate(
-                                        max_sort=Max('sort', distinct=True))["max_sort"]
-                                    sort = max_sort + 1
-                                except:
-                                    pass
-                                processsave.sort = sort
-
-                                processsave.save()
-                                select_id = processsave.id
-                                process_hidden = ""
-                                node_hidden = "hidden"
-                            except Exception as e:
-                                errors.append("保存失败：{0}".format(e))
-                    else:
-                        all_process = Process.objects.filter(code=code).exclude(id=id).exclude(state="9")
-                        if (len(all_process) > 0):
-                            errors.append('预案编码:' + code + '已存在。')
-                        else:
-                            try:
-                                processsave = Process.objects.get(id=id)
-                                processsave.code = code
-                                processsave.name = name
-                                processsave.remark = remark
-                                processsave.sign = sign
-                                processsave.rto = rto if rto else None
-                                processsave.rpo = rpo if rpo else None
-                                processsave.sort = sort if sort else None
-                                processsave.color = color
-                                processsave.type = type
-                                processsave.processtype = processtype
-                                processsave.primary_id = main_database
-                                processsave.backprocess_id = process_back
-                                processsave.hosts_id = cv_client if cv_client else None
-                                processsave.config = xml_config
-                                processsave.save()
-                                select_id = processsave.id
-                                process_hidden = ""
-                                node_hidden = "hidden"
-                            except Exception as e:
-                                errors.append("保存失败：{0}".format(e))
-
-    tree_data = []
-    root_nodes = Process.objects.order_by("sort").exclude(state="9").filter(pnode=None)
-    for root_node in root_nodes:
-        root = dict()
-        root["text"] = root_node.name
-        root["id"] = root_node.id
-        root["data"] = {
-            "pname": "无"
-        }
-        root["type"] = "NODE"
-        try:
-            if int(select_id) == root_node.id:
-                root["state"] = {"opened": True, "selected": True}
-            else:
-                root["state"] = {"opened": True}
-        except Exception as e:
-            root["state"] = {"opened": True}
-        root["children"] = get_process_tree(root_node, select_id)
-        tree_data.append(root)
-    tree_data = json.dumps(tree_data, ensure_ascii=False)
-
-    table = {
-        "right_info_hidden": right_info_hidden,
-        "process_hidden": process_hidden,
-        "node_hidden": node_hidden,
-        "id": id,
-        "pid": pid,
-        "pname": pname,
-        "code": code,
-        "name": name,
-        "remark": remark,
-        "sign": sign,
-        "rto": rto,
-        "rpo": rpo,
-        "sort": sort,
-        "color": color,
-        "type": type,
-        "nodetype":nodetype,
-        "processtype": processtype,
-        "config": config,
-        "cv_client": cv_client,
-        "main_database": main_database,
-        "process_back": process_back,
-    }
     all_main_database = []
     all_processes_back = []
     all_processes = Process.objects.exclude(state="9")
@@ -930,13 +690,99 @@ def process_design(request, funid):
         "pagefuns": getpagefuns(funid, request=request),
         'all_main_database': all_main_database, 
         'all_processes_back':all_processes_back,
-        "tree_data": tree_data,
-        "table": table,
-        "errors": errors,
         "hosts": [{
             "id": str(x["id"]),
             "host_name": x["host_name"]
         } for x in hosts],
+    })
+
+
+@login_required
+def get_process_tree(request):
+    status = 1
+    info = ""
+    data = []
+    select_id = request.POST.get("id", "")
+
+    try:
+        root_nodes = Process.objects.order_by("sort").exclude(state="9").filter(pnode=None)
+        for root_node in root_nodes:
+            root = dict()
+            root["text"] = root_node.name
+            root["id"] = root_node.id
+            root["data"] = {
+                "pname": "无"
+            }
+            root["type"] = "NODE"
+            try:
+                if int(select_id) == root_node.id:
+                    root["state"] = {"opened": True, "selected": True}
+                else:
+                    root["state"] = {"opened": True}
+            except Exception as e:
+                root["state"] = {"opened": True}
+            root["children"] = get_process_node(root_node, select_id)
+            data.append(root)
+    except Exception as e:
+        status = 0
+        info = "获取流程树失败。"
+    return JsonResponse({
+        "status": status,
+        "data": data,
+        "info": info
+    })
+
+
+@login_required
+def get_process_detail(request):
+    status = 1
+    info = ""
+    data = {}
+
+    process_id = request.POST.get("id", "")
+
+    try:
+        process_id = int(process_id)
+        process = Process.objects.get(id=process_id)
+    except Exception as e:
+        status = 0
+        info = "获取流程信息失败。"
+    else:
+        param_list = []
+        try:
+            config = etree.XML(process.config)
+
+            param_el = config.xpath("//param")
+            for v_param in param_el:
+                param_list.append({
+                    "param_name": v_param.attrib.get("param_name", ""),
+                    "variable_name": v_param.attrib.get("variable_name", ""),
+                    "param_value": v_param.attrib.get("param_value", ""),
+                })
+        except Exception as e:
+            print(e)
+
+        data = {
+            "process_id": process.id,
+            "process_code": process.code,
+            "process_name": process.name,
+            "process_remark": process.remark,
+            "process_sign": process.sign,
+            "process_rto": process.rto,
+            "process_rpo": process.rpo,
+            "process_sort": process.sort,
+            "process_color": process.color,
+            "type": process.type,
+            "processtype": process.processtype,
+            "variable_param_list": param_list,
+            "cv_client": process.hosts_id,
+            "main_database": process.primary_id
+        }
+
+    return JsonResponse({
+        "status": status,
+        "data": data,
+        "info": info
     })
 
 
@@ -1010,48 +856,22 @@ def process_move(request):
                 return HttpResponse("0")
 
 
-def get_process_tree(parent, select_id):
+def get_process_node(parent, select_id):
     nodes = []
     children = parent.children.order_by("sort").exclude(state="9").exclude(Q(type=None) | Q(type=""))
     for child in children:
         node = dict()
         node["text"] = child.name
         node["id"] = child.id
-        node["children"] = get_process_tree(child, select_id)
+        node["children"] = get_process_node(child, select_id)
         childtype=child.type
         if childtype != "NODE":
             childtype="PROCESS"
         node["type"] = childtype
-        param_list = []
-        try:
-            config = etree.XML(child.config)
-
-            param_el = config.xpath("//param")
-            for v_param in param_el:
-                param_list.append({
-                    "param_name": v_param.attrib.get("param_name", ""),
-                    "variable_name": v_param.attrib.get("variable_name", ""),
-                    "param_value": v_param.attrib.get("param_value", ""),
-                })
-        except Exception as e:
-            print(e)
-
         node["data"] = {
             "pname": parent.name,
-            "process_id": child.id,
-            "process_code": child.code,
-            "process_name": child.name,
-            "process_remark": child.remark,
-            "process_sign": child.sign,
-            "process_rto": child.rto,
-            "process_rpo": child.rpo,
-            "process_sort": child.sort,
-            "process_color": child.color,
-            "type": child.type,
-            "processtype": child.processtype,
-            "variable_param_list": param_list,
-            "cv_client": child.hosts_id,
-            "main_database": child.primary_id
+            "name": child.name,
+            "remark": child.remark,
         }
 
         try:
@@ -1061,6 +881,187 @@ def get_process_tree(parent, select_id):
             pass
         nodes.append(node)
     return nodes
+
+
+@login_required
+def process_save(request):
+    status = 1
+    info = "保存成功。"
+    select_id = ""
+
+    id = request.POST.get('id', '')
+    pid = request.POST.get('pid', '')
+    code = request.POST.get('code', '')
+    name = request.POST.get('name', '')
+    remark = request.POST.get('remark', '')
+    sign = request.POST.get('sign', '')
+    rto = request.POST.get('rto', '')
+    rpo = request.POST.get('rpo', '')
+    sort = request.POST.get('sort', '')
+    color = request.POST.get('color', '')
+    cv_client = request.POST.get('cv_client', '')
+    type = request.POST.get('type', '')
+    nodetype = request.POST.get('my_type', '')
+    processtype = request.POST.get('processtype', '')
+    config = request.POST.get('config', [])
+    node_name = request.POST.get('node_name', '')
+    node_remark = request.POST.get('node_name', '')
+
+    main_database = request.POST.get('process_main_database', '')
+    process_back = request.POST.get('process_back', '')
+    try:
+        id = int(id)
+        pid = int(pid)
+        process_back = int(process_back)
+        cv_client = int(cv_client)
+    except Exception as e:
+        pass
+
+    if nodetype == "NODE":
+        if node_name.strip() == '':
+            status = 0
+            info = '节点名称不能为空。'
+        else:
+            if id == 0:
+                try:
+                    sort = 1
+                    try:
+                        max_sort = Process.objects.exclude(state="9").filter(pnode_id=pid).aggregate(
+                            max_sort=Max('sort', distinct=True))["max_sort"]
+                        sort = max_sort + 1
+                    except:
+                        pass
+                    processsave = Process()
+                    processsave.name = node_name
+                    processsave.sort = sort if sort else None
+                    processsave.remark = node_remark
+                    processsave.type = "NODE"
+                    processsave.pnode_id = pid
+
+                    processsave.save()
+                    name=node_name
+                    select_id = processsave.id
+                except Exception as e:
+                    info = "保存失败：{0}".format(e)
+                    status = 0
+            else:
+                # 修改
+                try:
+                    processsave = Process.objects.get(id=id)
+                    processsave.name = node_name
+                    processsave.remark = node_remark
+                    processsave.save()
+                    select_id = processsave.id
+                except Exception as e:
+                    info = "保存失败：{0}".format(e)
+                    status = 0
+    else:
+        if code.strip() == '':
+            info = '预案编码不能为空。'
+            status = 0
+        elif name.strip() == '':
+            info = '预案名称不能为空。'
+            status = 0
+        elif type.strip() == '':
+            info = '预案类型不能为空。'
+            status = 0
+        elif sign.strip() == '':
+            info = '是否签到不能为空。'
+            status = 0
+        else:
+            try:
+                if type=="Oracle ADG" or type=="Oracle ADG":
+                    main_database = int(main_database)
+            except ValueError as e:
+                info = '主数据库不能为空。'
+                status = 0
+            else:
+                # 流程参数
+                root = etree.Element("root")
+
+                if config:
+                    config = json.loads(config)
+                    # 动态参数
+                    for c_config in config:
+                        param_node = etree.SubElement(root, "param")
+                        param_node.attrib["param_name"] = c_config["param_name"].strip()
+                        param_node.attrib["variable_name"] = c_config["variable_name"].strip()
+                        param_node.attrib["param_value"] = c_config["param_value"].strip()
+                xml_config = etree.tounicode(root)
+
+                if id == 0:
+                    all_process = Process.objects.filter(code=code).exclude(state="9").exclude(Q(type=None) | Q(type=""))
+                    if (len(all_process) > 0):
+                        info = '预案编码:' + code + '已存在。'
+                        status = 0
+                    else:
+                        try:
+                            processsave = Process()
+                            processsave.url = '/cv_oracler'
+                            processsave.code = code
+                            processsave.name = name
+                            processsave.remark = remark
+                            processsave.sign = sign
+                            processsave.rto = rto if rto else None
+                            processsave.rpo = rpo if rpo else None
+                            processsave.sort = sort if sort else None
+                            processsave.color = color
+                            processsave.type = type
+                            processsave.processtype = processtype
+                            processsave.primary_id = main_database
+                            processsave.backprocess_id = process_back
+                            processsave.hosts_id = cv_client if cv_client else None
+                            processsave.config = xml_config
+                            processsave.pnode_id = pid
+
+                            # 排序
+                            sort = 1
+                            try:
+                                max_sort = Process.objects.exclude(state="9").filter(pnode_id=pid).aggregate(
+                                    max_sort=Max('sort', distinct=True))["max_sort"]
+                                sort = max_sort + 1
+                            except:
+                                pass
+                            processsave.sort = sort
+
+                            processsave.save()
+                            select_id = processsave.id
+                        except Exception as e:
+                            info = "保存失败：{0}".format(e)
+                            status = 0
+                else:
+                    all_process = Process.objects.filter(code=code).exclude(id=id).exclude(state="9")
+                    if (len(all_process) > 0):
+                        info = '预案编码:' + code + '已存在。'
+                        status = 0
+                    else:
+                        try:
+                            processsave = Process.objects.get(id=id)
+                            processsave.code = code
+                            processsave.name = name
+                            processsave.remark = remark
+                            processsave.sign = sign
+                            processsave.rto = rto if rto else None
+                            processsave.rpo = rpo if rpo else None
+                            processsave.sort = sort if sort else None
+                            processsave.color = color
+                            processsave.type = type
+                            processsave.processtype = processtype
+                            processsave.primary_id = main_database
+                            processsave.backprocess_id = process_back
+                            processsave.hosts_id = cv_client if cv_client else None
+                            processsave.config = xml_config
+                            processsave.save()
+                            select_id = processsave.id
+                        except Exception as e:
+                            info = "保存失败：{0}".format(e)
+                            status = 0
+
+    return JsonResponse({
+        "status": status,
+        "info": info,
+        "data": select_id
+    })
 
 
 @login_required
