@@ -73,8 +73,10 @@ urlpatterns = [
     # 预案管理
     url(r'^script/$', script, {'funid': '32'}),
     url(r'^scriptdel/$', scriptdel),
-    url(r'^scriptsave/$', scriptsave),
     url(r'^script_move/$', script_move),
+    url(r'^get_script_detail/$', get_script_detail),
+    url(r'^get_script_tree/$', get_script_tree),
+    url(r'^script_save/$', script_save),
 
     url(r'^processconfig/$', processconfig, {'funid': '31'}),
     url(r'^processscriptsave/$', processscriptsave),
