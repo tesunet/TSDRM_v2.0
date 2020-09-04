@@ -993,7 +993,7 @@ def monitor(request):
 
                 curren_processrun_info_list.append(current_processrun_dict)
 
-        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None)
+        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")| Q(type="NODE")).filter(processtype="1")
         utils_manage = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
         # 右上角消息任务
         return render(request, "monitor.html", {

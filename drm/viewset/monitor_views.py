@@ -1504,11 +1504,84 @@ def get_force_script_info(request):
 ######################
 def process_schedule(request, funid):
     if request.user.is_authenticated():
-        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")).filter(pnode__pnode=None).order_by("sort").only("id", "name")
+        all_process = Process.objects.exclude(state="9").exclude(Q(type=None) | Q(type="")| Q(type="NODE")).filter(processtype="1").order_by("sort").only("id", "name")
 
-        return render(request, 'process_schedule.html', {'username': request.user.userinfo.fullname,
-                                                         "pagefuns": getpagefuns(funid, request=request),
-                                                         "all_process": all_process})
+        p_params = []
+        # 流程下包含客户端的默认参数
+        for p in all_process:
+            cv_params = {
+                "pri_id": "",
+                "pri_name": "",
+                "std_id": "",
+                # Oracle
+                "data_path": "",
+                "copy_priority": "",
+                "db_open": "",
+                "log_restore": "",
+                # File System
+                "destPath": "",
+                "overWrite": "",
+                "inPlace": "",
+                "OSRestore": "",
+                "sourcePaths": "",
+                # SQL Server
+                "mssqlOverWrite": "",
+            }
+            agent_type = ""
+            all_steps = p.step_set.exclude(state="9")
+            # all_steps = Step.objects.exclude(state="9").filter(process_id=process_id)
+            if_break = False
+            for cur_step in all_steps:
+                all_scriptinstances = cur_step.scriptinstance_set.exclude(state="9")
+                for cur_scriptinstance in all_scriptinstances:
+                    pri = cur_scriptinstance.primary
+                    if pri:
+                        agent_type = pri.agentType
+                        info = etree.XML(pri.info)
+                        params = info.xpath("//param")
+
+                        if params:
+                            param = params[0]
+                            std_id = pri.destination.id if pri.destination else ""
+                            cv_params["pri_id"] = pri.id
+                            cv_params["pri_name"] = pri.client_name
+                            cv_params["std_id"] = std_id
+                            # Oracle
+                            cv_params["data_path"] = param.attrib.get("data_path", "")
+                            cv_params["copy_priority"] = param.attrib.get("copy_priority", "")
+                            cv_params["db_open"] = param.attrib.get("db_open", "")
+                            cv_params["log_restore"] = param.attrib.get("log_restore", "")
+                            # File System
+                            cv_params["destPath"] = param.attrib.get("destPath", "")
+                            cv_params["overWrite"] = param.attrib.get("overWrite", "")
+                            cv_params["inPlace"] = param.attrib.get("inPlace", "")
+                            cv_params["OSRestore"] = param.attrib.get("OSRestore", "")
+                            cv_params["sourcePaths"] = eval(param.attrib.get("sourcePaths", "[]"))
+
+                            # SQL Server
+                            cv_params["mssqlOverWrite"] = param.attrib.get("mssqlOverWrite", "")
+
+                        if_break = True
+                        break
+                if if_break:
+                    break
+
+            p_params.append({
+                "p_id": p.id,
+                "p_type": p.type,
+                "cv_params": cv_params,
+                "agent_type": agent_type,
+            })
+        # 所有客户端
+        cv_clients = CvClient.objects.exclude(state="9").values("id", "client_name")
+
+        return render(request, 'process_schedule.html', {
+            'username': request.user.userinfo.fullname,
+            "pagefuns": getpagefuns(funid, request=request),
+            "all_process": all_process,
+            "cv_clients": cv_clients,
+            "p_params": json.dumps(p_params, ensure_ascii=False)
+        })
     else:
         return HttpResponseRedirect("/login")
 
@@ -1525,6 +1598,28 @@ def process_schedule_save(request):
         per_time = request.POST.get('per_time', '')
         per_month = request.POST.get('per_month', '')
         per_week = request.POST.get('per_week', '')
+
+        # 流程参数
+        # Commvault
+        agent_type = request.POST.get('agent_type', '')
+
+        pri = request.POST.get('pri', '')
+        pri_name = request.POST.get('pri_name', '')
+        std = request.POST.get('std', '')
+        recovery_time = request.POST.get('recovery_time', '')
+        browseJobId = request.POST.get('browseJobId', '')
+        # Oracle
+        data_path = request.POST.get('data_path', '')
+        copy_priority = request.POST.get('copy_priority', '')
+        db_open = request.POST.get('db_open', '')
+        log_restore = request.POST.get('log_restore', '')
+        # File System
+        mypath = request.POST.get("mypath", "")
+        iscover = request.POST.get("iscover", "")
+        selectedfile = request.POST.get("selectedfile", "")
+        # SQL Server
+        mssql_iscover = request.POST.get("mssql_iscover", "")
+
         ret = 1
         info = ""
 
@@ -1587,6 +1682,96 @@ def process_schedule_save(request):
             else:
                 # 保存定时任务
                 hour, minute = per_time.split(':')
+
+                cv_params = {}
+                # 传入流程参数
+                if cur_process.type == "Commvault":
+                    try:
+                        pri = int(pri)
+                    except Exception:
+                        return JsonResponse({
+                            "ret": 0,
+                            "info": "流程步骤中未添加Commvault接口，导致源客户端未空。"
+                        })
+
+                    try:
+                        std = int(std)
+                    except:
+                        return JsonResponse({
+                            "ret": 0,
+                            "info": "目标客户端未选择。"
+                        })
+
+                    if "Oracle" in agent_type:
+                        try:
+                            copy_priority = int(copy_priority)
+                        except ValueError as e:
+                            copy_priority = 1
+                        try:
+                            db_open = int(db_open)
+                        except ValueError as e:
+                            db_open = 1
+                        try:
+                            log_restore = int(log_restore)
+                        except ValueError as e:
+                            log_restore = 1
+                        cv_params = {
+                            "pri_id": str(pri),
+                            "pri_name": pri_name,
+                            "std_id": str(std),
+                            "browse_job_id": str(browseJobId),
+                            "recovery_time": recovery_time,
+
+                            "copy_priority": str(copy_priority),
+                            "db_open": str(db_open),
+                            "log_restore": str(log_restore),
+                            "data_path": data_path
+                        }
+                    elif "File System" in agent_type:
+                        inPlace = True
+                        if mypath != "same":
+                            inPlace = False
+                        overWrite = False
+                        if iscover == "TRUE":
+                            overWrite = True
+
+                        sourceItemlist = selectedfile.split("*!-!*")
+                        for sourceItem in sourceItemlist:
+                            if sourceItem == "":
+                                sourceItemlist.remove(sourceItem)
+                        cv_params = {
+                            "pri_id": str(pri),
+                            "pri_name": pri_name,
+                            "std_id": str(std),
+                            "browse_job_id": str(browseJobId),
+                            "recovery_time": recovery_time,
+
+                            "overWrite": overWrite,
+                            "inPlace": inPlace,
+                            "destPath": mypath,
+                            "sourcePaths": sourceItemlist,
+                            "OSRestore": False
+                        }
+                    elif "SQL Server" in agent_type:
+                        mssqlOverWrite = False
+                        if mssql_iscover == "TRUE":
+                            mssqlOverWrite = True
+                        cv_params = {
+                            "pri_id": str(pri),
+                            "pri_name": pri_name,
+                            "std_id": str(std),
+                            "browse_job_id": str(browseJobId),
+                            "recovery_time": recovery_time,
+
+                            "mssqlOverWrite": mssqlOverWrite,
+                        }
+                    else:
+                        return JsonResponse({
+                            'ret': 0,
+                            'info': '其他应用正在开发中。'
+                        })
+
+
                 # 新增
                 if process_schedule_id == 0:
                     cur_crontab_schedule = CrontabSchedule()
@@ -1606,10 +1791,11 @@ def process_schedule_save(request):
                     cur_periodictask.enabled = 0
                     # 任务名称
                     cur_periodictask.task = "drm.tasks.create_process_run"
-                    # cur_periodictask.args = [cur_process.id, request]
                     cur_periodictask.kwargs = json.dumps({
                         'cur_process': cur_process.id,
-                        'creatuser':  request.user.username
+                        'creatuser':  request.user.username,
+                        'cv_params': cv_params,
+                        "agent_type": agent_type,
                     })
                     cur_periodictask.save()
                     cur_periodictask_id = cur_periodictask.id
@@ -1650,7 +1836,9 @@ def process_schedule_save(request):
                             cur_periodictask.task = "drm.tasks.create_process_run"
                             cur_periodictask.kwargs = json.dumps({
                                 'cur_process': cur_process.id,
-                                'creatuser':  request.user.username
+                                'creatuser':  request.user.username,
+                                'cv_params': cv_params,
+                                "agent_type": agent_type,
                             })
                             cur_periodictask_status = cur_periodictask.enabled
                             cur_periodictask.enabled = cur_periodictask_status
@@ -1687,9 +1875,17 @@ def process_schedule_data(request):
             # 定时任务
             status, minutes, hours, per_week, per_month = "", "", "", "", ""
             periodictask = process_schedule.dj_periodictask
+            cv_params = {}
             if periodictask:
                 status = periodictask.enabled
                 cur_crontab_schedule = periodictask.crontab
+                try:
+                    kwargs = json.loads(periodictask.kwargs)
+                    cv_params = kwargs.get("cv_params", "")
+                    agent_type = kwargs.get("agent_type", "")
+                except Exception as e:
+                    print(e)
+
                 if cur_crontab_schedule:
                     minutes = cur_crontab_schedule.minute
                     hours = cur_crontab_schedule.hour
@@ -1709,6 +1905,11 @@ def process_schedule_data(request):
                 "per_week": per_week,
                 "per_month": per_month,
                 "status": status,
+
+                # Commvault参数
+                "p_type": process_schedule.process.type,
+                "cv_params": cv_params,
+                "agent_type": agent_type,
             })
         return JsonResponse({"data": result})
     else:

@@ -387,19 +387,30 @@ class KVMApi():
             kvm_uuid = config.xpath("//uuid")[0]
             kvm_interface = config.xpath("//interface")[0]
             kvm_mac = config.xpath("//mac")[0]
-
             if copycpu != '' and copymemory != '':
-                kvm_memory = config.xpath("//memory")[0]
+                copymemory = int(copymemory) * 1024
                 kvm_cpu = config.xpath("//vcpu")[0]
                 kvm_cpu.text = copycpu
-                kvm_memory.text = copymemory
+                kvm_memory = config.xpath("//memory")[0]
+                kvm_currentmemory = config.xpath("//currentMemory")[0]
+                kvm_memory.text = str(copymemory)
+                kvm_currentmemory.text = str(copymemory)
+            elif copycpu != '' and copymemory == '':
+                kvm_cpu = config.xpath("//vcpu")[0]
+                kvm_cpu.text = copycpu
+            elif copycpu == '' and copymemory != '':
+                copymemory = int(copymemory) * 1024
+                kvm_memory = config.xpath("//memory")[0]
+                kvm_currentmemory = config.xpath("//currentMemory")[0]
+                kvm_memory.text = str(copymemory)
+                kvm_currentmemory.text = str(copymemory)
             # 修改名字、修改磁盘路径、删除uuid、删除mac
+
             kvm_name.text = copyname
             kvm_diskpath.attrib['file'] = kvm_disk_path
             config.remove(kvm_uuid)
             kvm_interface.remove(kvm_mac)
             xml_content = etree.tounicode(config)
-
             xml_path = '/etc/libvirt/qemu/{0}.xml'.format(copyname)
             exe_cmd = r'cat > {0} << \EOH'.format(xml_path) + '\n' + xml_content + '\nEOH'
             self.remote_linux(exe_cmd)
