@@ -82,6 +82,7 @@ urlpatterns = [
     url(r'^remove_script/$', remove_script),
     url(r'^setpsave/$', setpsave),
     url(r'^custom_step_tree/$', custom_step_tree),
+    url(r'^get_step_detail/$', get_step_detail),
     url(r'^del_step/$', del_step),
     url(r'^move_step/$', move_step),
     url(r'^get_all_groups/$', get_all_groups),

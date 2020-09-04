@@ -444,38 +444,6 @@ def get_step_tree(parent, selectid):
         node["text"] = child.name
         node["id"] = child.id
         node["children"] = get_step_tree(child, selectid)
-
-        scripts = child.scriptinstance_set.exclude(state="9").order_by("sort")
-        script_string = ""
-        for script in scripts:
-            id_code_plus = str(script.id) + "+" + str(script.name) + "&"
-            script_string += id_code_plus
-
-        verify_items_string = ""
-        verify_items = child.verifyitems_set.exclude(state="9")
-        for verify_item in verify_items:
-            id_name_plus = str(verify_item.id) + "+" + str(verify_item.name) + "&"
-            verify_items_string += id_name_plus
-
-        group_name = ""
-        if child.group and child.group != " ":
-            group_id = child.group
-            try:
-                group_id = int(group_id)
-            except:
-                raise Http404()
-
-            group_name = Group.objects.filter(id=group_id)[0].name
-        all_groups = Group.objects.exclude(state="9")
-        group_string = " " + "+" + " -------------- " + "&"
-        for group in all_groups:
-            id_name_plus = str(group.id) + "+" + str(group.name) + "&"
-            group_string += id_name_plus
-
-        node["data"] = {"time": child.time, "approval": child.approval, "skip": child.skip, "group_name": group_name,
-                        "group": child.group, "scripts": script_string, "allgroups": group_string,
-                        "rto_count_in": child.rto_count_in, "remark": child.remark,
-                        "verifyitems": verify_items_string, "force_exec": child.force_exec if child.force_exec else 2}
         try:
             if int(selectid) == child.id:
                 node["state"] = {"selected": True}

@@ -1556,44 +1556,78 @@ def custom_step_tree(request):
     if len(rootnodes) > 0:
         for rootnode in rootnodes:
             root = {}
-            scripts = rootnode.scriptinstance_set.exclude(state="9").order_by("sort")
-            script_string = ""
-            for script in scripts:
-                id_code_plus = str(script.id) + "+" + str(script.name) + "&"
-                script_string += id_code_plus
-
-            verify_items_string = ""
-            verify_items = rootnode.verifyitems_set.exclude(state="9")
-            for verify_item in verify_items:
-                id_name_plus = str(verify_item.id) + "+" + str(verify_item.name) + "&"
-                verify_items_string += id_name_plus
             root["text"] = rootnode.name
             root["id"] = rootnode.id
-            group_name = ""
-
-            try:
-                group_id = int(rootnode.group)
-                cur_group = Group.objects.get(id=group_id)
-
-                group_name = cur_group.name
-            except:
-                pass
-
-            root["data"] = {"time": rootnode.time, "approval": rootnode.approval, "skip": rootnode.skip,
-                            "allgroups": group_string, "group": rootnode.group, "group_name": group_name,
-                            "scripts": script_string, "errors": errors, "title": title,
-                            "rto_count_in": rootnode.rto_count_in, "remark": rootnode.remark,
-                            "verifyitems": verify_items_string,
-                            "force_exec": rootnode.force_exec if rootnode.force_exec else 2}
             root["children"] = get_step_tree(rootnode, selectid)
             root["state"] = {"opened": True}
             treedata.append(root)
     process = {}
     process["text"] = process_name
-    process["data"] = {"allgroups": group_string, "verify": "first_node"}
+    process["data"] = {"allgroups": group_string}
     process["children"] = treedata
     process["state"] = {"opened": True}
     return JsonResponse({"treedata": process})
+
+
+@login_required
+def get_step_detail(request):
+    status = 1
+    info = ""
+    data = {}
+
+    step_id = request.POST.get("id", "")
+
+    try:
+        cur_step = Step.objects.get(id=int(step_id))
+    except Exception as e:
+        status = 0
+        info = "获取步骤信息失败。"
+    else:
+        scripts = cur_step.scriptinstance_set.exclude(state="9").order_by("sort")
+        script_string = ""
+        for script in scripts:
+            id_code_plus = str(script.id) + "+" + str(script.name) + "&"
+            script_string += id_code_plus
+
+        verify_items_string = ""
+        verify_items = cur_step.verifyitems_set.exclude(state="9")
+        for verify_item in verify_items:
+            id_name_plus = str(verify_item.id) + "+" + str(verify_item.name) + "&"
+            verify_items_string += id_name_plus
+
+        group_name = ""
+        if cur_step.group and cur_step.group != " ":
+            group_id = cur_step.group
+            try:
+                group_id = int(group_id)
+                group_name = Group.objects.filter(id=group_id)[0].name
+            except:
+               pass
+
+        all_groups = Group.objects.exclude(state="9")
+        group_string = " " + "+" + " -------------- " + "&"
+        for group in all_groups:
+            id_name_plus = str(group.id) + "+" + str(group.name) + "&"
+            group_string += id_name_plus
+
+        data = {
+            "time": cur_step.time, 
+            "approval": cur_step.approval, 
+            "skip": cur_step.skip, 
+            "group_name": group_name,
+            "group": cur_step.group, 
+            "scripts": script_string, 
+            "allgroups": group_string,
+            "rto_count_in": cur_step.rto_count_in, 
+            "remark": cur_step.remark,
+            "verifyitems": verify_items_string, 
+            "force_exec": cur_step.force_exec if cur_step.force_exec else 2
+        }
+    return JsonResponse({
+        "status": status,
+        "data": data,
+        "info": info
+    })
 
 
 @login_required
@@ -1985,7 +2019,6 @@ def display_params(request):
             except Exception as e:
                 print(e)
             else:
-                print(cur_params)
                 data = [{
                     "param_name": x["param_name"],
                     "variable_name": x["variable_name"],
