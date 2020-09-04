@@ -229,13 +229,9 @@ urlpatterns = [
     url(r'^client_dbcopy_get_his/$', client_dbcopy_get_his),
     url(r'^client_dbcopy_mysql_save/$', client_dbcopy_mysql_save),
     url(r'^get_mysql_status/$', get_mysql_status),
-
     url(r'^get_file_tree/$', get_file_tree),
-
-
     url(r'^host_save/$', host_save),
     url(r'^hosts_manage_data/$', hosts_manage_data),
-
     url(r'^kvm_data/$', kvm_data),
     url(r'^kvm_save/$', kvm_save),
     url(r'^kvm_del/$', kvm_del),
@@ -243,7 +239,6 @@ urlpatterns = [
     url(r'^zfs_snapshot_save/$', zfs_snapshot_save),
     url(r'^zfs_snapshot_del/$', zfs_snapshot_del),
     url(r'^zfs_snapshot_mount/$', zfs_snapshot_mount),
-
     url(r'^kvm_copy_data/$', kvm_copy_data),
     url(r'^kvm_copy_del/$', kvm_copy_del),
     url(r'^kvm_ip_save/$', kvm_ip_save),

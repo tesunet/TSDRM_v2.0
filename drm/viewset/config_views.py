@@ -2096,6 +2096,7 @@ def client_manage(request, funid):
                   {'username': request.user.userinfo.fullname,
                    "pagefuns": getpagefuns(funid, request=request),
                    "utils_kvm_list": utils_kvm_list,
+                   "is_superuser": request.user.is_superuser
                    })
 
 

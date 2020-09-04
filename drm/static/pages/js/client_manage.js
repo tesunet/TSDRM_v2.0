@@ -58,7 +58,7 @@ function getClientree() {
                             "icon": false
                         }
                     },
-                    "contextmenu": {
+                    "contextmenu":$('#is_superuser').val()=="True"?{
                         "items": {
                             "create": null,
                             "rename": null,
@@ -97,10 +97,6 @@ function getClientree() {
                                     } else {
                                         $('#tabcheck2').attr("style", "color: #cbd5dd");
                                         $("#tabcheck2").parent().attr("style", "pointer-events:none;");
-                                        $('#tabcheck3').attr("style", "color: #cbd5dd");
-                                        $("#tabcheck3").parent().attr("style", "pointer-events:none;");
-                                        $('#tabcheck4').attr("style", "color: #cbd5dd");
-                                        $("#tabcheck4").parent().attr("style", "pointer-events:none;");
                                         $("#tabcheck1").click();
                                         $("#title").text("新建")
                                         $("#pname").val(obj.data["name"])
@@ -155,7 +151,12 @@ function getClientree() {
                             },
 
                         }
-                    },
+                    }:{"items": {
+                            "create": null,
+                            "rename": null,
+                            "remove": null,
+                            "ccp": null,
+                        }},
                     "plugins": ["contextmenu", "dnd", "types", "role"]
                 })
                     .on('move_node.jstree', function (e, data) {
