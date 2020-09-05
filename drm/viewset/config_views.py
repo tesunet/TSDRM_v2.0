@@ -651,9 +651,9 @@ def process_move(request):
 
     # 判断目标父节点是否为接口，若为接口无法挪动
     if process_parent.type != "NODE" and my_process.processtype=="1":
-        return HttpResponse("主预案")
-    elif process_parent.type == "NODE" and my_process.processtype!="1":
-        return HttpResponse("子预案")
+        return HttpResponse("主场景")
+    elif process_parent.type == "NODE" and my_process.type != "NODE" and my_process.processtype!="1" :
+        return HttpResponse("子场景")
     else:
         # 目标父节点下所有节点 除了自身 接口名称都不得相同 否则重名
         process_same = Process.objects.exclude(state="9").exclude(id=id).filter(pnode=process_parent).filter(
@@ -705,6 +705,7 @@ def get_process_node(parent, select_id):
         node["data"] = {
             "pname": parent.name,
             "name": child.name,
+            "processtype": child.processtype,
             "remark": child.remark,
         }
 
@@ -924,7 +925,7 @@ def processconfig(request, funid):
     if process_id:
         process_id = int(process_id)
 
-    processes = Process.objects.exclude(state="9").order_by("sort").exclude(Q(processtype=None) | Q(processtype=""))
+    processes = Process.objects.exclude(state="9").order_by("sort").filter(processtype="1",).exclude(type="NODE")
     processlist = []
     for process in processes:
         processlist.append({"id": process.id, "code": process.code, "name": process.name})

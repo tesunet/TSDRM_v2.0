@@ -104,13 +104,13 @@ function getProcessTree(){
                                     }
                                 }
                             },
-                            "新建预案": {
-                                "label": "新建预案",
+                            "新建场景": {
+                                "label": "新建场景",
                                 "action": function (data) {
                                     var inst = jQuery.jstree.reference(data.reference),
                                         obj = inst.get_node(data.reference);
                                     if (obj.type == "PROCESS" && obj.data.processtype != "1") {
-                                            alert("无法在子预案下新建预案。");
+                                            alert("无法在子场景下新建场景。");
                                     } else {
                                         $("#processtype").empty()
                                         if (obj.type == "PROCESS"){
@@ -248,12 +248,12 @@ function getProcessTree(){
                                             alert("目标节点下存在重名。");
                                             location.reload()
                                         } else {
-                                            if (data == "主预案") {
-                                                alert("主预案不能移动至预案下。");
+                                            if (data == "主场景") {
+                                                alert("主场景不能移动至场景下。");
                                                 location.reload()
                                             } else {
-                                                if (data == "子预案") {
-                                                    alert("子预案不能移动至节点下。");
+                                                if (data == "子场景") {
+                                                    alert("子场景不能移动至节点下。");
                                                     location.reload()
                                                 }else {
                                                     if (data != "0") {
