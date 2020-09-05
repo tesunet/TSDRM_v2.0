@@ -153,7 +153,7 @@ def custom_pdf_report(request):
                 "": "",
             }
 
-            current_scripts = Script.objects.exclude(state="9").filter(step_id=pstep.id).order_by("sort")
+            current_scripts = ScriptInstance.objects.exclude(state="9").filter(step_id=pstep.id).order_by("sort")
             script_list_wrapper = []
             if current_scripts:
                 for snum, current_script in enumerate(current_scripts):
@@ -244,7 +244,7 @@ def custom_pdf_report(request):
                             inner_second_el_dict["operator"] = ""
 
                         # 当前步骤下脚本
-                        current_scripts = Script.objects.exclude(state="9").filter(step_id=step.id).order_by("sort")
+                        current_scripts = ScriptInstance.objects.exclude(state="9").filter(step_id=step.id).order_by("sort")
 
                         script_list_inner = []
                         if current_scripts:

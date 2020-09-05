@@ -18,6 +18,7 @@
                         <input type="text" hidden id="id" name="id">
                         <input type="text" hidden id="pid" name="pid">
                         <input type="text" hidden id="my_type" name="my_type">
+                        <input type="text" hidden id="p_backs" name="p_backs" value="{{ p_backs }}">
                         <div id="processdiv">
                             <div class="form-body">
                                 <div class="form-group" style="margin-top:-20px">
@@ -29,21 +30,14 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label class="col-md-2 control-label"><span style="color:red; ">*</span>预案编号</label>
-                                    <div class="col-md-10">
-                                        <input id="code" type="text" name="code" class="form-control">
-                                        <div class="form-control-focus"></div>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                    <label class="col-md-2 control-label"><span style="color:red; ">*</span>预案名称</label>
+                                    <label class="col-md-2 control-label"><span style="color:red; ">*</span>场景名称</label>
                                     <div class="col-md-10">
                                         <input id="name" type="text" name="name" class="form-control">
                                         <div class="form-control-focus"></div>
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label class="col-md-2 control-label"><span style="color:red; ">*</span>预案类型</label>
+                                    <label class="col-md-2 control-label"><span style="color:red; ">*</span>场景类型</label>
                                     <div class="col-md-10">
                                         <select class="form-control" id="processtype" name="processtype">
                                             <option value="1">主流程</option>
@@ -78,14 +72,11 @@
                                             <div class="form-control-focus"></div>
                                         </div>
                                     </div>
-                                    <div class="form-group">
+                                    <div class="form-group" id="processtype_div" hidden>
                                         <label class="col-md-2 control-label">回切流程</label>
                                         <div class="col-md-10">
                                             <select class="form-control" id="process_back" name="process_back">
-                                                <option value="">无</option>
-                                                {% for pb in all_processes_back %}
-                                                <option value="{{ pb.process_id }}">{{ pb.process_name }}</option>
-                                                {% endfor %}
+
                                             </select>
                                             <div class="form-control-focus"></div>
                                         </div>
@@ -106,7 +97,7 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label class="col-md-2 control-label"><span style="color:red; "></span>预案描述</label>
+                                    <label class="col-md-2 control-label"><span style="color:red; "></span>场景描述</label>
                                     <div class="col-md-10">
                                         <input id="remark" type="text" name="remark" class="form-control"
                                             value="{{ table.remark }}">
@@ -248,7 +239,6 @@
     </div>
 </div>
 {% endblock %}
-
 {% block script %}
 <link href="/static/assets/global/plugins/bootstrap-fileinput/bootstrap-fileinput.css" rel="stylesheet"
     type="text/css" />

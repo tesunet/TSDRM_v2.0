@@ -13,7 +13,6 @@ function getProcessDetail(){
             if (status == 0){
                 alert(info);
             } else {
-                $("#code").val(data.process_code);
                 $("#name").val(data.process_name);
                 $("#remark").val(data.process_remark);
                 $("#sign").val(data.process_sign);
@@ -21,18 +20,34 @@ function getProcessDetail(){
                 $("#rpo").val(data.process_rpo);
                 $("#sort").val(data.process_sort);
                 $("#process_color").val(data.process_color);
+                $("#cv_client").val(data.cv_client);
+                $("#process_main_database").val(data.main_database);
                 $("#type").val(data.type);
-                $("#cv_client").val(data.cv_client)
-                $("#process_main_database").val(data.main_database)
                 $("#processtype").empty()
                 if (data.processtype=="1") {
                     $('#processtype').append('<option value="1">主流程</option>');
+                    $('#processtype_div').show();
                 }else{
                     $('#processtype').append('<option value="2">回切流程</option>');
                     $('#processtype').append('<option value="3">排错流程</option>');
+                    $('#processtype_div').hide();
                 }
-                $("#processtype").val(data.processtype)
+                $("#processtype").val(data.processtype);
         
+                if (data.type == "Oracle ADG" || data.type == "MYSQL") {
+                    $("#adg_div").show();
+                } else {
+                    $("#adg_div").hide();
+                }
+                if (data.type == "Commvault") {
+                    $("#cv_clients_div").show();
+                } else {
+                    $("#cv_clients_div").hide();
+                }
+                
+                // 回切流程
+                getProcessBack(data.type);
+                $('#process_back').val(data.p_back);
                 // 动态参数
                 $('#param_se').empty();
                 var variable_param_list = data.variable_param_list;
@@ -129,7 +144,6 @@ function getProcessTree(){
                                         $("#id").val("0");
                                         $("#pid").val(obj.id);
                                         $("#pname").val(obj.text);
-                                        $("#code").val("");
                                         $("#name").val("");
                                         $("#remark").val("");
                                         $("#sign").val("");
@@ -141,7 +155,10 @@ function getProcessTree(){
                                         $('#param_se').empty();
                                         $("#adg_div").hide();
                                         $("#cv_clients_div").hide();
-                
+                                        
+                                        $('#process_main_database').val(""); // 主数据库
+                                        $('#process_back').val(""); // 回切流程
+                                        $('#cv_client').val(""); // 关联客户端
                                     }
                                 }
                             },
@@ -193,7 +210,6 @@ function getProcessTree(){
                         var node = data.node;
                         var data = node.data;
                         var type = node.original.type;
-                    
                         $("#id").val(node.id);
                         $("#pid").val(node.parent);
                         $("#pname").val(data.pname);
@@ -203,17 +219,6 @@ function getProcessTree(){
                             $("#processdiv").show();
                             $("#nodediv").hide();
                             getProcessDetail();
-                    
-                            if (data.type == "Oracle ADG" || data.type == "MYSQL") {
-                                $("#adg_div").show();
-                            } else {
-                                $("#adg_div").hide();
-                            }
-                            if (data.type == "Commvault") {
-                                $("#cv_clients_div").show();
-                            } else {
-                                $("#cv_clients_div").hide();
-                            }
                         }
                         if (type == "NODE") {
                                 $("#node_pname").val(data.pname)
@@ -282,6 +287,26 @@ function getProcessTree(){
 }
 
 getProcessTree();
+
+function getProcessBack(agent_type){
+    /**
+     * 获取对应Agent类型的回切流程 当前父节点下
+     */
+    var id = $('#id').val();
+    $('#process_back').empty();
+    $('#process_back').append('<option value="">无</option>');
+    try {
+        var p_backs = eval($('#p_backs').val());
+        for (var i=0; i < p_backs.length; i++){
+            if (p_backs[i].type == agent_type && p_backs[i].pnode_id == id){
+                $('#process_back').append('<option value="' + p_backs[i].id + '">' + p_backs[i].name + '</option>');
+            }
+        }
+    } catch(e){
+
+    }
+}
+getProcessBack($('type').val());  // 新增时需要
 
 $('#node_save, #interface_save').click(function (data){
     var save_type = $(this).prop("id");
@@ -508,6 +533,7 @@ function insertParams() {
 }
 
 $("#type").change(function () {
+    getProcessBack($(this).val());
     if ($("#type").val()=="Oracle ADG" || $("#type").val()=="MYSQL"){
         $("#adg_div").show();
     }

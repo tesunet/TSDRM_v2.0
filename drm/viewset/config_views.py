@@ -1,4 +1,4 @@
-# 流程配置：预案配置、脚本配置、流程配置、主机配置
+# 流程配置：场景配置、脚本配置、流程配置、主机配置
 import xlrd
 import xlwt
 
@@ -497,33 +497,29 @@ def script_move(request):
 
 
 ######################
-# 预案配置
+# 场景配置
 ######################
 @login_required
 def process_design(request, funid):
     all_main_database = []
-    all_processes_back = []
-    all_processes = Process.objects.exclude(state="9")
     all_hosts = DbCopyClient.objects.exclude(state="9").filter(hosttype="1")
     for host in all_hosts:
         all_main_database.append({
             "main_database_id": host.hostsmanage.id,
             "main_database_name": host.hostsmanage.host_name
         })
-    for process in all_processes:
-        all_processes_back.append({
-            "process_id": process.id,
-            "process_name": process.name
-        })
-    
+
     # 选择关联客户端
     hosts = HostsManage.objects.exclude(state="9").filter(nodetype="CLIENT").values("id", "host_name")
+
+    # 回切流程
+    p_backs = Process.objects.exclude(state="9").filter(processtype=2).values("id", "name", "type", "pnode_id")
 
     return render(request, "processdesign.html", {
         'username': request.user.userinfo.fullname, 
         "pagefuns": getpagefuns(funid, request=request),
         'all_main_database': all_main_database, 
-        'all_processes_back':all_processes_back,
+        'p_backs':p_backs,
         "hosts": [{
             "id": str(x["id"]),
             "host_name": x["host_name"]
@@ -610,7 +606,8 @@ def get_process_detail(request):
             "processtype": process.processtype,
             "variable_param_list": param_list,
             "cv_client": process.hosts_id,
-            "main_database": process.primary_id
+            "main_database": process.primary_id,
+            "p_back": process.backprocess_id
         }
 
     return JsonResponse({
@@ -726,7 +723,6 @@ def process_save(request):
 
     id = request.POST.get('id', '')
     pid = request.POST.get('pid', '')
-    code = request.POST.get('code', '')
     name = request.POST.get('name', '')
     remark = request.POST.get('remark', '')
     sign = request.POST.get('sign', '')
@@ -791,14 +787,11 @@ def process_save(request):
                     info = "保存失败：{0}".format(e)
                     status = 0
     else:
-        if code.strip() == '':
-            info = '预案编码不能为空。'
-            status = 0
-        elif name.strip() == '':
-            info = '预案名称不能为空。'
+        if name.strip() == '':
+            info = '场景名称不能为空。'
             status = 0
         elif type.strip() == '':
-            info = '预案类型不能为空。'
+            info = '场景类型不能为空。'
             status = 0
         elif sign.strip() == '':
             info = '是否签到不能为空。'
@@ -825,15 +818,14 @@ def process_save(request):
                 xml_config = etree.tounicode(root)
 
                 if id == 0:
-                    all_process = Process.objects.filter(code=code).exclude(state="9").exclude(Q(type=None) | Q(type=""))
+                    all_process = Process.objects.filter(name=name).exclude(state="9").exclude(Q(type=None) | Q(type=""))
                     if (len(all_process) > 0):
-                        info = '预案编码:' + code + '已存在。'
+                        info = '场景:' + name + '已存在。'
                         status = 0
                     else:
                         try:
                             processsave = Process()
                             processsave.url = '/cv_oracler'
-                            processsave.code = code
                             processsave.name = name
                             processsave.remark = remark
                             processsave.sign = sign
@@ -865,14 +857,13 @@ def process_save(request):
                             info = "保存失败：{0}".format(e)
                             status = 0
                 else:
-                    all_process = Process.objects.filter(code=code).exclude(id=id).exclude(state="9")
+                    all_process = Process.objects.filter(name=name).exclude(id=id).exclude(state="9")
                     if (len(all_process) > 0):
-                        info = '预案编码:' + code + '已存在。'
+                        info = '场景:' + name + '已存在。'
                         status = 0
                     else:
                         try:
                             processsave = Process.objects.get(id=id)
-                            processsave.code = code
                             processsave.name = name
                             processsave.remark = remark
                             processsave.sign = sign

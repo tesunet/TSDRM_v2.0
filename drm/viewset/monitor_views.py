@@ -209,7 +209,7 @@ def oracle_restore(request, process_id):
                     "selected": ""
                 })
 
-        # 预案类型
+        # 场景类型
         process_type = ''
         try:
             process = Process.objects.get(id=process_id)
