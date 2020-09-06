@@ -2188,6 +2188,8 @@ def zfs_snapshot_mount(request):
     copy_name = request.POST.get("kvm_copy_name", "")
     kvm_machine = request.POST.get("kvm_machine", "")
     kvm_machine_id = request.POST.get("kvm_machine_id", "")
+    copy_ip = request.POST.get("kvm_copy_ip", "")
+    copy_hostname = request.POST.get("kvm_copy_hostname", "")
     copy_cpu = request.POST.get("kvm_copy_cpu", "")
     copy_memory = request.POST.get("kvm_copy_memory", "")
 
@@ -2211,8 +2213,12 @@ def zfs_snapshot_mount(request):
     filesystemname = filesystem + '-' + copy_name
     copyname = kvm_machine + '@' + copy_name
 
-    if not copy_name:
-        result['res'] = '名称未填写。'
+    if not copy_name.strip():
+        result['res'] = '实例名称未填写。'
+    elif not copy_ip.strip():
+        result['res'] = '实例IP未填写。'
+    elif not copy_hostname.strip():
+        result['res'] = '实例主机名未填写。'
     else:
         try:
             kvm_exist = []
@@ -2230,28 +2236,43 @@ def zfs_snapshot_mount(request):
                         # ④新的xml文件生成，开始定义虚拟机
                         result_info = KVMApi(kvm_credit).define_kvm(copyname)
                         if result_info == '定义成功。':
-                            # ⑤定义成功，开启虚拟机
-                            result_info = KVMApi(kvm_credit).kvm_start(copyname)
-                            if result_info == '开机成功。':
-                                # 副本开启成功，保存数据库
-                                try:
-                                    kvm_copy = KvmCopy.objects.filter(name=copyname).exclude(state='9')
-                                    if kvm_copy.exists():
-                                        result['res'] = '实例已存在。'
+                            # ⑤定义成功，修改ip和主机名，先挂载磁盘文件
+                            result_info = KVMApi(kvm_credit).guestmount(kvm_machine, snapshotname)
+                            # ⑥挂载成功，修改ip和主机名
+                            if result_info == '挂载成功。':
+                                result_info = KVMApi(kvm_credit).alert_ip_hostname(copy_ip, copy_hostname)
+                                if result_info == '修改成功。':
+                                    result_info = KVMApi(kvm_credit).umount()
+                                    if result_info == '取消挂载成功。':
+                                        result_info = KVMApi(kvm_credit).kvm_start(copyname)
+                                        if result_info == '开机成功。':
+                                            # 副本开启成功，保存数据库
+                                            try:
+                                                kvm_copy = KvmCopy.objects.filter(name=copyname).exclude(state='9')
+                                                if kvm_copy.exists():
+                                                    result['res'] = '实例已存在。'
+                                                else:
+                                                    kvm_copy.create(**{
+                                                        'name': copyname,
+                                                        'ip': copy_ip,
+                                                        'hostname': copy_hostname,
+                                                        'create_time': datetime.datetime.now(),
+                                                        'create_user_id': user_id,
+                                                        'utils_id': utils_id,
+                                                        'kvmmachine_id': kvm_machine_id,
+                                                    })
+                                                    result['res'] = '创建成功。'
+                                            except Exception as e:
+                                                print(e)
+                                                result['res'] = '保存失败。'
+                                        else:
+                                            result['res'] = '开机失败。'
                                     else:
-                                        kvm_copy.create(**{
-                                            'name': copyname,
-                                            'create_time': datetime.datetime.now(),
-                                            'create_user_id': user_id,
-                                            'utils_id': utils_id,
-                                            'kvmmachine_id': kvm_machine_id
-                                        })
-                                        result['res'] = '创建成功。'
-                                except Exception as e:
-                                    print(e)
-                                    result['res'] = '保存失败。'
+                                        result['res'] = '取消挂载失败。'
+                                else:
+                                    result['res'] = '修改失败。'
                             else:
-                                result['res'] = '开机失败。'
+                                result['res'] = '挂载失败。'
                         else:
                             result['res'] = '定义失败。'
                     else:
@@ -2282,7 +2303,7 @@ def kvm_copy_data(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     result = []
-    all_kvmcopy = KvmCopy.objects.filter(kvmmachine_id=kvmmachine_id).exclude(state='9')
+    all_kvmcopy = KvmCopy.objects.filter(kvmmachine_id=kvmmachine_id).order_by('-create_time').exclude(state='9')
     if len(all_kvmcopy) > 0:
         for kvmcopy in all_kvmcopy:
 
@@ -2347,36 +2368,6 @@ def kvm_copy_del(request):
         result["res"] = '删除失败。'
 
     return JsonResponse(result)
-
-
-@login_required
-def kvm_ip_save(request):
-    # 远程修改 + 数据库修改
-    result = {}
-    utils_id = request.POST.get("utils_id", "")
-    id = request.POST.get("id", "")
-    kvm_ip = request.POST.get("kvm_ip", "")
-    username = request.POST.get("username", "")
-    password = request.POST.get("password", "")
-    password = request.POST.get("password", "")
-    os = request.POST.get("os", "")
-    try:
-        id = int(id)
-        utils_id = int(utils_id)
-    except:
-        pass
-
-    # 登录kvm虚拟机: virsh console CentOS-7@test4
-    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
-    content = utils_kvm_info[0].content
-    util_type = utils_kvm_info[0].util_type
-    kvm_credit = get_credit_info(content, util_type.upper())
-
-
-@login_required
-def kvm_hostname_save(request):
-    id = request.POST.get("id", "")
-    kvm_hostname = request.POST.get("kvm_hostname", "")
 
 
 @login_required

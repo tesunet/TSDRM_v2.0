@@ -98,11 +98,6 @@ class KVMApi():
 
         return result
 
-    def console(self, kvm_name):
-        """
-        登录虚拟机：virsh console CentOS-7@test4
-        """
-
     def undefine(self, kvm_name, state, filesystem):
 
         """
@@ -436,13 +431,66 @@ class KVMApi():
 
         return result
 
+    def guestmount(self, kvm_machine, snapshotname):
+        """
+        生成sh脚本文件，上传linux，执行脚本文件：sh /root/alert_ip_hostname_sh.sh，完成修改ip和主机名
+        """
+        try:
+            snapshot_clone_name = snapshotname.replace('@', '-')
+            kvm_disk_path = '/' + snapshot_clone_name + '/' + kvm_machine + '.qcow2'
+            kvm_mount = '/etc/libvirt/kvm_mount'
 
-linuxserver_credit = {
-    'KvmHost': '192.168.1.61',
-    'KvmUser': 'root',
-    'KvmPasswd': 'tesunet@2019',
-    'SystemType': 'Linux',
-}
+            exe_cmd = r'guestmount -a {0} -i {1} && sleep 1'.format(kvm_disk_path, kvm_mount)
+            self.remote_linux(exe_cmd)
+            result = '挂载成功。'
+        except Exception as e:
+            print(e)
+            result = '挂载失败。'
+        return result
+
+    def alert_ip_hostname(self, copy_ip,  copy_hostname):
+        """
+        生成sh脚本文件，上传linux，执行脚本文件：sh /root/alert_ip_hostname_sh.sh，完成修改ip和主机名
+        """
+        try:
+            exe_cmd_ip = 'sed -i "/IPADDR/s/=.*/={0}/" /etc/libvirt/kvm_mount/etc/sysconfig/network-scripts/ifcfg-eth0'.format(copy_ip)
+            exe_cmd_mac = 'sed -i "/HWADDR/d" /etc/libvirt/kvm_mount/etc/sysconfig/network-scripts/ifcfg-eth0'
+            exe_cmd_hostname = 'echo {0} > /etc/libvirt/kvm_mount/etc/hostname'.format(copy_hostname)
+
+            exe_cmd = r'{0} && {1} && {2}'.format(exe_cmd_ip, exe_cmd_mac, exe_cmd_hostname)
+            result = self.remote_linux(exe_cmd)
+            if result['data'] == '':
+                result = '修改成功。'
+            else:
+                result = '修改失败。'
+        except Exception as e:
+            print(e)
+            result = '修改失败。'
+        return result
+
+    def umount(self):
+        """
+        取消挂载：umount /etc/libvirt/kvm_mount
+        """
+        try:
+            exe_cmd = r'umount /etc/libvirt/kvm_mount'
+            result = self.remote_linux(exe_cmd)
+            if result['data'] == '':
+                result = '取消挂载成功。'
+            else:
+                result = '取消挂载失败'
+        except Exception as e:
+            print(e)
+            result = '取消挂载失败。'
+        return result
+
+
+# linuxserver_credit = {
+#     'KvmHost': '192.168.1.61',
+#     'KvmUser': 'root',
+#     'KvmPasswd': 'tesunet@2019',
+#     'SystemType': 'Linux',
+# }
 
 # result = KVMApi(linuxserver_credit).kvm_all_list()
 # result = KVMApi(linuxserver_credit).clone('Test-1', 'Test-3')
@@ -458,4 +506,11 @@ linuxserver_credit = {
 # result = KVMApi(linuxserver_credit).zfs_list()
 # result = KVMApi(linuxserver_credit).zfs_kvm_filesystem()
 # result = KVMApi(linuxserver_credit).snapshot_list('Test-1')
+# print(result)
+
+# result = KVMApi(linuxserver_credit).guestmount('CentOS-7', 'tank/CentOS-7@test1')
+# result = KVMApi(linuxserver_credit).alert_ip('192.168.1.180')
+# result = KVMApi(linuxserver_credit).alert_hostname('CentOS-7@test5')
+# result = KVMApi(linuxserver_credit).guestmount_umount()
+# result = KVMApi(linuxserver_credit).alert_ip_hostname_sh('CentOS-7', 'tank/CentOS-7-test2', '192.168.1.197', 'CentOS-7-test2')
 # print(result)
