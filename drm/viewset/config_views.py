@@ -38,7 +38,8 @@ def get_script_node(parent, select_id):
         if child.type == "NODE":  # 节点
             node["data"] = {
                 "remark": child.remark,
-                "pname": parent.name
+                "pname": parent.name,
+                "name": child.name
             }
             node["a_attr"] = {
                 "class": "jstree-no-checkboxes"

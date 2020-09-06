@@ -254,11 +254,13 @@ def get_org_node(parent, selectid, allgroup):
         if child.type == "org":
             node["data"] = {
                 "remark": child.remark, 
-                "pname": parent.fullname
+                "pname": parent.fullname,
+                "name": child.fullname,
             }
         if child.type == "user":
             node["data"] = {
-                "pname": parent.fullname
+                "pname": parent.fullname,
+                "name": child.fullname,
             }
         node["children"] = get_org_node(child, selectid, allgroup)
         try:

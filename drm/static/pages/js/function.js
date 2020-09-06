@@ -1,10 +1,10 @@
-function getFunctionDetail(){
+function getFunctionDetail(id, node_type){
     $.ajax({
         type: "POST",
         dataType: "JSON",
         url: "../get_fun_detail/",
         data: {
-            id: $('#id').val(),
+            id: id,
         },
         success: function (data) {
             var status = data.status,
@@ -13,8 +13,20 @@ function getFunctionDetail(){
             if (status == 0){
                 alert(info);
             } else {
-                $("#url").val(data.url);
-                $("#icon").val(data.icon);
+                $("#title").text(data.name);
+                $("#name").val(data.name);
+                $("#pname").val(data.pname);
+                $("#mytype").val(node_type);
+
+                if (node_type == "fun") {
+                    $("#url").val(data.url);
+                    $("#icon").val(data.icon);
+                    $('input:radio[name=radio2]')[0].checked = true;
+                }
+                if (node_type == "node") {
+                    $('input:radio[name=radio2]')[1].checked = true;
+                }
+                changeType(node_type);
             }
         }
     });
@@ -164,25 +176,17 @@ function getFunctiontTree(){
                         }
                     })
                     .bind('select_node.jstree', function (event, data) {
-                        $("#formdiv").show();
-                        $("#title").text(data.node.text);
-                        $("#id").val(data.node.id);
-                        $("#pid").val(data.node.parent);
-                        $("#name").val(data.node.text);
-                        $("#pname").val(data.node.data.pname);
-
-                        getFunctionDetail();
-                        if (data.node.type == "fun") {
-                            $('input:radio[name=radio2]')[0].checked = true;
-                        }
-                        if (data.node.type == "node") {
-                            $('input:radio[name=radio2]')[1].checked = true;
-                        }
-                        if (data.node.parent == "#") {
+                        var node = data.node;
+                        $("#id").val(node.id);
+                        $("#pid").val(node.parent);
+                        if (node.parent == "#") {
                             $("#save").hide();
-                        }
-                        else
+                            $("#formdiv").hide();
+                        } else{
+                            $("#formdiv").show();
                             $("#save").show();
+                            getFunctionDetail(node.id, node.type);
+                        }
                     });
             }
         }
@@ -192,7 +196,12 @@ function getFunctiontTree(){
 getFunctiontTree();
 
 $('#save').click(function(){
-    var save_type = $("#mytype").val();
+    var save_type = "";
+    if ($('input:radio[name=radio2]')[0].checked == true){
+        save_type = "fun";
+    } else {
+        save_type = "node";
+    }
     $.ajax({
         type: "POST",
         dataType: "JSON",
@@ -208,7 +217,6 @@ $('#save').click(function(){
                         "text": $("#name").val(),
                         "id": select_id,
                         "type": save_type,
-                        "data": {"name": $("#name").val(), "pname": $("#pname").val()},
                     }, "last", false, false);
 
                     $("#id").val(select_id)
@@ -218,10 +226,12 @@ $('#save').click(function(){
                 else {
                     var curnode = $('#tree_2').jstree('get_node', $("#id").val());
                     var name = $('#name').val();
-                    curnode.text = name
-                    curnode.data["name"] = name;
-                    $('#tree_2').jstree('set_text', $("#id").val(), name);
-                    $('#title').text(name);
+                    var newtext = curnode.text.replace(curnode.text, name);
+                    curnode.text = newtext;
+                    curnode.type = save_type;  // 修改类型
+                    $("#mytype").val(save_type);
+                    $('#tree_2').jstree('set_text', $("#id").val(), newtext);
+                    $('#title').text(newtext);
                 }
             }   
             alert(info);
@@ -229,10 +239,13 @@ $('#save').click(function(){
     })
 });
 
-if ($("#mytype").val() == "fun"){
-    $('input:radio[name=radio2]')[0].checked = true;
+function changeType(mytype){
+    if (mytype == "fun"){
+        $('input:radio[name=radio2]')[0].checked = true;
+    }
+    if (mytype == "node"){
+        $('input:radio[name=radio2]')[1].checked = true;
+    }
 }
-if ($("#mytype").val() == "node"){
-    $('input:radio[name=radio2]')[1].checked = true;
-}
+changeType($('#mytype').val());
 

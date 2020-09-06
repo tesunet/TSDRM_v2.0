@@ -42,7 +42,12 @@ def get_org_tree(request):
                 myallgroup = []
                 for group in allgroup:
                     myallgroup.append({"groupname": group.name, "id": group.id})
-                root["data"] = {"remark": rootnode.remark, "pname": "无", "myallgroup": myallgroup}
+                root["data"] = {
+                    "remark": rootnode.remark, 
+                    "pname": "无", 
+                    "myallgroup": myallgroup,
+                    "name": rootnode.fullname,
+                }
                 try:
                     if int(select_id) == rootnode.id:
                         root["state"] = {"opened": True, "selected": True}
@@ -81,8 +86,11 @@ def get_org_detail(request):
             for group in allgroup:
                 myallgroup.append({"groupname": group.name, "id": group.id})
             data = {
+                "pname": cur_user.pnode.fullname if cur_user.pnode else "",
                 "remark": cur_user.remark, 
-                "myallgroup": myallgroup}
+                "myallgroup": myallgroup,
+                "orgname": cur_user.fullname,
+            }
         if cur_user.type == "user":
             noselectgroup = []
             selectgroup = []
@@ -93,6 +101,7 @@ def get_org_detail(request):
                 else:
                     noselectgroup.append({"groupname": group.name, "id": group.id})
             data = {
+                "pname": cur_user.pnode.fullname if cur_user.pnode else "",
                 "username": cur_user.user.username, 
                 "fullname": cur_user.fullname,
                 "phone": cur_user.phone, 
@@ -873,6 +882,8 @@ def get_fun_detail(request):
         info = "获取功能信息失败。"
     else:
         data = {
+            "name": cur_fun.name,
+            "pname": cur_fun.pnode.name if cur_fun.pnode else "",
             "url": cur_fun.url, 
             "icon": cur_fun.icon, 
         }

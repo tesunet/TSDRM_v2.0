@@ -1,11 +1,11 @@
 
-function getOrgDetail(){
+function getOrgDetail(id, node_type){
     $.ajax({
         type: "POST",
         dataType: "JSON",
         url: "../get_org_detail/",
         data: {
-            id: $('#id').val(),
+            id: id,
         },
         success: function (data) {
             var status = data.status,
@@ -14,22 +14,44 @@ function getOrgDetail(){
             if (status == 0){
                 alert(info);
             } else {
-                $("#source").empty();
-                for (var i = 0; i < data.selectgroup.length; i++) {
-                    $("#source").append("<option selected value='" + data.selectgroup[i].id + "' >" + data.selectgroup[i].groupname + "</option>");
+                $("#mytype").val(node_type);
+                if (node_type == "user") {
+                    $("#pname").val(data.pname);
+
+                    $("#newpassword").hide();
+                    $("#editpassword").show();
+
+                    $("#source").empty();
+                    for (var i = 0; i < data.selectgroup.length; i++) {
+                        $("#source").append("<option selected value='" + data.selectgroup[i].id + "' >" + data.selectgroup[i].groupname + "</option>");
+                    }
+                    for (var i = 0; i < data.noselectgroup.length; i++) {
+                        $("#source").append("<option value='" + data.noselectgroup[i].id + "' >" + data.noselectgroup[i].groupname + "</option>");
+                    }
+        
+                    $(".select2, .select2-multiple").select2({
+                        width: null
+                    });
+                    $("#title").text(data.fullname);
+                    $("#fullname").val(data.fullname);
+                    $("#username").val(data.username);
+                    $("#phone").val(data.phone);
+                    $("#price").val(data.price);
+                    $("#email").val(data.email);
+
+                    $("#username").prop("readonly", true);
+        
+                    $("#user").show();
+                    $("#org").hide();
                 }
-                for (var i = 0; i < data.noselectgroup.length; i++) {
-                    $("#source").append("<option value='" + data.noselectgroup[i].id + "' >" + data.noselectgroup[i].groupname + "</option>");
+                if (node_type == "org") {
+                    $("#title").text(data.orgname);
+                    $("#orgpname").val(data.pname);
+                    $("#orgname").val(data.orgname);
+                    $("#remark").val(data.remark);
+                    $("#user").hide();
+                    $("#org").show();
                 }
-    
-                $(".select2, .select2-multiple").select2({
-                    width: null
-                });
-                $("#fullname").val(data.fullname);
-                $("#username").val(data.username);
-                $("#phone").val(data.phone);
-                $("#price").val(data.price);
-                $("#email").val(data.email);
             }
         }
     });
@@ -226,38 +248,18 @@ function getOrganizationTree(){
                     })
                     .bind('select_node.jstree', function (event, data) {
                         $("#formdiv").show()
-                
-                        $("#id").val(data.node.id)
-                        $("#pid").val(data.node.parent)
-                        $("#mytype").val(data.node.type)
-                        $("#pname").val(data.node.data.pname)
-                        $("#title").text(data.node.text)
-                
-                        if (data.node.type == "user") {
-                            $("#newpassword").hide()
-                            $("#editpassword").show()
+                        var node = data.node;
+                        $("#id").val(node.id);
+                        $("#pid").val(node.parent);
 
-                            getOrgDetail();
-
-                            $("#username").prop("readonly", true)
-                
-                            $("#user").show()
-                            $("#org").hide()
-                        }
-                        if (data.node.type == "org") {
-                            $("#orgpname").val(data.node.data.pname)
-                            $("#orgname").val(data.node.text)
-                            $("#remark").val(data.node.data.remark)
-                            $("#user").hide()
-                            $("#org").show()
-                        }
-                        if (data.node.parent == "#") {
-                            $("#orgsave").hide()
-                            $("#usersave").hide()
+                        if (node.parent == "#") {
+                            $("#orgsave").hide();
+                            $("#usersave").hide();
                         }
                         else {
-                            $("#orgsave").show()
-                            $("#usersave").show()
+                            $("#orgsave").show();
+                            $("#usersave").show();
+                            getOrgDetail(node.id, node.type);
                         }
                     });
             }
@@ -323,14 +325,12 @@ $('#usersave, #orgsave').click(function (data){
                             "text": $("#orgname").val(),
                             "id": select_id,
                             "type": "org",
-                            "data": {"remark": $("#remark").val(), "name": $("#orgname").val(), "pname": $("#orgpname").val()},
                         }, "last", false, false);
                     } else {
                         $('#tree_2').jstree('create_node', $("#pid").val(), {
                             "text": $("#fullname").val(),
                             "id": select_id,
                             "type": "user",
-                            "data": {"name": $("#fullname").val(), "pname": $("#pname").val()},
                         }, "last", false, false);
                     }
 
@@ -342,13 +342,12 @@ $('#usersave, #orgsave').click(function (data){
                     var name = "";
                     if (save_type == "orgsave"){
                         name = $("#orgname").val();
-                        curnode.data["remark"] = $("#remark").val();
                     } else {
                         name = $('#fullname').val();
                     }
-                    curnode.text = name
-                    curnode.data["name"] = name;
-                    $('#tree_2').jstree('set_text', $("#id").val(), name);
+                    var newtext = curnode.text.replace(curnode.text, name);
+                    curnode.text = newtext;
+                    $('#tree_2').jstree('set_text', $("#id").val(), newtext);
                     $('#title').text(name);
                 }
             }   

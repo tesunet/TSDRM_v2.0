@@ -4,7 +4,7 @@ function getScriptDetail(id, node_type){
         dataType: "JSON",
         url: "../get_script_detail/",
         data: {
-            id: $('#id').val(),
+            id: id,
         },
         success: function (data) {
             var status = data.status,
@@ -456,17 +456,14 @@ $('#node_save, #interface_save').click(function (data){
                             "text": $("#node_name").val(),
                             "id": select_id,
                             "type": "NODE",
-                            "data": {"remark": $("#node_remark").val(), "name": $("#node_name").val(), "pname": $("#node_pname").val()},
                         }, "last", false, false);
                     } else {
                         $('#tree_2').jstree('create_node', $("#pid").val(), {
                             "text": $("#name").val(),
                             "id": select_id,
                             "type": "INTERFACE",
-                            "data": {"name": $("#name").val(), "pname": $("#pname").val()},
                         }, "last", false, false);
                     }
-
                     $("#id").val(select_id)
                     $('#tree_2').jstree('deselect_all');
                     $('#tree_2').jstree('select_node', $("#id").val(), true);
@@ -476,14 +473,13 @@ $('#node_save, #interface_save').click(function (data){
                     var name = "";
                     if (save_type == "node_save"){
                         name = $("#node_name").val();
-                        curnode.data["remark"] = $("#node_remark").val();
                     } else {
                         name = $('#name').val();
                     }
-                    curnode.text = name
-                    curnode.data["name"] = name;
-                    $('#tree_2').jstree('set_text', $("#id").val(), name);
-                    $('#title').text(name);
+                    var newtext = curnode.text.replace(curnode.text, name);
+                    curnode.text = newtext;
+                    $('#tree_2').jstree('set_text', $("#id").val(), newtext);
+                    $('#title').text(newtext);
                 }
             }   
             alert(info);

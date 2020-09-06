@@ -345,9 +345,8 @@ $('#node_save, #interface_save').click(function (data){
                     } else {
                         name = $('#name').val();
                     }
-                    var newtext = curnode.text.replace(curnode.data["name"], name);
+                    var newtext = curnode.text.replace(curnode.text, name);
                     curnode.text = newtext;
-                    curnode.data["name"] = name;
                     $('#p_tree').jstree('set_text', $("#id").val(), newtext);
                     $('#title').text(newtext);
                 }
