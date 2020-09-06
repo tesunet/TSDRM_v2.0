@@ -195,7 +195,7 @@ def org_user_save(request):
                                 info = "保存用户失败。"
                                 status = 0
         else:
-            exalluser = User.objects.filter(username=username).exclude(userinfo__state="9").filter(userinfo__id=id)
+            exalluser = User.objects.filter(username=username).exclude(userinfo__state="9").exclude(userinfo__id=id)
             if username.strip() == '':
                 info = '用户名不能为空。'
                 status = 0
