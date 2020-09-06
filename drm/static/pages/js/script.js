@@ -1,4 +1,4 @@
-function getScriptDetail(){
+function getScriptDetail(id, node_type){
     $.ajax({
         type: "POST",
         dataType: "JSON",
@@ -13,35 +13,50 @@ function getScriptDetail(){
             if (status == 0){
                 alert(info);
             } else {
-                $("#code").val(data.code);
-                $("#name").val(data.name);
-                $("#script_text").val(data.script_text);
-                $("#success_text").val(data.success_text);
-                $("#remark").val(data.remark);
-                // Commvault
-                $("#interface_type").val(data.interface_type);
-                $("#commv_interface").val(data.commv_interface);
-    
-                // 接口参数
-                $('#param_se').empty();
-                var variable_param_list = data.variable_param_list;
-                for (var i = 0; i < variable_param_list.length; i++) {
-                    $('#param_se').append('<option value="' + variable_param_list[i].variable_name + '">' + variable_param_list[i].param_name + ':' + variable_param_list[i].variable_name + ':' + variable_param_list[i].param_value + '</option>');
+                $("#title").text(data.name);
+                $("#my_type").val(node_type);
+        
+                if (node_type == "INTERFACE") {
+                    $("#pname").val(data.pname);
+                    $("#code").val(data.code);
+                    $("#name").val(data.name);
+                    $("#script_text").val(data.script_text);
+                    $("#success_text").val(data.success_text);
+                    $("#remark").val(data.remark);
+                    // Commvault
+                    $("#interface_type").val(data.interface_type);
+                    $("#commv_interface").val(data.commv_interface);
+        
+                    // 接口参数
+                    $('#param_se').empty();
+                    var variable_param_list = data.variable_param_list;
+                    for (var i = 0; i < variable_param_list.length; i++) {
+                        $('#param_se').append('<option value="' + variable_param_list[i].variable_name + '">' + variable_param_list[i].param_name + ':' + variable_param_list[i].variable_name + ':' + variable_param_list[i].param_value + '</option>');
+                    }
+                    insertParams();
+        
+                    if (data.interface_type == "Commvault") {
+                        $("#host_id_div").hide();
+                        $("#script_text_div").hide();
+                        $("#script_params_div").hide();
+                        $("#success_text_div").hide();
+                        $("#commv_interface_div").show();
+                    } else {
+                        $("#host_id_div").show();
+                        $("#script_text_div").show();
+                        $("#script_params_div").show();
+                        $("#success_text_div").show();
+                        $("#commv_interface_div").hide();
+                    }
+                    $("#interface").show()
+                    $("#node").hide()
                 }
-                insertParams();
-    
-                if (data.interface_type == "Commvault") {
-                    $("#host_id_div").hide();
-                    $("#script_text_div").hide();
-                    $("#script_params_div").hide();
-                    $("#success_text_div").hide();
-                    $("#commv_interface_div").show();
-                } else {
-                    $("#host_id_div").show();
-                    $("#script_text_div").show();
-                    $("#script_params_div").show();
-                    $("#success_text_div").show();
-                    $("#commv_interface_div").hide();
+                if (node_type == "NODE") {
+                    $("#node_pname").val(data.pname);
+                    $("#node_name").val(data.name);
+                    $("#node_remark").val(data.remark);
+                    $("#interface").hide();
+                    $("#node").show();
                 }
             }
         }
@@ -226,34 +241,18 @@ function getScriptTree(){
                     })
                     .bind('select_node.jstree', function (event, data) {
                         $("#form_div").show();
-                        var type = data.node.original.type;
-                
-                        $("#id").val(data.node.id);
-                        $("#pid").val(data.node.parent);
-                        $("#my_type").val(type);
-                        $("#pname").val(data.node.data.pname);
-                        $("#title").text(data.node.text);
-                
-                        if (type == "INTERFACE") {
-                            // 接口编号 接口名称 接口类型 选择源客户端 类名 选择主机 脚本内容 SUCCESSTEXT 日志地址 接口说明
-                            getScriptDetail();
-                
-                            $("#interface").show()
-                            $("#node").hide()
-                        }
-                        if (type == "NODE") {
-                            $("#node_pname").val(data.node.data.pname)
-                            $("#node_name").val(data.node.text)
-                            $("#node_remark").val(data.node.data.remark)
-                            $("#interface").hide()
-                            $("#node").show()
-                        }
+                        var node = data.node;
+                        $("#id").val(node.id);
+                        $("#pid").val(node.parent);
+
                         if (data.node.parent == "#") {
-                            $("#node_save").hide()
-                            $("#interface_save").hide()
+                            $("#node_save").hide();
+                            $("#interface_save").hide();
                         } else {
-                            $("#node_save").show()
-                            $("#interface_save").show()
+                            $("#node_save").show();
+                            $("#interface_save").show();
+                            console.log(node.id, node.type)
+                            getScriptDetail(node.id, node.type);
                         }
                     });
             }

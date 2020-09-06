@@ -389,6 +389,7 @@ def get_script_detail(request):
             print(e)
 
         data = {
+            "pname": cur_script.pnode.name if cur_script.pnode else "",
             "remark": cur_script.remark,
             "code": cur_script.code,
             "name": cur_script.name,

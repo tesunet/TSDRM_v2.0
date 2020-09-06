@@ -214,7 +214,7 @@ function getProcessTree(){
                     .bind('select_node.jstree', function (event, data) {
                         var node = data.node;
                         $('#id').val(node.id);
-                        $('#pid').val(node.pid);
+                        $('#pid').val(node.parent);
                         if (node.parent == "#"){
                             $("#form_div").hide();
                             $("#node_save").hide();
