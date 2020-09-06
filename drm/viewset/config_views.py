@@ -593,6 +593,7 @@ def get_process_detail(request):
             print(e)
 
         data = {
+            "pname": process.pnode.name if process.pnode else "",
             "process_id": process.id,
             "process_code": process.code,
             "process_name": process.name,
@@ -818,70 +819,60 @@ def process_save(request):
                 xml_config = etree.tounicode(root)
 
                 if id == 0:
-                    all_process = Process.objects.filter(name=name).exclude(state="9").exclude(Q(type=None) | Q(type=""))
-                    if (len(all_process) > 0):
-                        info = '场景:' + name + '已存在。'
-                        status = 0
-                    else:
+                    try:
+                        processsave = Process()
+                        processsave.url = '/cv_oracler'
+                        processsave.name = name
+                        processsave.remark = remark
+                        processsave.sign = sign
+                        processsave.rto = rto if rto else None
+                        processsave.rpo = rpo if rpo else None
+                        processsave.sort = sort if sort else None
+                        processsave.color = color
+                        processsave.type = type
+                        processsave.processtype = processtype
+                        processsave.primary_id = main_database
+                        processsave.backprocess_id = process_back
+                        processsave.hosts_id = cv_client if cv_client else None
+                        processsave.config = xml_config
+                        processsave.pnode_id = pid
+
+                        # 排序
+                        sort = 1
                         try:
-                            processsave = Process()
-                            processsave.url = '/cv_oracler'
-                            processsave.name = name
-                            processsave.remark = remark
-                            processsave.sign = sign
-                            processsave.rto = rto if rto else None
-                            processsave.rpo = rpo if rpo else None
-                            processsave.sort = sort if sort else None
-                            processsave.color = color
-                            processsave.type = type
-                            processsave.processtype = processtype
-                            processsave.primary_id = main_database
-                            processsave.backprocess_id = process_back
-                            processsave.hosts_id = cv_client if cv_client else None
-                            processsave.config = xml_config
-                            processsave.pnode_id = pid
+                            max_sort = Process.objects.exclude(state="9").filter(pnode_id=pid).aggregate(
+                                max_sort=Max('sort', distinct=True))["max_sort"]
+                            sort = max_sort + 1
+                        except:
+                            pass
+                        processsave.sort = sort
 
-                            # 排序
-                            sort = 1
-                            try:
-                                max_sort = Process.objects.exclude(state="9").filter(pnode_id=pid).aggregate(
-                                    max_sort=Max('sort', distinct=True))["max_sort"]
-                                sort = max_sort + 1
-                            except:
-                                pass
-                            processsave.sort = sort
-
-                            processsave.save()
-                            select_id = processsave.id
-                        except Exception as e:
-                            info = "保存失败：{0}".format(e)
-                            status = 0
+                        processsave.save()
+                        select_id = processsave.id
+                    except Exception as e:
+                        info = "保存失败：{0}".format(e)
+                        status = 0
                 else:
-                    all_process = Process.objects.filter(name=name).exclude(id=id).exclude(state="9")
-                    if (len(all_process) > 0):
-                        info = '场景:' + name + '已存在。'
+                    try:
+                        processsave = Process.objects.get(id=id)
+                        processsave.name = name
+                        processsave.remark = remark
+                        processsave.sign = sign
+                        processsave.rto = rto if rto else None
+                        processsave.rpo = rpo if rpo else None
+                        processsave.sort = sort if sort else None
+                        processsave.color = color
+                        processsave.type = type
+                        processsave.processtype = processtype
+                        processsave.primary_id = main_database
+                        processsave.backprocess_id = process_back
+                        processsave.hosts_id = cv_client if cv_client else None
+                        processsave.config = xml_config
+                        processsave.save()
+                        select_id = processsave.id
+                    except Exception as e:
+                        info = "保存失败：{0}".format(e)
                         status = 0
-                    else:
-                        try:
-                            processsave = Process.objects.get(id=id)
-                            processsave.name = name
-                            processsave.remark = remark
-                            processsave.sign = sign
-                            processsave.rto = rto if rto else None
-                            processsave.rpo = rpo if rpo else None
-                            processsave.sort = sort if sort else None
-                            processsave.color = color
-                            processsave.type = type
-                            processsave.processtype = processtype
-                            processsave.primary_id = main_database
-                            processsave.backprocess_id = process_back
-                            processsave.hosts_id = cv_client if cv_client else None
-                            processsave.config = xml_config
-                            processsave.save()
-                            select_id = processsave.id
-                        except Exception as e:
-                            info = "保存失败：{0}".format(e)
-                            status = 0
 
     return JsonResponse({
         "status": status,

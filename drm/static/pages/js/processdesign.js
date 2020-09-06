@@ -1,10 +1,10 @@
-function getProcessDetail(){
+function getProcessDetail(id, node_type){
     $.ajax({
         type: "POST",
         dataType: "JSON",
         url: "../get_process_detail/",
         data: {
-            id: $('#id').val(),
+            id: id,
         },
         success: function (data) {
             var status = data.status,
@@ -13,46 +13,60 @@ function getProcessDetail(){
             if (status == 0){
                 alert(info);
             } else {
-                $("#name").val(data.process_name);
-                $("#remark").val(data.process_remark);
-                $("#sign").val(data.process_sign);
-                $("#rto").val(data.process_rto);
-                $("#rpo").val(data.process_rpo);
-                $("#sort").val(data.process_sort);
-                $("#process_color").val(data.process_color);
-                $("#cv_client").val(data.cv_client);
-                $("#process_main_database").val(data.main_database);
-                $("#type").val(data.type);
-                $("#processtype").empty()
-                if (data.processtype=="1") {
-                    $('#processtype').append('<option value="1">主流程</option>');
-                    $('#processtype_div').show();
-                }else{
-                    $('#processtype').append('<option value="2">回切流程</option>');
-                    $('#processtype').append('<option value="3">排错流程</option>');
-                    $('#processtype_div').hide();
+                $("#title").text(data.process_name);
+                $("#my_type").val(node_type);
+                if (node_type == "PROCESS") {
+                    $("#processdiv").show();
+                    $("#nodediv").hide();
+                    $("#pname").val(data.pname);
+                    $("#name").val(data.process_name);
+                    $("#remark").val(data.process_remark);
+                    $("#sign").val(data.process_sign);
+                    $("#rto").val(data.process_rto);
+                    $("#rpo").val(data.process_rpo);
+                    $("#sort").val(data.process_sort);
+                    $("#process_color").val(data.process_color);
+                    $("#cv_client").val(data.cv_client);
+                    $("#process_main_database").val(data.main_database);
+                    $("#type").val(data.type);
+                    $("#processtype").empty()
+                    if (data.processtype=="1") {
+                        $('#processtype').append('<option value="1">主流程</option>');
+                        $('#processtype_div').show();
+                    }else{
+                        $('#processtype').append('<option value="2">回切流程</option>');
+                        $('#processtype').append('<option value="3">排错流程</option>');
+                        $('#processtype_div').hide();
+                    }
+                    $("#processtype").val(data.processtype);
+            
+                    if (data.type == "Oracle ADG" || data.type == "MYSQL") {
+                        $("#adg_div").show();
+                    } else {
+                        $("#adg_div").hide();
+                    }
+                    if (data.type == "Commvault") {
+                        $("#cv_clients_div").show();
+                    } else {
+                        $("#cv_clients_div").hide();
+                    }
+                    
+                    // 回切流程
+                    getProcessBack(data.type);
+                    $('#process_back').val(data.p_back);
+                    // 动态参数
+                    $('#param_se').empty();
+                    var variable_param_list = data.variable_param_list;
+                    for (var i = 0; i < variable_param_list.length; i++) {
+                        $('#param_se').append('<option value="' + variable_param_list[i].variable_name + '">' + variable_param_list[i].param_name + ':' + variable_param_list[i].variable_name + ':' + variable_param_list[i].param_value + '</option>');
+                    }
                 }
-                $("#processtype").val(data.processtype);
-        
-                if (data.type == "Oracle ADG" || data.type == "MYSQL") {
-                    $("#adg_div").show();
-                } else {
-                    $("#adg_div").hide();
-                }
-                if (data.type == "Commvault") {
-                    $("#cv_clients_div").show();
-                } else {
-                    $("#cv_clients_div").hide();
-                }
-                
-                // 回切流程
-                getProcessBack(data.type);
-                $('#process_back').val(data.p_back);
-                // 动态参数
-                $('#param_se').empty();
-                var variable_param_list = data.variable_param_list;
-                for (var i = 0; i < variable_param_list.length; i++) {
-                    $('#param_se').append('<option value="' + variable_param_list[i].variable_name + '">' + variable_param_list[i].param_name + ':' + variable_param_list[i].variable_name + ':' + variable_param_list[i].param_value + '</option>');
+                if (node_type == "NODE") {
+                    $("#node_pname").val(data.pname)
+                    $("#node_name").val(data.process_name)
+                    $("#node_remark").val(data.remark)
+                    $("#processdiv").hide()
+                    $("#nodediv").show()
                 }
             }
         }
@@ -198,35 +212,19 @@ function getProcessTree(){
                     "plugins": ["contextmenu", "dnd", "types", "role"]
                 })
                     .bind('select_node.jstree', function (event, data) {
-                        if (data.node.parent == "#"){
+                        var node = data.node;
+                        $('#id').val(node.id);
+                        $('#pid').val(node.pid);
+                        if (node.parent == "#"){
                             $("#form_div").hide();
-                            $("#node_save").hide()
-                            $("#interface_save").hide()
+                            $("#node_save").hide();
+                            $("#interface_save").hide();
                         } else {
                             $("#form_div").show();
-                            $("#node_save").show()
-                            $("#interface_save").show()
+                            $("#node_save").show();
+                            $("#interface_save").show();
+                            getProcessDetail(node.id, node.type);
                         }
-                        var node = data.node;
-                        var data = node.data;
-                        var type = node.original.type;
-                        $("#id").val(node.id);
-                        $("#pid").val(node.parent);
-                        $("#pname").val(data.pname);
-                        $("#title").text(node.text);
-                        $("#my_type").val(type);
-                        if (type == "PROCESS") {
-                            $("#processdiv").show();
-                            $("#nodediv").hide();
-                            getProcessDetail();
-                        }
-                        if (type == "NODE") {
-                                $("#node_pname").val(data.pname)
-                                $("#node_name").val(node.text)
-                                $("#node_remark").val(data.remark)
-                                $("#processdiv").hide()
-                                $("#nodediv").show()
-                            }
                     })
                     .on('move_node.jstree', function (e, data) {
                         var moveid = data.node.id;
@@ -262,6 +260,7 @@ function getProcessTree(){
                                                     location.reload()
                                                 }else {
                                                     if (data != "0") {
+                                                        var selectid = $("#id").val();
                                                         if (selectid == moveid) {
                                                             var res = data.split('^')
                                                             $("#pid").val(res[1])
@@ -326,35 +325,30 @@ $('#node_save, #interface_save').click(function (data){
                             "text": $("#node_name").val(),
                             "id": select_id,
                             "type": "NODE",
-                            "data": {"remark": $("#node_remark").val(), "name": $("#node_name").val(), "pname": $("#pname").val()},
                         }, "last", false, false);
                     } else {
                         $('#p_tree').jstree('create_node', $("#pid").val(), {
                             "text": $("#name").val(),
                             "id": select_id,
                             "type": "PROCESS",
-                            "data": {"name": $("#name").val(), "pname": $("#pname").val()},
                         }, "last", false, false);
                     }
 
-                    $("#id").val(select_id)
+                    $("#id").val(select_id);
                     $('#p_tree').jstree('deselect_all');
                     $('#p_tree').jstree('select_node', $("#id").val(), true);
-                }
-                else {
+                } else {
                     var curnode = $('#p_tree').jstree('get_node', $("#id").val());
                     var name = "";
                     if (save_type == "node_save"){
                         name = $("#node_name").val();
-                        curnode.data["remark"] = $("#node_remark").val()
                     } else {
                         name = $('#name').val();
                     }
                     var newtext = curnode.text.replace(curnode.data["name"], name);
-                    curnode.text = newtext
+                    curnode.text = newtext;
                     curnode.data["name"] = name;
                     $('#p_tree').jstree('set_text', $("#id").val(), newtext);
-                    console.log(newtext)
                     $('#title').text(newtext);
                 }
             }   
