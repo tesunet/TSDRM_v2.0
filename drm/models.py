@@ -139,7 +139,7 @@ class KvmCopy(models.Model):
     create_time = models.DateTimeField("创建时间", blank=True, null=True)
     create_user = models.ForeignKey(User, blank=True, null=True, verbose_name="创建人")
     state = models.CharField("状态", blank=True, null=True, max_length=20)
-
+    snapshot = models.CharField("所属快照", blank=True, null=True, max_length=30)
 
 
 class Process(models.Model):
