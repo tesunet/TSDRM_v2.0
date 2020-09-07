@@ -2374,19 +2374,19 @@ $(document).ready(function () {
         "bProcessing": true,
         "columns": [
             { "data": "id" },
+            { "data": "snapshot" },
             { "data": "name" },
             { "data": "ip" },
             { "data": "hostname" },
             { "data": "create_time" },
             { "data": "create_user" },
             { "data": "copy_state" },
-            { "data": "snapshot" },
             { "data": null }
         ],
 
         "columnDefs": [
             {
-                "targets": -3,
+                "targets": -2,
                 "mRender": function (data, type, full) {
                     if (full.copy_state == '运行中'){
                         return "<span class='fa fa-plug' style='color:green; height:20px;width:14px;'></span>"
