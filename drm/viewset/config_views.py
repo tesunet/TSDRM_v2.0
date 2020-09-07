@@ -2414,7 +2414,7 @@ def kvm_shutdown(request):
         result['res'] = result_info
     except Exception as e:
         print(e)
-        result["res"] = '关机失败。'
+        result["res"] = '断电失败。'
     return JsonResponse(result)
 
 

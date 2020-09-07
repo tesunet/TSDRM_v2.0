@@ -88,13 +88,14 @@ class KVMApi():
 
     def kvm_shutdown(self, kvm_name):
         # 关闭虚拟机:是开启的状态（running）
-        exe_cmd = r'virsh shutdown {}'.format(kvm_name)
+        # 通过virsh destroy强制关机
+        exe_cmd = r'virsh destroy {}'.format(kvm_name)
         result = self.remote_linux(exe_cmd)
-        if result['data'].strip() == 'Domain {0} is being shutdown'.format(kvm_name) or \
-                result['data'].strip() == '域 {0} 被关闭'.format(kvm_name):
-            result = '关机成功。'
+        if result['data'].strip() == 'Domain {0} destroyed'.format(kvm_name) or \
+                result['data'].strip() == '域 {0} 被删除'.format(kvm_name):
+            result = '断电成功。'
         else:
-            result = '关机失败。'
+            result = '断电失败。'
 
         return result
 
@@ -433,7 +434,9 @@ class KVMApi():
 
     def guestmount(self, kvm_machine, snapshotname):
         """
-        生成sh脚本文件，上传linux，执行脚本文件：sh /root/alert_ip_hostname_sh.sh，完成修改ip和主机名
+        guestmount -a /tank/CentOS-7-test5/CentOS-7.qcow2 -i /etc/libvirt/kvm_mount
+        /tank/CentOS-7-test5/CentOS-7.qcow2    磁盘路径
+        /etc/libvirt/kvm_mount                 要挂载的目录
         """
         try:
             snapshot_clone_name = snapshotname.replace('@', '-')
@@ -450,7 +453,9 @@ class KVMApi():
 
     def alert_ip_hostname(self, copy_ip,  copy_hostname):
         """
-        生成sh脚本文件，上传linux，执行脚本文件：sh /root/alert_ip_hostname_sh.sh，完成修改ip和主机名
+        sed -i "/IPADDR/s/=.*/=192.168.1.180/"  /etc/libvirt/kvm_mount/etc/sysconfig/network-scripts/ifcfg-eth0 修改ip
+        sed -i '/HWADDR/d' /etc/libvirt/kvm_mount/etc/sysconfig/network-scripts/ifcfg-eth0                      删除MAC地址
+        echo CentOS-7@test5 > /etc/libvirt/kvm_mount/etc/hostname                                               修改主机名
         """
         try:
             exe_cmd_ip = 'sed -i "/IPADDR/s/=.*/={0}/" /etc/libvirt/kvm_mount/etc/sysconfig/network-scripts/ifcfg-eth0'.format(copy_ip)

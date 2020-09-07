@@ -2512,7 +2512,7 @@ $(document).ready(function () {
                 },
             success: function (data) {
                 var myres = data["res"];
-                if (myres == "关机成功。") {
+                if (myres == "断电成功。") {
                     $('#static04').modal('hide');
                     table.ajax.reload();
                 }
