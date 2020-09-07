@@ -240,7 +240,7 @@ $.ajax({
 
             $("tbody#process_run_facts").append('<tr>\n' +
                 '    <td style="vertical-align:middle">' + (i + 1) + '</td>\n' +
-                '    <td style="vertical-align:middle"><a href="/oracle_restore/' + whole_list[i].process_id + '">' + whole_list[i].process_name + '</a></td>\n' +
+                '    <td style="vertical-align:middle">' + whole_list[i].process_name + '</a></td>\n' +
                 '    <td style="vertical-align:middle">\n' + labelStatus +
                 '    </td>\n' +
                 '    <td style="vertical-align:middle">' + whole_list[i].average_rto + '</td>\n' +
