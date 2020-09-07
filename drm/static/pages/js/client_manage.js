@@ -2380,12 +2380,13 @@ $(document).ready(function () {
             { "data": "create_time" },
             { "data": "create_user" },
             { "data": "copy_state" },
+            { "data": "snapshot" },
             { "data": null }
         ],
 
         "columnDefs": [
             {
-                "targets": -2,
+                "targets": -3,
                 "mRender": function (data, type, full) {
                     if (full.copy_state == '运行中'){
                         return "<span class='fa fa-plug' style='color:green; height:20px;width:14px;'></span>"
@@ -2425,12 +2426,13 @@ $(document).ready(function () {
         var data = table.row($(this).parents('tr')).data();
         $("#copy_id").val(data.id);
         $("#copy_name").val(data.name);
-        $("#copy_state").val(data.copy_state)
+        $("#copy_state").val(data.copy_state);
         $("#copy_ip").val(data.ip);
 
         $("#copy_hostname").val(data.hostname);
         $('#copy_createtime').val(data.create_time);
         $('#copy_createuser').val(data.create_user);
+        $('#copy_snapshot').val(data.snapshot);
 
         if($("#copy_state").val() == '运行中'){
             $("#kvm_start").hide();

@@ -2260,6 +2260,7 @@ def zfs_snapshot_mount(request):
                                                         'create_user_id': user_id,
                                                         'utils_id': utils_id,
                                                         'kvmmachine_id': kvm_machine_id,
+                                                        'snapshot': snapshot_name,
                                                     })
                                                     result['res'] = '创建成功。'
                                             except Exception as e:
@@ -2329,6 +2330,7 @@ def kvm_copy_data(request):
                                 '%Y-%m-%d %H:%M:%S') if kvmcopy.create_time else '',
                 "create_user": kvmcopy.create_user.userinfo.fullname if kvmcopy.create_user.userinfo.fullname else '',
                 "copy_state": copy_state,
+                "snapshot": kvmcopy.snapshot,
             })
     return JsonResponse({"data": result})
 
