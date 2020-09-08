@@ -1,6 +1,6 @@
 from drm import remote
 from lxml import etree
-
+import re
 class KVMApi():
     def __init__(self, credit):
         self.ip = credit['KvmHost']
@@ -489,6 +489,71 @@ class KVMApi():
             result = '取消挂载失败。'
         return result
 
+    def kvm_disk_space(self):
+        """
+        获取kvm文件系统磁盘使用情况：df -lh
+        tank/Test-1               191G  1.3G  190G    1% /tank/Test-1
+        tank/CentOS-7             191G  1.5G  190G    1% /tank/CentOS-7
+        tank/win2k16              190G  979M  190G    1% /tank/win2k16
+        tank/CentOS-7-2020-09-01  191G  1.5G  190G    1% /tank/CentOS-7-2020-09-01
+        """
+
+        exe_cmd = r'df -lh'
+        result = self.remote_linux(exe_cmd)
+        kvm_space_list = [x for x in result['data'].split(' ') if x]
+
+        del kvm_space_list[0:6]
+        end_list = self.list_of_groups(kvm_space_list, 6)
+        kvm_all_space_list = []
+        for item in end_list:
+            if 'tank/' in item[0]:
+                data = {}
+                data['filesystem'] = item[0]
+                size = ''
+                used = ''
+                avail = ''
+                if 'G' in item[1]:
+                    size = float(item[1].replace('G', '')) * 1024
+                if 'M' in item[1]:
+                    size = float(item[1].replace('M', ''))
+                data['size'] = size
+
+                if 'G' in item[2]:
+                    used = float(item[2].replace('G', '')) * 1024
+                if 'M' in item[2]:
+                    used = float(item[2].replace('M', ''))
+                data['used'] = used
+
+                if 'G' in item[3]:
+                    avail = float(item[3].replace('G', '')) * 1024
+                if 'M' in item[3]:
+                    avail = float(item[3].replace('M', ''))
+                data['avail'] = avail
+                kvm_all_space_list.append(data)
+
+        size_total = 0
+        used_total = 0
+        avail_total = 0
+        for i in kvm_all_space_list:
+            size_total += i['size']
+            used_total += i['used']
+            avail_total += i['avail']
+
+        size_total = round(size_total/1024/1024, 2)
+        used_total = round(used_total/1024/1024, 2)
+        avail_total = round(avail_total/1024/1024, 2)
+
+        avail_percent = round(avail_total / size_total * 100, 2)
+        used_percent = round(100 - avail_percent, 2)
+        all_kvm_space = {
+            'size_total': size_total,
+            'used_total': used_total,
+            'avail_total': avail_total,
+            'avail_percent': avail_percent,
+            'used_percent': used_percent,
+        }
+        return all_kvm_space
+
 
 # linuxserver_credit = {
 #     'KvmHost': '192.168.1.61',
@@ -518,4 +583,6 @@ class KVMApi():
 # result = KVMApi(linuxserver_credit).alert_hostname('CentOS-7@test5')
 # result = KVMApi(linuxserver_credit).guestmount_umount()
 # result = KVMApi(linuxserver_credit).alert_ip_hostname_sh('CentOS-7', 'tank/CentOS-7-test2', '192.168.1.197', 'CentOS-7-test2')
+# print(result)
+# result = KVMApi(linuxserver_credit).kvm_disk_space()
 # print(result)

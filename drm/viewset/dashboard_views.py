@@ -5,8 +5,8 @@ from django.contrib.auth.decorators import login_required
 
 from ..tasks import *
 from .basic_views import getpagefuns
-from .config_views import get_credit_info
 from .public_func import *
+from .config_views import get_credit_info
 from drm.api.commvault import SQLApi
 from drm.api.commvault.RestApi import *
 
@@ -18,6 +18,7 @@ import pymysql
 
 pythoncom.CoInitialize()
 import wmi
+from ..kvm import KVMApi
 
 
 ######################
@@ -26,11 +27,13 @@ import wmi
 @login_required
 def dashboard(request, funid):
     util_manages = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
+    kvm_util_manages = UtilsManage.objects.exclude(state='9').filter(util_type='Kvm')
 
     return render(request, "dashboard.html", {
         'username': request.user.userinfo.fullname,
         "pagefuns": getpagefuns(funid, request=request),
-        "util_manages": util_manages
+        "util_manages": util_manages,
+        "kvm_util_manages": kvm_util_manages
     })
 
 
@@ -825,11 +828,42 @@ def get_ma_disk_space(request):
             }
         except:
             pass
+
     return JsonResponse({
         "status": status,
         "info": info,
-        "data": data
+        "data": data,
     })
+
+
+@login_required
+def get_kvm_disk_space(request):
+
+    status = 1
+    kvm_space = ''
+    info = ''
+    kvm_utils_id = request.POST.get('kvm_utils_id', '')
+
+    try:
+        kvm_utils_id = int(kvm_utils_id)
+    except:
+        status = 0
+        info = 'Kvm工具未配置。'
+    utils_kvm_info = UtilsManage.objects.filter(id=kvm_utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+
+    kvm_credit = get_credit_info(content, util_type.upper())
+    try:
+        kvm_space = KVMApi(kvm_credit).kvm_disk_space()
+    except:
+        pass
+    return JsonResponse({
+        "status": status,
+        "info": info,
+        "kvm_space": kvm_space
+    })
+
 
 @login_required
 def get_adg_copy_status(request):

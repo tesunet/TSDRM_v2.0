@@ -4,7 +4,7 @@
 
 {% block content %}
     <style>
-        #loading1, #loading2, #loading3, #loading4 {
+        #loading1, #loading2, #loading3, #loading4, #loading5 {
             height: 240px;
             width: 100%;
             background-image: url(../static/upload/loading.gif);
@@ -184,8 +184,18 @@
                                                         style="font-size:16px"><a href="" target="_blank" style="color:#32c5d2" id="a_bk_space">CV备份空间使用情况</a></span></div>
                             <div class="col-md-4"><span class="caption-subject bold uppercase font-green"
                                                         style="font-size:16px"><a href="" target="_blank" style="color:#32c5d2" id="a_top5">CV TOP 5</a></span></div>
-                            <div class="col-md-4"><span class="caption-subject bold uppercase font-green"
-                                                        style="font-size:16px">虚拟化空间</span></div>
+                            <div class="col-md-4">
+                                <div class="col-md-6 col-lg-6">
+                                    <span class="caption-subject bold uppercase font-green" style="font-size:16px">虚拟化空间</span>
+                                </div>
+                                <div class="col-md-6 col-lg-6">
+                                    <select class="form-control btn green btn-circle btn-sm" id="kvm_utils_id" name="kvm_utils_id" style="width: 100px;height: 34px; float:right;font-size: 10pt">
+                                        {% for util in kvm_util_manages %}
+                                            <option value="{{ util.id }}">{{ util.name }} </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-md-4" align="center" style="padding-top: 20px;" id="ma_disk_space">
                             <div id="loading3" class="portlet-body"></div>
@@ -218,18 +228,20 @@
                                 </table>
                             </div>
                         </div>
-                        <div class="col-md-4" align="center" style="padding-top: 20px">
-
-                            <div style="float:left;padding-left: 50px">
-                                <input readonly class="knob" data-width="200"
-                                       data-fgcolor="#32C5D2" data-min="-100"
-                                       data-displayprevious=true value="50">
+                        <div class="col-md-4" align="center" style="padding-top: 20px" id="kvm_disk_space">
+                            <div id="loading5" class="portlet-body"></div>
+                            <div id="kvm_space_div">
+                                <div style="float:left;padding-left: 50px">
+                                    <input readonly class="knob" data-width="200"
+                                       data-fgcolor="#32C5D2" data-min="0"
+                                       data-displayprevious=true value="100">
+                                </div>
+                                <div style="float:left;padding-left: 40px;padding-top: 20px">
+                                    <h4>虚拟化空间</h4>
+                                    <h4 class="">0 TB/0 TB </h4>
+                                </div>
                             </div>
-                            <div style="float:left;padding-left: 40px;padding-top: 20px">
-                                <h4>虚拟化空间</h4>
-                                <h4 class="">45 TB/100 TB </h4>
 
-                            </div>
                         </div>
                     </div>
                 </div>

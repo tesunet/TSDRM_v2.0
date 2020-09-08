@@ -214,6 +214,7 @@ urlpatterns = [
     url(r'^get_disk_space/$', get_disk_space),
     url(r'^get_disk_space_daily/$', get_disk_space_daily),
     url(r'^get_ma_disk_space/$', get_ma_disk_space),
+    url(r'^get_kvm_disk_space/$', get_kvm_disk_space),
 
     #数据库复制运行情况
     url(r'^get_adg_copy_status/$', get_adg_copy_status),

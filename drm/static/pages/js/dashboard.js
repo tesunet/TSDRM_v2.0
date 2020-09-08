@@ -385,6 +385,9 @@ $(document).ready(function () {
         getBackupSpace($(this).val());
     });
 
+    $("#kvm_utils_id").change(function () {
+        getKvmSpace($(this).val());
+    });
 
     var Dashboard = function () {
 
@@ -476,6 +479,37 @@ $(document).ready(function () {
         });
     }
     getBackupSpace($("#util").val());
+
+    /*
+    虚拟化空间使用情况
+     */
+    function getKvmSpace(kvm_util){
+        $('#loading5').show();
+        $('#kvm_space_div').hide();
+        $.ajax({
+            type: "POST",
+            dataType: "JSON",
+            url: "../get_kvm_disk_space/",
+            data: {
+                "kvm_utils_id": kvm_util
+            },
+            success: function (data) {
+                $('#loading5').hide();
+                $('#kvm_space_div').show();
+                var kvm_space = data.kvm_space;
+                if (kvm_space["used_percent"] < 0.5){
+                    $('#kvm_disk_space input').eq(0).val(1).trigger('change');
+                }
+                else{
+                    $('#kvm_disk_space input').eq(0).val(kvm_space["used_percent"]).trigger('change');
+                }
+                $('#kvm_disk_space h4').eq(1).text(kvm_space["used_total"] + " TB/" + kvm_space["size_total"] + " TB");
+
+            }
+        });
+    }
+    getKvmSpace($("#kvm_utils_id").val());
+
 });
 
 
