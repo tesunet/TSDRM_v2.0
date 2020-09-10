@@ -2214,6 +2214,7 @@ def zfs_snapshot_mount(request):
     snapshotname = filesystem + '@' + snapshot_name
     filesystemname = filesystem + '-' + copy_name
     copyname = kvm_machine + '@' + copy_name
+    copystate = '关闭'
 
     if not copy_name.strip():
         result['res'] = '实例名称未填写。'
@@ -2246,7 +2247,7 @@ def zfs_snapshot_mount(request):
                                 if result_info == '修改成功。':
                                     result_info = KVMApi(kvm_credit).umount()
                                     if result_info == '取消挂载成功。':
-                                        result_info = KVMApi(kvm_credit).kvm_start(copyname)
+                                        result_info = KVMApi(kvm_credit).kvm_start(copystate, copyname)
                                         if result_info == '开机成功。':
                                             # 副本开启成功，保存数据库
                                             try:
@@ -2318,7 +2319,8 @@ def kvm_copy_data(request):
 
             copy_state_dict = {
                 'running': '运行中',
-                'shut off': '关闭'
+                'shut off': '关闭',
+                'paused': '暂停'
             }
 
             if copy_state in copy_state_dict:
@@ -2379,6 +2381,7 @@ def kvm_start(request):
     result = {}
     utils_id = request.POST.get("utils_id", "")
     kvm_name = request.POST.get("kvm_name", "")
+    kvm_state = request.POST.get("kvm_state", "")
 
     try:
         utils_id = int(utils_id)
@@ -2390,7 +2393,7 @@ def kvm_start(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     try:
-        result_info = KVMApi(kvm_credit).kvm_start(kvm_name)
+        result_info = KVMApi(kvm_credit).kvm_start(kvm_state, kvm_name)
         result['res'] = result_info
     except Exception as e:
         print(e)
@@ -2399,10 +2402,11 @@ def kvm_start(request):
 
 
 @login_required
-def kvm_shutdown(request):
+def kvm_destroy(request):
     result = {}
     utils_id = request.POST.get("utils_id", "")
     kvm_name = request.POST.get("kvm_name", "")
+    kvm_state = request.POST.get("kvm_state", "")
 
     try:
         utils_id = int(utils_id)
@@ -2414,11 +2418,235 @@ def kvm_shutdown(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     try:
-        result_info = KVMApi(kvm_credit).kvm_shutdown(kvm_name)
+        result_info = KVMApi(kvm_credit).kvm_destroy(kvm_state, kvm_name)
         result['res'] = result_info
     except Exception as e:
         print(e)
         result["res"] = '断电失败。'
+    return JsonResponse(result)
+
+
+######################
+# 虚拟机管理
+######################
+@login_required
+def kvm_manage(request, funid):
+    # kvm虚拟化平台
+    util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
+    utils_kvm_list = []
+    for utils in util_manage:
+        utils_kvm_list.append({
+            "id": utils.id,
+            "code": utils.code,
+            "name": utils.name,
+        })
+
+    return render(request, 'kvm_manage.html',
+                  {'username': request.user.userinfo.fullname,
+                   "pagefuns": getpagefuns(funid, request=request),
+                   "utils_kvm_list": utils_kvm_list,
+                   })
+
+
+@login_required
+def kvm_manage_data(request):
+    kvm_info_list = []
+    utils_id = request.GET.get("utils_id", "")
+
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+    try:
+        kvm_list = KVMApi(kvm_credit).kvm_all_list()
+        for kvm in kvm_list:
+            kvm_info = KVMApi(kvm_credit).kvm_info_data(kvm['name'])
+            kvm_info['kvm_name'] = kvm['name']
+            kvm_info['kvm_state'] = kvm['state']
+            kvm_info_list.append(kvm_info)
+    except Exception as e:
+        print(e)
+    return JsonResponse({'data': kvm_info_list})
+
+
+@login_required
+def kvm_suspend(request):
+    result = {}
+    utils_id = request.POST.get("utils_id", "")
+    kvm_name = request.POST.get("kvm_name", "")
+    kvm_state = request.POST.get("kvm_state", "")
+
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+    try:
+        result_info = KVMApi(kvm_credit).kvm_suspend(kvm_state, kvm_name)
+        result["res"] = result_info
+
+    except Exception as e:
+        print(e)
+        result["res"] = '暂停失败。'
+    return JsonResponse(result)
+
+
+@login_required
+def kvm_resume(request):
+    result = {}
+    utils_id = request.POST.get("utils_id", "")
+    kvm_name = request.POST.get("kvm_name", "")
+    kvm_state = request.POST.get("kvm_state", "")
+
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+    try:
+        result_info = KVMApi(kvm_credit).kvm_resume(kvm_state, kvm_name)
+        result["res"] = result_info
+
+    except Exception as e:
+        print(e)
+        result["res"] = '运行失败。'
+    return JsonResponse(result)
+
+
+@login_required
+def kvm_reboot(request):
+    result = {}
+    utils_id = request.POST.get("utils_id", "")
+    kvm_name = request.POST.get("kvm_name", "")
+    kvm_state = request.POST.get("kvm_state", "")
+
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+    try:
+        result_info = KVMApi(kvm_credit).kvm_reboot(kvm_state, kvm_name)
+        result["res"] = result_info
+    except Exception as e:
+        print(e)
+        result["res"] = '重启失败。'
+    return JsonResponse(result)
+
+
+@login_required
+def kvm_delete(request):
+    # 删除虚拟机 + 删除文件系统
+    result = {}
+    utils_id = request.POST.get("utils_id", "")
+    kvm_name = request.POST.get("kvm_name", "")
+    kvm_state = request.POST.get("kvm_state", "")
+
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+    filesystem = 'tank/' + kvm_name       # 拼接文件系统 tank/CentOS-7
+    try:
+        result_info = KVMApi(kvm_credit).undefine(kvm_name, kvm_state, filesystem)
+        result["res"] = result_info
+    except Exception as e:
+        print(e)
+        result["res"] = '删除失败。'
+
+    return JsonResponse(result)
+
+
+@login_required
+def kvm_clone_save(request):
+    # 克隆虚拟机：①判断要克隆虚拟机是否存在 ②先创建文件系统 ③再执行克隆操作
+
+    result = {}
+    utils_id = request.POST.get("utils_id", "")
+    kvm_state = request.POST.get("kvm_state", "")
+    kvm_name = request.POST.get("kvm_name_old", "")
+    kvm_name_clone = request.POST.get("kvm_name_new", "")
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+    filesystem = 'tank/' + kvm_name_clone  # 文件系统
+    if not kvm_name_clone.strip():
+        result['res'] = '新虚拟机名称未填写。'
+    if kvm_state == 'running' or kvm_state == '运行中':
+        result['res'] = '虚拟机未关闭。'
+    else:
+        try:
+            kvm_exist = []
+            kvm_list = KVMApi(kvm_credit).kvm_all_list()
+            for i in kvm_list:
+                kvm_exist.append(i['name'])
+            if kvm_name_clone in kvm_exist:
+                result['res'] = '虚拟机' + kvm_name_clone + '已存在。'
+            else:
+                result_info = KVMApi(kvm_credit).create_filesystem(filesystem)
+                if result_info == '文件系统创建成功。':
+                    result_info = KVMApi(kvm_credit).kvm_clone(kvm_state, kvm_name, kvm_name_clone, filesystem)
+                    result["res"] = result_info
+                else:
+                    result["res"] = '文件系统创建失败。'
+        except Exception as e:
+            print(e)
+            result["res"] = '克隆失败。'
+    return JsonResponse(result)
+
+
+@login_required
+def kvm_shutdown(request):
+    # 关闭虚拟机
+    result = {}
+    utils_id = request.POST.get("utils_id", "")
+    kvm_name = request.POST.get("kvm_name", "")
+    kvm_state = request.POST.get("kvm_state", "")
+
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+    try:
+        result_info = KVMApi(kvm_credit).kvm_shutdown(kvm_state, kvm_name)
+        time.sleep(5)
+        result["res"] = result_info
+    except Exception as e:
+        print(e)
+        result["res"] = '关闭失败。'
     return JsonResponse(result)
 
 

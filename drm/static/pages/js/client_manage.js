@@ -2436,11 +2436,11 @@ $(document).ready(function () {
 
         if($("#copy_state").val() == '运行中'){
             $("#kvm_start").hide();
-            $("#kvm_shutdown").show()
+            $("#kvm_destroy").show()
         }
         if($("#copy_state").val() == '关闭'){
             $("#kvm_start").show();
-            $("#kvm_shutdown").hide()
+            $("#kvm_destroy").hide()
         }
 
 
@@ -2486,6 +2486,7 @@ $(document).ready(function () {
                     utils_id: $("#kvm_machine_platform").val(),
                     id: $("#copy_id").val(),
                     kvm_name: $("#copy_name").val(),
+                    kvm_state: $("#copy_state").val(),
                 },
             success: function (data) {
                 var myres = data["res"];
@@ -2500,17 +2501,18 @@ $(document).ready(function () {
             }
         });
     });
-    $('#kvm_shutdown').click(function () {
+    $('#kvm_destroy').click(function () {
         var table = $('#kvm_copy').DataTable();
         $.ajax({
             type: "POST",
             dataType: 'json',
-            url: "../kvm_shutdown/",
+            url: "../kvm_destroy/",
             data:
                 {
                     utils_id: $("#kvm_machine_platform").val(),
                     id: $("#copy_id").val(),
                     kvm_name: $("#copy_name").val(),
+                    kvm_state: $("#copy_state").val(),
                 },
             success: function (data) {
                 var myres = data["res"];
