@@ -79,6 +79,21 @@ class ServerByPara(object):
         self.pwd = password
         self.system_choice = system_choice
 
+    @staticmethod
+    def handle_codec(content):
+        """
+        处理编码问题
+        @content: 响应信息
+        """
+        try:
+            content = str(content, encoding='utf-8')
+        except Exception as e:
+            try:
+                content = str(content, encoding='gbk')
+            except:
+                raise Exception("编码错误")
+        return content
+
     def exec_linux_cmd(self, succeedtext, port=22):
         data_init = ''
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -95,16 +110,14 @@ class ServerByPara(object):
             stdin, stdout, stderr = self.client.exec_command(self.cmd, get_pty=True, timeout=6 * 60)
             if stderr.read():
                 exec_tag = 1
-                data_init = str(stderr.read(), encoding='utf-8')
-                # for data in stderr.readlines():
-                #     data_init += data
+                data_init = ServerByPara.handle_codec(stderr.read())
                 log = ""
             else:
                 exec_tag = 0
                 log = ""
 
                 try:
-                    data_init = str(stdout.read(), encoding='utf-8')
+                    data_init = ServerByPara.handle_codec(stdout.read())
                     if data_init:
                         data_init = " ".join(data_init.split("\r\n"))
 

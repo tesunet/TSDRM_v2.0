@@ -84,9 +84,11 @@ def get_script_node(parent, select_id):
 
 @login_required
 def script(request, funid):
+    escape_dict = "{{}}"
     return render(request, 'script.html', {
         'username': request.user.userinfo.fullname, 
         "pagefuns": getpagefuns(funid, request=request),
+        "escape_dict": escape_dict
     })
 
 
@@ -959,11 +961,11 @@ def processconfig(request, funid):
         root["children"] = get_script_node(root_node, select_id)
         tree_data.append(root)
     tree_data = json.dumps(tree_data, ensure_ascii=False)
-
+    escape_dict = "{{}}"
     return render(request, 'processconfig.html',
                   {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request),
                    "processlist": processlist, "process_id": process_id, "all_hosts_manage": all_hosts_manage,
-                   "tree_data": tree_data, "cv_client_data": cv_client_data})
+                   "tree_data": tree_data, "cv_client_data": cv_client_data, "escape_dict": escape_dict})
 
 
 @login_required
@@ -4076,103 +4078,6 @@ def hosts_manage_del(request):
 def util_manage(request, funid):
     return render(request, 'util_manage.html',
                   {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request)})
-
-
-def get_credit_info(content, util_type="COMMVAULT"):
-    commvault_credit = {
-        'webaddr': '',
-        'port': '',
-        'hostusername': '',
-        'hostpasswd': '',
-        'username': '',
-        'passwd': '',
-    }
-    sqlserver_credit = {
-        'SQLServerHost': '',
-        'SQLServerUser': '',
-        'SQLServerPasswd': '',
-        'SQLServerDataBase': '',
-    }
-    kvm_credit = {
-        'KvmHost': '',
-        'KvmUser': '',
-        'KvmPasswd': '',
-        'SystemType': '',
-    }
-
-    try:
-        doc = etree.XML(content)
-        if util_type == 'COMMVAULT':
-            # Commvault账户信息
-            try:
-                commvault_credit['webaddr'] = doc.xpath('//webaddr/text()')[0]
-            except:
-                pass
-            try:
-                commvault_credit['port'] = doc.xpath('//port/text()')[0]
-            except:
-                pass
-            try:
-                commvault_credit['hostusername'] = doc.xpath('//hostusername/text()')[0]
-            except:
-                pass
-            try:
-                commvault_credit['hostpasswd'] = base64.b64decode(doc.xpath('//hostpasswd/text()')[0]).decode()
-            except:
-                pass
-            try:
-                commvault_credit['username'] = doc.xpath('//username/text()')[0]
-            except:
-                pass
-            try:
-                commvault_credit['passwd'] = base64.b64decode(doc.xpath('//passwd/text()')[0]).decode()
-            except:
-                pass
-
-            # SQL Server账户信息
-            try:
-                sqlserver_credit['SQLServerHost'] = doc.xpath('//SQLServerHost/text()')[0]
-            except:
-                pass
-            try:
-                sqlserver_credit['SQLServerUser'] = doc.xpath('//SQLServerUser/text()')[0]
-            except:
-                pass
-            try:
-                sqlserver_credit['SQLServerPasswd'] = base64.b64decode(
-                    doc.xpath('//SQLServerPasswd/text()')[0]).decode()
-            except:
-                pass
-            try:
-                sqlserver_credit['SQLServerDataBase'] = doc.xpath('//SQLServerDataBase/text()')[0]
-            except:
-                pass
-
-            return commvault_credit, sqlserver_credit
-        elif util_type == 'KVM':
-            # Kvm账户信息
-            try:
-                kvm_credit['KvmHost'] = doc.xpath('//KvmHost/text()')[0]
-            except:
-                pass
-            try:
-                kvm_credit['KvmUser'] = doc.xpath('//KvmUser/text()')[0]
-            except:
-                pass
-            try:
-                kvm_credit['KvmPasswd'] = base64.b64decode(
-                    doc.xpath('//KvmPasswd/text()')[0]).decode()
-            except:
-                pass
-            try:
-                kvm_credit['SystemType'] = doc.xpath('//SystemType/text()')[0]
-            except:
-                pass
-            return kvm_credit
-
-    except Exception as e:
-        print(e)
-
 
 
 @login_required

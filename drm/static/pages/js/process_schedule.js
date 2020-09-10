@@ -353,7 +353,6 @@ function displayProcessParams(p_id) {
             $('#pri_id').val(cv_params.pri_id);
             $('#pri').val(cv_params.pri_name);
             $('#std').val(cv_params.std_id);
-
             $('#Commvault_div').show();
         } else {
             $('#Commvault_div').hide();
@@ -370,6 +369,15 @@ function displayAgentParams(cv_params, agent_type) {
     /**
      * 应用参数
      */
+    var recovery_time = cv_params.recovery_time;
+
+    if (recovery_time){
+        $("input[name='optionsRadios'][value='2']").prop("checked", true);
+        $('#recovery_time').val(recovery_time);
+    } else {
+        $("input[name='optionsRadios'][value='1']").prop("checked", true);
+        $('#recovery_time').val("");
+    }
     $('#agent_type').val(agent_type);
     if (agent_type.indexOf("Oracle") != -1) {
         $('#cv_copy_priority').val(cv_params.copy_priority);

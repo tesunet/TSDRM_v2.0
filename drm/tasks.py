@@ -20,6 +20,7 @@ from .models import *
 from TSDRM import settings
 from .api.commvault import SQLApi
 from .CVApi import *
+from .viewset.public_func import *
 
 logger = logging.getLogger('tasks')
 
@@ -31,11 +32,9 @@ logger = logging.getLogger('tasks')
 #         工具ID MediaID 可用容量、保留空间、总容量、取数时间
 
 #     """
-#     from .viewset.config_views import get_credit_info
 #     commvaul_utils = UtilsManage.objects.exclude(state="9").filter(util_type="Commvault")
 #     point_tag = uuid.uuid1()
 #     for cu in commvaul_utils:
-#         _, sqlserver_credit = get_credit_info(cu.content)
 #         dm = SQLApi.CVApi(sqlserver_credit)
 #         disk_space = dm.get_library_space_info()
 
@@ -57,9 +56,97 @@ logger = logging.getLogger('tasks')
 def content_load_params(script_instance):
     """
     脚本中传入参数
-    :return:
+        脚本参数 info
+        主机参数 info + HostsManage(表所有字段信息) + CvClient(表所有字段信息)
+        流程参数 info + Process(表所有字段信息)
+    :return: 整合参数后脚本内容
     """
-    params = eval(script_instance.params)
+    params = eval(script_instance.params)  # 包含所有参数与值的映射关系
+
+    # 加上特定参数 --> HostsManage CvClient Process 等表下字段的值
+    hm = script_instance.hosts_manage
+    if hm:
+        hm_spc = {  # 特定主机参数(字段)
+            "_host_ip": hm.host_ip,
+            "_host_name": hm.host_name,
+            "_host_os": hm.os,
+            "_host_type": hm.type,
+            "_host_username": hm.username,
+            "_host_password": hm.password,
+        }
+        hm_spc_params = [{
+            "variable_name": k,
+            "param_value": v,
+            "type": "HOST",
+        } for k, v in hm_spc.items() if k]
+        hm_cfg_params = get_params(hm.config, add_type="HOST")  # 主机参数
+        
+        params.extend(hm_spc_params)
+        params.extend(hm_cfg_params)
+        cvcs = hm.cvclient_set.exclude(state="9")
+        cv_cli = cvcs[0] if cvcs.exists() else ""  # 主机下的客户端
+        if cv_cli:
+            cv_cli_spc = {   # 特定客户端参数(字段)
+                "_cv_cli_id": cv_cli.client_id,
+                "_cv_cli_name": cv_cli.client_name,
+                "_cv_cli_agentType": cv_cli.agentType,
+                "_cv_cli_instanceName": cv_cli.instanceName,
+                "_cv_cli_std_id": cv_cli.destination.client_id if cv_cli.destination else "",
+                "_cv_cli_std_name": cv_cli.destination.client_name if cv_cli.destination else ""
+            }
+            cv_cli_spc_params = [{
+                "variable_name": k,
+                "param_value": v,
+                "type": "HOST",
+            } for k, v in cv_cli_spc.items() if k]
+            params.extend(cv_cli_spc_params)
+
+        db_copy_clis = hm.dbcopyclient_set.exclude(state="9")
+        db_copy_cli = db_copy_clis[0] if db_copy_clis.exists() else ""  # ADG MYSQL(M/S)
+        if db_copy_cli:
+            attribs = {}
+            try:
+                attribs_xml = etree.XML(db_copy_cli.info)
+                attribs_node = attribs_xml.xpath("//param")[0]
+                attribs = attribs_node.attrib
+            except Exception:
+                pass
+
+            if db_copy_cli.dbtype == "1":
+                adb_spc = {
+                    "_adg_db_username": attribs.get("dbusername", ""),
+                    "_adg_db_password": attribs.get("dbpassword", ""),
+                    "_adg_db_instance": attribs.get("dbinstance", ""),
+                }
+                adb_spc_params = [{
+                    "variable_name": k,
+                    "param_value": v,
+                    "type": "HOST",
+                } for k, v in adb_spc.items() if k]
+                params.extend(adb_spc_params)
+            if db_copy_cli.dbtype == "2":
+                mysql_ms_spc = {
+                    "_mysql_db_username": attribs.get("dbusername", ""),
+                    "_mysql_db_password": attribs.get("dbpassword", ""),
+                    "_mysql_copy_username": attribs.get("copyusername", ""),
+                    "_mysql_copy_password": attribs.get("copypassword", ""),
+                    "_mysql_binlog": attribs.get("binlog", ""),
+                }
+                mysql_ms_spc_params = [{
+                    "variable_name": k,
+                    "param_value": v,
+                    "type": "HOST",
+                } for k, v in mysql_ms_spc.items() if k]
+                params.extend(mysql_ms_spc_params)
+    try:
+        p = script_instance.step.process
+        p_spc = {}  # 流程特定参数 暂无
+        p_cgf_params = get_params(p.config, add_type="PROCESS")
+        params.extend(p_cgf_params) # 流程参数
+    except Exception as e:
+        print(e)
+
+    # config fields >> params参数字典
     script = script_instance.script
     script_text = script.script_text
     # 匹配出参数，替换
@@ -89,27 +176,26 @@ def content_load_params(script_instance):
             if variable_name.strip() == param["variable_name"]:
                 param_value = param["param_value"]
                 break
-        return param_value
+        return str(param_value) if param_value else ""
 
-    # 流程参数参数 注意空格
+    # 流程参数
     process_variable_list, process_variable_list_with_symbol = get_variable_name(script_text, "PROCESS")
     for n, pv in enumerate(process_variable_list):
-        param_value = get_value_from_params(pv, params)
+        param_value = get_value_from_params(pv, params)     
         script_text = script_text.replace(process_variable_list_with_symbol[n], param_value)
 
     # 主机参数
-    host_variable_list, host_variable_list_with_symbol = get_variable_name(script_text, "HOST")
+    host_variable_list, host_variable_list_with_symbol = get_variable_name(script_text, "HOST")  
     for n, hv in enumerate(host_variable_list):
         param_value = get_value_from_params(hv, params)
         script_text = script_text.replace(host_variable_list_with_symbol[n], param_value)
     # 脚本参数
-    script_variable_list, script_variable_list_with_symbol = get_variable_name(script_text, "SCRIPT")
+    script_variable_list, script_variable_list_with_symbol = get_variable_name(script_text, "SCRIPT")   # 获取脚本实例相关参数名称
     for n, sv in enumerate(script_variable_list):
-        param_value = get_value_from_params(sv, params)
-        script_text = script_text.replace(script_variable_list_with_symbol[n], param_value)
+        param_value = get_value_from_params(sv, params)     # 从参数键值字典中获取参数的值
+        script_text = script_text.replace(script_variable_list_with_symbol[n], param_value)   # 替换参数值
 
     return script_text
-
 
 @shared_task
 def force_exec_script(processrunid):
@@ -548,7 +634,6 @@ def runstep(steprun, if_repeat=False, processrun_params={}):
                                 # 恢复出错                      #
                                 #######################################
                                 recover_error = "无"
-                                from .viewset.config_views import get_credit_info
 
                                 try:
                                     _, sqlserver_credit = get_credit_info(utils_content)
@@ -626,7 +711,6 @@ def runstep(steprun, if_repeat=False, processrun_params={}):
                         if "RMAN Script execution failed  with error [RMAN-03002" in result['data']:
                             # 终止commvault作业
                             if recover_job_id != '':
-                                from .viewset.config_views import get_credit_info
                                 try:
                                     commvault_credit, _ = get_credit_info(utils_content)
                                     cvToken = CV_RestApi_Token()
@@ -771,7 +855,6 @@ def exec_process(processrunid, if_repeat=False):
                 copy_priority = info.xpath("//param")[0].attrib.get("copy_priority")
 
                 # nextSCN-1
-                from .viewset.config_views import get_credit_info
                 _, sqlserver_credit = get_credit_info(utils_content)
 
                 dm = SQLApi.CVApi(sqlserver_credit)

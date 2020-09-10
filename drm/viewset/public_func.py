@@ -10,7 +10,8 @@ import base64
 from ..api.commvault import SQLApi
 
 
-def get_credit_info(content):
+
+def get_credit_info(content, util_type="COMMVAULT"):
     commvault_credit = {
         'webaddr': '',
         'port': '',
@@ -25,57 +26,85 @@ def get_credit_info(content):
         'SQLServerPasswd': '',
         'SQLServerDataBase': '',
     }
+    kvm_credit = {
+        'KvmHost': '',
+        'KvmUser': '',
+        'KvmPasswd': '',
+        'SystemType': '',
+    }
+
     try:
         doc = etree.XML(content)
+        if util_type == 'COMMVAULT':
+            # Commvault账户信息
+            try:
+                commvault_credit['webaddr'] = doc.xpath('//webaddr/text()')[0]
+            except:
+                pass
+            try:
+                commvault_credit['port'] = doc.xpath('//port/text()')[0]
+            except:
+                pass
+            try:
+                commvault_credit['hostusername'] = doc.xpath('//hostusername/text()')[0]
+            except:
+                pass
+            try:
+                commvault_credit['hostpasswd'] = base64.b64decode(doc.xpath('//hostpasswd/text()')[0]).decode()
+            except:
+                pass
+            try:
+                commvault_credit['username'] = doc.xpath('//username/text()')[0]
+            except:
+                pass
+            try:
+                commvault_credit['passwd'] = base64.b64decode(doc.xpath('//passwd/text()')[0]).decode()
+            except:
+                pass
 
-        # Commvault账户信息
-        try:
-            commvault_credit['webaddr'] = doc.xpath('//webaddr/text()')[0]
-        except:
-            pass
-        try:
-            commvault_credit['port'] = doc.xpath('//port/text()')[0]
-        except:
-            pass
-        try:
-            commvault_credit['hostusername'] = doc.xpath('//hostusername/text()')[0]
-        except:
-            pass
-        try:
-            commvault_credit['hostpasswd'] = base64.b64decode(doc.xpath('//hostpasswd/text()')[0]).decode()
-        except:
-            pass
-        try:
-            commvault_credit['username'] = doc.xpath('//username/text()')[0]
-        except:
-            pass
-        try:
-            commvault_credit['passwd'] = base64.b64decode(doc.xpath('//passwd/text()')[0]).decode()
-        except:
-            pass
+            # SQL Server账户信息
+            try:
+                sqlserver_credit['SQLServerHost'] = doc.xpath('//SQLServerHost/text()')[0]
+            except:
+                pass
+            try:
+                sqlserver_credit['SQLServerUser'] = doc.xpath('//SQLServerUser/text()')[0]
+            except:
+                pass
+            try:
+                sqlserver_credit['SQLServerPasswd'] = base64.b64decode(
+                    doc.xpath('//SQLServerPasswd/text()')[0]).decode()
+            except:
+                pass
+            try:
+                sqlserver_credit['SQLServerDataBase'] = doc.xpath('//SQLServerDataBase/text()')[0]
+            except:
+                pass
 
-        # SQL Server账户信息
-        try:
-            sqlserver_credit['SQLServerHost'] = doc.xpath('//SQLServerHost/text()')[0]
-        except:
-            pass
-        try:
-            sqlserver_credit['SQLServerUser'] = doc.xpath('//SQLServerUser/text()')[0]
-        except:
-            pass
-        try:
-            sqlserver_credit['SQLServerPasswd'] = base64.b64decode(
-                doc.xpath('//SQLServerPasswd/text()')[0]).decode()
-        except:
-            pass
-        try:
-            sqlserver_credit['SQLServerDataBase'] = doc.xpath('//SQLServerDataBase/text()')[0]
-        except:
-            pass
+            return commvault_credit, sqlserver_credit
+        elif util_type == 'KVM':
+            # Kvm账户信息
+            try:
+                kvm_credit['KvmHost'] = doc.xpath('//KvmHost/text()')[0]
+            except:
+                pass
+            try:
+                kvm_credit['KvmUser'] = doc.xpath('//KvmUser/text()')[0]
+            except:
+                pass
+            try:
+                kvm_credit['KvmPasswd'] = base64.b64decode(
+                    doc.xpath('//KvmPasswd/text()')[0]).decode()
+            except:
+                pass
+            try:
+                kvm_credit['SystemType'] = doc.xpath('//SystemType/text()')[0]
+            except:
+                pass
+            return kvm_credit
 
     except Exception as e:
         print(e)
-    return commvault_credit, sqlserver_credit
 
 
 def get_oracle_client(um):
@@ -119,7 +148,7 @@ def get_oracle_client(um):
     }
 
 
-def get_params(config):
+def get_params(config, add_type=None):
     """
     <root>
         <param param_name="1" variable_name="2" param_value="3"/>
@@ -135,11 +164,19 @@ def get_params(config):
         config = etree.XML(pre_config)
     param_nodes = config.xpath("//param")
     for pn in param_nodes:
-        param_list.append({
-            "param_name": pn.attrib.get("param_name", ""),
-            "variable_name": pn.attrib.get("variable_name", ""),
-            "param_value": pn.attrib.get("param_value", ""),
-        })
+        if not add_type:
+            param_list.append({
+                "param_name": pn.attrib.get("param_name", ""),
+                "variable_name": pn.attrib.get("variable_name", ""),
+                "param_value": pn.attrib.get("param_value", ""),
+            })
+        else:
+            param_list.append({
+                "param_name": pn.attrib.get("param_name", ""),
+                "variable_name": pn.attrib.get("variable_name", ""),
+                "param_value": pn.attrib.get("param_value", ""),
+                "type": add_type
+            })
     return param_list
 
 

@@ -11,7 +11,6 @@ from drm.api.commvault import SQLApi
 from drm.api.commvault.RestApi import *
 from .public_func import *
 from .basic_views import getpagefuns
-from .config_views import get_credit_info
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 
