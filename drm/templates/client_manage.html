@@ -893,7 +893,6 @@
                                                         <thead>
                                                         <tr>
                                                             <th style="width:40px;"> 序号</th>
-{#                                                            <th> 快照名称</th>#}
                                                             <th> 实例名称</th>
                                                             <th> 实例IP</th>
                                                             <th> 实例主机名</th>
@@ -1127,17 +1126,6 @@
                     <form class="bs-example form-horizontal activate-form">{% csrf_token %}
                         <div id="loading2" class="portlet-body"></div>
                         <div class="form-body" id="copy_manage_div">
-                            <div class="form-group">
-                                <label class="col-md-2 control-label"><span
-                                        style="color:red; ">*</span>快照名称</label>
-                                <div class="col-md-10">
-                                    <input readonly id="copy_snapshot" type="text" name="copy_snapshot" class="form-control "
-                                           placeholder="" autocomplete="off">
-                                    <div class="form-control-focus"></div>
-
-                                </div>
-
-                            </div>
                             <div class="form-group">
                                 <label class="col-md-2 control-label"><span
                                         style="color:red; ">*</span>实例名称</label>

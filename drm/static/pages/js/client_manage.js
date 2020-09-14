@@ -2162,7 +2162,10 @@ $(document).ready(function () {
     $('#kvm_copy_div').click(function () {
         $('#loading1').hide();
         $('#create_copy_div').show();
-        $("#kvm_copy_name").val("")
+        $("#kvm_copy_name").val("");
+        $("#kvm_copy_cpu").val("");
+        $("#kvm_copy_memory").val("")
+
     });
 
 

@@ -2139,7 +2139,7 @@ def kvm_copy_create(request):
                                         'create_user_id': user_id,
                                         'utils_id': utils_id,
                                         'kvmmachine_id': kvm_machine_id,
-                                        'snapshot': snapshot_name,
+                                        'snapshot': snapshotname,
                                     })
                                     result['res'] = '创建成功。'
                                 except Exception as e:
