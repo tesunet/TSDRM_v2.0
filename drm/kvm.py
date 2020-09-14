@@ -128,7 +128,21 @@ class KVMApi():
             result = '虚拟机未开启。'
         return result
 
-    def undefine(self, kvm_name, state, filesystem):
+    def filesystem_del(self, filesystem):
+        try:
+            exe_cmd = r'zfs destroy {0}'.format(filesystem)
+            result = self.remote_linux(exe_cmd)
+            if result['data'] == '':
+                result = '删除文件系统成功。'
+            else:
+                result = '删除文件系统成功。'
+        except Exception as e:
+            print(e)
+            result = '删除文件系统失败。'
+
+        return result
+
+    def undefine(self, kvm_name, state):
         """
         删除虚拟机
         停止主机：virsh shutdown linux65
@@ -146,19 +160,12 @@ class KVMApi():
                     result = self.remote_linux(exe_cmd)
                     if result['data'].strip() == 'Domain {0} has been undefined'.format(kvm_name) or \
                             result['data'].strip() == '域 {0} 已经被取消定义'.format(kvm_name):
-                        # 删除虚拟机，删除此虚拟机的文件系统:zfs destroy tank/CentOS-7@test3
-                        try:
-                            exe_cmd = r'zfs destroy {0}'.format(filesystem)
-                            self.remote_linux(exe_cmd)
-                            result = '删除成功。'
-                        except Exception as e:
-                            print(e)
-                            result = '删除失败。'
+                        result = '取消定义成功。'
                     else:
-                        result = '删除失败。'
+                        result = '取消定义失败。'
                 except Exception as e:
                     print(e)
-                    result = '删除失败。'
+                    result = '取消定义失败。'
             else:
                 result = '虚拟机已创建快照，无法删除。'
         else:
@@ -355,7 +362,7 @@ class KVMApi():
         try:
             exe_cmd = r'zfs snapshot {0}'.format(snapshot_name)
             result = self.remote_linux(exe_cmd)
-            if result == '':
+            if result['data'] == '':
                 info = '创建成功。'
             else:
                 info = '创建失败。'
@@ -388,10 +395,10 @@ class KVMApi():
         try:
             exe_cmd = r'zfs destroy {0}'.format(snapshot_name)
             result = self.remote_linux(exe_cmd)
-            if result == '':
-                info = '删除成功。'
+            if result['data'] == '':
+                info = '删除快照成功。'
             else:
-                info = '删除失败。'
+                info = '删除快照失败。'
         except:
             info = '快照已挂载，删除失败。'
         return info
@@ -484,15 +491,15 @@ class KVMApi():
 
         return result
 
-    def guestmount(self, kvm_machine, snapshotname):
+    def guestmount(self, kvm_machine, filesystem):
         """
-        guestmount -a /tank/CentOS-7-test5/CentOS-7.qcow2 -i /etc/libvirt/kvm_mount
-        /tank/CentOS-7-test5/CentOS-7.qcow2    磁盘路径
-        /etc/libvirt/kvm_mount                 要挂载的目录
+        guestmount -a /data/vmdata/CentOS-7-2020-09-14/CentOS-7.qcow2 -i /etc/libvirt/kvm_mount
+        /data/vmdata/CentOS-7-2020-09-14/CentOS-7.qcow2    磁盘路径
+        /etc/libvirt/kvm_mount                             要挂载的目录
         """
         try:
-            snapshot_clone_name = snapshotname.replace('@', '-')
-            kvm_disk_path = '/' + snapshot_clone_name + '/' + kvm_machine + '.qcow2'
+            # filesystem: data/vmdata/CentOS-7-2020-09-14
+            kvm_disk_path = '/' + filesystem + '/' + kvm_machine + '.qcow2'
             kvm_mount = '/etc/libvirt/kvm_mount'
 
             exe_cmd = r'guestmount -a {0} -i {1} && sleep 1'.format(kvm_disk_path, kvm_mount)

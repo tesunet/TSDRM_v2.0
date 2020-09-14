@@ -2078,120 +2078,14 @@ def kvm_del(request):
 
 
 @login_required
-def zfs_snapshot_data(request):
+def kvm_copy_create(request):
     result = {}
-    zfs_snapshot_list = []
-    kvm_machine = request.GET.get("kvm_machine", "")
-    utils_id = request.GET.get("utils_id", "")
-
-    filesystem = 'tank/' + kvm_machine
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-
-    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
-    content = utils_kvm_info[0].content
-    util_type = utils_kvm_info[0].util_type
-    kvm_credit = get_credit_info(content, util_type.upper())
-
-    try:
-        zfs_snapshot_list = KVMApi(kvm_credit).zfs_snapshot_list(filesystem)
-    except Exception as e:
-        print(e)
-        result["res"] = '查询失败。'
-    return JsonResponse({'data': zfs_snapshot_list})
-
-
-@login_required
-def zfs_snapshot_save(request):
-    result = {}
-    utils_id = request.POST.get("util_kvm_id", "")
-    kvm_name = request.POST.get("kvm_name", "")
-    name = request.POST.get("snapshot_name", "")
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-
-    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
-    content = utils_kvm_info[0].content
-    util_type = utils_kvm_info[0].util_type
-    kvm_credit = get_credit_info(content, util_type.upper())
-
-    filesystem = 'tank/' + kvm_name
-    snapshot_name = filesystem + '@' + name
-    try:
-        if name.strip() == '':
-            result["res"] = '快照名称不能为空。'
-        else:
-            # 远程先查出所有快照，快照不存在创建快照
-            zfs_snapshot_list = KVMApi(kvm_credit).zfs_snapshot_list(filesystem)
-            exist_snapshot = []
-            for i in zfs_snapshot_list:
-                exist_snapshot.append(i['name'])
-            if name in exist_snapshot:
-                result["res"] = '快照' + name + '已存在。'
-            else:
-                result_info = KVMApi(kvm_credit).zfs_create_snapshot(snapshot_name)
-                result["res"] = result_info
-    except Exception as e:
-        print(e)
-        result["res"] = '创建失败。'
-
-    return JsonResponse(result)
-
-
-@login_required
-def zfs_snapshot_del(request):
-    result = {}
-    utils_id = request.POST.get("utils_id", "")
-    snapshot_name = request.POST.get("snapshot_name", "")
-    kvm_name = request.POST.get("kvm_name", "")
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-
-    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
-    content = utils_kvm_info[0].content
-    util_type = utils_kvm_info[0].util_type
-    kvm_credit = get_credit_info(content, util_type.upper())
-
-    # 删除快照：快照已创建实例，无法删除
-    filesystem = 'tank/' + kvm_name
-    snapshotname = filesystem + '@' + snapshot_name
-    filesystem_exist = []
-    try:
-        filesystem_list = KVMApi(kvm_credit).zfs_kvm_filesystem()
-        for i in filesystem_list:
-            i = 'tank/' + i
-            filesystem_exist.append(i)
-        snapname = snapshotname.replace('@', '-')
-        if snapname in filesystem_exist:
-            result['res'] = '快照已创建实例，无法删除。'
-        else:
-            result_info = KVMApi(kvm_credit).zfs_snapshot_del(snapshotname)
-            result["res"] = result_info
-    except Exception as e:
-        print(e)
-        result["res"] = '删除失败。'
-
-    return JsonResponse(result)
-
-
-@login_required
-def zfs_snapshot_mount(request):
-    result = {}
-    # ①创建快照完成：tank/Test-1@2020-08-23
-    # ②克隆快照：zfs clone tank/Test-1/disk@2020-08-23 tank/Test-1/Test-1_clone
     utils_id = request.POST.get("utils_id", "")
     snapshot_name = request.POST.get("snapshot_name", "")
     copy_name = request.POST.get("kvm_copy_name", "")
     kvm_machine = request.POST.get("kvm_machine", "")
     kvm_machine_id = request.POST.get("kvm_machine_id", "")
-    copy_ip = request.POST.get("kvm_copy_ip", "")
-    copy_hostname = request.POST.get("kvm_copy_hostname", "")
+
     copy_cpu = request.POST.get("kvm_copy_cpu", "")
     copy_memory = request.POST.get("kvm_copy_memory", "")
 
@@ -2209,19 +2103,13 @@ def zfs_snapshot_mount(request):
     util_type = utils_kvm_info[0].util_type
     kvm_credit = get_credit_info(content, util_type.upper())
 
-    # 挂载快照：先判断快照是否已经挂载，根据副本名称，查出所有虚拟机，判断副本是否存在
-    filesystem = 'tank/' + kvm_machine
-    snapshotname = filesystem + '@' + snapshot_name
-    filesystemname = filesystem + '-' + copy_name
-    copyname = kvm_machine + '@' + copy_name
-    copystate = '关闭'
+    filesystem = 'data/vmdata/' + kvm_machine         # data/vmdata/CentOS-7
+    snapshotname = filesystem + '@' + snapshot_name   # data/vmdata/CentOS-7@2020-07-28
+    filesystemname = filesystem + '-' + copy_name     # data/vmdata/CentOS-7-2020-07-28
+    copyname = kvm_machine + '@' + copy_name          # CentOS-7@2020-07-28
 
     if not copy_name.strip():
         result['res'] = '实例名称未填写。'
-    elif not copy_ip.strip():
-        result['res'] = '实例IP未填写。'
-    elif not copy_hostname.strip():
-        result['res'] = '实例主机名未填写。'
     else:
         try:
             kvm_exist = []
@@ -2231,58 +2119,40 @@ def zfs_snapshot_mount(request):
             if copyname in kvm_exist:
                 result['res'] = '实例' + copy_name + '已存在。'
             else:
-                result_info = KVMApi(kvm_credit).zfs_clone_snapshot(snapshotname, filesystemname)
-                if result_info == '克隆成功。':
-                    # ③克隆成功，生成新的xml文件
-                    result_info = KVMApi(kvm_credit).create_kvm_xml(kvm_machine, snapshotname, copyname, copy_cpu, copy_memory)
-                    if result_info == '生成成功。':
-                        # ④新的xml文件生成，开始定义虚拟机
-                        result_info = KVMApi(kvm_credit).define_kvm(copyname)
-                        if result_info == '定义成功。':
-                            # ⑤定义成功，修改ip和主机名，先挂载磁盘文件
-                            result_info = KVMApi(kvm_credit).guestmount(kvm_machine, snapshotname)
-                            # ⑥挂载成功，修改ip和主机名
-                            if result_info == '挂载成功。':
-                                result_info = KVMApi(kvm_credit).alert_ip_hostname(copy_ip, copy_hostname)
-                                if result_info == '修改成功。':
-                                    result_info = KVMApi(kvm_credit).umount()
-                                    if result_info == '取消挂载成功。':
-                                        result_info = KVMApi(kvm_credit).kvm_start(copystate, copyname)
-                                        if result_info == '开机成功。':
-                                            # 副本开启成功，保存数据库
-                                            try:
-                                                kvm_copy = KvmCopy.objects.filter(name=copyname).exclude(state='9')
-                                                if kvm_copy.exists():
-                                                    result['res'] = '实例已存在。'
-                                                else:
-                                                    kvm_copy.create(**{
-                                                        'name': copyname,
-                                                        'ip': copy_ip,
-                                                        'hostname': copy_hostname,
-                                                        'create_time': datetime.datetime.now(),
-                                                        'create_user_id': user_id,
-                                                        'utils_id': utils_id,
-                                                        'kvmmachine_id': kvm_machine_id,
-                                                        'snapshot': snapshot_name,
-                                                    })
-                                                    result['res'] = '创建成功。'
-                                            except Exception as e:
-                                                print(e)
-                                                result['res'] = '保存失败。'
-                                        else:
-                                            result['res'] = '开机失败。'
-                                    else:
-                                        result['res'] = '取消挂载失败。'
-                                else:
-                                    result['res'] = '修改失败。'
+                # ①创建快照
+                result_info = KVMApi(kvm_credit).zfs_create_snapshot(snapshotname)
+                if result_info == '创建成功。':
+                    # ②克隆快照，生成新的文件系统
+                    result_info = KVMApi(kvm_credit).zfs_clone_snapshot(snapshotname, filesystemname)
+                    if result_info == '克隆成功。':
+                        # ③克隆成功，生成新的xml文件
+                        result_info = KVMApi(kvm_credit).create_kvm_xml(kvm_machine, snapshotname, copyname, copy_cpu, copy_memory)
+                        if result_info == '生成成功。':
+                            # ④新的xml文件生成，开始定义虚拟机
+                            result_info = KVMApi(kvm_credit).define_kvm(copyname)
+                            if result_info == '定义成功。':
+                                # ④定义成功，保存数据库
+                                try:
+                                    KvmCopy.objects.create(**{
+                                        'name': copyname,
+                                        'create_time': datetime.datetime.now(),
+                                        'create_user_id': user_id,
+                                        'utils_id': utils_id,
+                                        'kvmmachine_id': kvm_machine_id,
+                                        'snapshot': snapshot_name,
+                                    })
+                                    result['res'] = '创建成功。'
+                                except Exception as e:
+                                    print(e)
+                                    result['res'] = '保存失败。'
                             else:
-                                result['res'] = '挂载失败。'
+                                result['res'] = '定义失败。'
                         else:
-                            result['res'] = '定义失败。'
+                            result['res'] = '生成失败。'
                     else:
-                        result['res'] = '生成失败。'
+                        result['res'] = '克隆失败。'
                 else:
-                    result['res'] = '克隆失败。'
+                    result['res'] = '创建失败。'
 
         except Exception as e:
             print(e)
@@ -2341,7 +2211,7 @@ def kvm_copy_data(request):
 
 @login_required
 def kvm_copy_del(request):
-    # 删除副本：删除远程 + 删除本地数据库数据
+    # 删除副本：删除虚拟机 + 删除文件系统 + 删除快照 + 删除本地数据库数据
     result = {}
     id = request.POST.get("id", "")
     utils_id = request.POST.get("utils_id", "")
@@ -2357,22 +2227,99 @@ def kvm_copy_del(request):
     util_type = utils_kvm_info[0].util_type
     kvm_credit = get_credit_info(content, util_type.upper())
 
-    filesystem = 'tank/' + name                # tank/CentOS-7@test3
-    filesystem = filesystem.replace('@', '-')  # tank/CentOS-7-test3
+    filesystem_snapshot = 'data/vmdata/' + name         # data/vmdata/CentOS-7@test2    快照
+    filesystem = filesystem_snapshot.replace('@', '-')  # data/vmdata/CentOS-7-test2    文件系统
+
 
     try:
-        result_info = KVMApi(kvm_credit).undefine(name, state, filesystem)
-        if result_info == '删除成功。':
-            kvmcopy = KvmCopy.objects.get(id=id)
-            kvmcopy.state = '9'
-            kvmcopy.save()
-            result["res"] = '删除成功。'
+        # ①删除虚拟机
+        result_info = KVMApi(kvm_credit).undefine(name, state)
+        if result_info == '取消定义成功。':
+            # ②删除文件系统
+            result_info = KVMApi(kvm_credit).filesystem_del(filesystem)
+            if result_info == '删除文件系统成功。':
+                # ③删除快照
+                result_info = KVMApi(kvm_credit).zfs_snapshot_del(filesystem_snapshot)
+                if result_info == '删除快照成功。':
+                    # ④删除数据库数据
+                    kvmcopy = KvmCopy.objects.get(id=id)
+                    kvmcopy.state = '9'
+                    kvmcopy.save()
+                    result["res"] = '删除成功。'
+                else:
+                    result["res"] = result_info
+            else:
+                result["res"] = result_info
         else:
             result["res"] = result_info
     except Exception as e:
         print(e)
         result["res"] = '删除失败。'
 
+    return JsonResponse(result)
+
+
+@login_required
+def kvm_power_on(request):
+    # 给电：修改ip和主机名，开启虚拟机
+    result = {}
+    utils_id = request.POST.get("utils_id", "")
+    copy_id = request.POST.get("id", "")
+    copy_name = request.POST.get("copy_name", "")
+    copy_state = request.POST.get("copy_state", "")
+    kvm_machine = request.POST.get("kvm_machine", "")
+    copy_ip = request.POST.get("copy_ip", "")
+    copy_hostname = request.POST.get("copy_hostname", "")
+
+
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+    filesystem = 'data/vmdata/' + copy_name    # data/vmdata/CentOS-7@2020-09-14
+    filesystem = filesystem.replace('@', '-')  # data/vmdata/CentOS-7-2020-09-14
+
+    if not copy_ip.strip():
+        result['res'] = '实例IP未填写。'
+    elif not copy_hostname.strip():
+        result['res'] = '实例主机名未填写。'
+    else:
+        try:
+            result_info = KVMApi(kvm_credit).guestmount(kvm_machine, filesystem)
+            # ⑥挂载成功，修改ip和主机名
+            if result_info == '挂载成功。':
+                result_info = KVMApi(kvm_credit).alert_ip_hostname(copy_ip, copy_hostname)
+                if result_info == '修改成功。':
+                    result_info = KVMApi(kvm_credit).umount()
+                    if result_info == '取消挂载成功。':
+                        result_info = KVMApi(kvm_credit).kvm_start(copy_state, copy_name)
+                        if result_info == '开机成功。':
+                            try:
+                                kvm_copy = KvmCopy.objects.get(id=copy_id)
+                                kvm_copy.ip = copy_ip
+                                kvm_copy.hostname = copy_hostname
+                                kvm_copy.save()
+                                result['res'] = '给电成功。'
+                            except Exception as e:
+                                print(e)
+                                result['res'] = '给电失败。'
+                        else:
+                            result['res'] = '开机失败。'
+                    else:
+                        result['res'] = '取消挂载失败。'
+                else:
+                    result['res'] = '修改失败。'
+            else:
+                result['res'] = '挂载失败。'
+
+        except Exception as e:
+            print(e)
+            result["res"] = '开机失败。'
     return JsonResponse(result)
 
 

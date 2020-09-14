@@ -1,14 +1,14 @@
 {% extends "base1.html" %} {% block content %}
 <style>
     #loading1 {
-        height: 34px;
+        height: 132px;
         width: 100%;
         background-image: url(../static/upload/loading.gif);
         background-repeat: no-repeat;
         background-position: center;
     }
     #loading2 {
-        height: 279px;
+        height: 196px;
         width: 100%;
         background-image: url(../static/upload/loading.gif);
         background-repeat: no-repeat;
@@ -843,10 +843,7 @@
                                                         <a href="#tab_4_1" id='tabcheck4_1' data-toggle="tab"> 保护配置 </a>
                                                     </li>
                                                     <li >
-                                                        <a href="#tab_4_2"  id='tabcheck4_2' data-toggle="tab"> 快照管理 </a>
-                                                    </li>
-                                                     <li>
-                                                        <a href="#tab_4_3"  id='tabcheck4_3' data-toggle="tab"> 实例管理 </a>
+                                                        <a href="#tab_4_2"  id='tabcheck4_2' data-toggle="tab"> 实例管理 </a>
                                                     </li>
                                             </ul>
                                             <div class="tab-content">
@@ -892,31 +889,11 @@
 
                                                 </div>
                                                 <div class="tab-pane fade" id="tab_4_2">
-                                                    <table class="table table-striped table-bordered table-hover table-checkable order-column" id="zfs_snapshot">
-                                                        <thead>
-                                                        <tr>
-                                                            <th> 快照名称</th>
-                                                            <th style="width:50px;"> 操作</th>
-                                                        </tr>
-                                                        </thead>
-
-                                                        <tbody>
-
-                                                        </tbody>
-                                                    </table>
-
-                                                    <div class="form-group " style="text-align:center">
-                                                        <button type="button" id="zfs_snapshot_create" data-toggle="modal" data-target="#static02" name="zfs_snapshot_create" class="btn green">
-                                                                创建快照
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                                <div class="tab-pane fade" id="tab_4_3">
                                                     <table class="table table-striped table-bordered table-hover table-checkable order-column" id="kvm_copy">
                                                         <thead>
                                                         <tr>
                                                             <th style="width:40px;"> 序号</th>
-                                                            <th> 快照名称</th>
+{#                                                            <th> 快照名称</th>#}
                                                             <th> 实例名称</th>
                                                             <th> 实例IP</th>
                                                             <th> 实例主机名</th>
@@ -931,6 +908,11 @@
 
                                                         </tbody>
                                                     </table>
+                                                     <div class="form-group " style="text-align:center">
+                                                        <button type="button" id="kvm_copy_div" data-toggle="modal" data-target="#static02" name="kvm_copy_div" class="btn green">
+                                                                创建实例
+                                                        </button>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1087,55 +1069,13 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
-                    <h4 class="modal-title">创建快照</h4>
-                </div>
-                <div class="panel-body">
-
-                    <form class="bs-example form-horizontal activate-form">{% csrf_token %}
-                        <div id="loading1" class="portlet-body"></div>
-                        <div class="form-body" id="create_snapshot_div">
-                            <div class="form-group">
-                                 <label class="col-md-2 control-label"><span style="color:red; ">*</span>快照名称</label>
-                                <div class="col-md-10">
-                                    <input id="snapshot_name" type="text" name="snapshot_name" class="form-control"
-                                           placeholder="">
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-actions ">
-                            <div class="modal-footer">
-                                <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
-                                </button>
-                                <button type="button" id="zfs_snapshot_save" name="save" class="btn green">创建快照</button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-<div id="static03" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
                     <h4 class="modal-title">创建实例</h4>
                 </div>
                 <div class="panel-body">
 
                     <form class="bs-example form-horizontal activate-form">{% csrf_token %}
-                        <div id="loading2" class="portlet-body"></div>
+                        <div id="loading1" class="portlet-body"></div>
                         <div class="form-body" id="create_copy_div">
-                            <div class="form-group">
-                                 <label class="col-md-3 control-label">快照名称</label>
-                                <div class="col-md-9">
-                                    <input id="snapshot_name1" type="text" name="snapshot_name" class="form-control"
-                                           placeholder="" readonly>
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
                             <div class="form-group">
                                  <label class="col-md-3 control-label"><span style="color:red; ">*</span>实例名称</label>
                                 <div class="col-md-9">
@@ -1144,22 +1084,7 @@
                                     <div class="form-control-focus"></div>
                                 </div>
                             </div>
-                            <div class="form-group">
-                                 <label class="col-md-3 control-label"><span style="color:red; ">*</span>实例IP</label>
-                                <div class="col-md-9">
-                                    <input id="kvm_copy_ip" type="text" name="kvm_copy_ip" class="form-control"
-                                           placeholder="">
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                 <label class="col-md-3 control-label"><span style="color:red; ">*</span>实例主机名</label>
-                                <div class="col-md-9">
-                                    <input id="kvm_copy_hostname" type="text" name="kvm_copy_hostname" class="form-control"
-                                           placeholder="">
-                                    <div class="form-control-focus"></div>
-                                </div>
-                            </div>
+
                             <div class="form-group">
                                  <label class="col-md-3 control-label">实例CPU</label>
                                 <div class="col-md-9">
@@ -1181,7 +1106,7 @@
                             <div class="modal-footer">
                                 <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
                                 </button>
-                                <button type="button" id="zfs_snapshot_mount" name="save" class="btn green">创建实例</button>
+                                <button type="button" id="kvm_copy_create" name="kvm_copy_create" class="btn green">创建实例</button>
                             </div>
                         </div>
                     </form>
@@ -1190,7 +1115,7 @@
         </div>
     </div>
 
-<div id="static04" class="modal fade" data-backdrop="static" data-keyboard="false">
+<div id="static03" class="modal fade" data-backdrop="static" data-keyboard="false">
         <div class="modal-dialog" style="width:900px;">
             <div class="modal-content">
                 <div class="modal-header">
@@ -1199,10 +1124,9 @@
                     <input hidden id="copy_id" type="text" name="id">
                 </div>
                 <div class="panel-body">
-
                     <form class="bs-example form-horizontal activate-form">{% csrf_token %}
-
-                        <div class="form-body">
+                        <div id="loading2" class="portlet-body"></div>
+                        <div class="form-body" id="copy_manage_div">
                             <div class="form-group">
                                 <label class="col-md-2 control-label"><span
                                         style="color:red; ">*</span>快照名称</label>
@@ -1236,7 +1160,7 @@
                                 <label class="col-md-2 control-label"><span
                                         style="color:red; ">*</span>实例IP</label>
                                 <div class="col-md-4">
-                                    <input readonly id="copy_ip" type="text" name="copy_ip" class="form-control "
+                                    <input id="copy_ip" type="text" name="copy_ip" class="form-control "
                                            placeholder="" autocomplete="off">
                                     <div class="form-control-focus"></div>
                                 </div>
@@ -1244,7 +1168,7 @@
                                 <label class="col-md-2 control-label"><span
                                         style="color:red; ">*</span>实例主机名</label>
                                 <div class="col-md-4">
-                                    <input readonly id="copy_hostname" type="text" name="copy_hostname" class="form-control "
+                                    <input id="copy_hostname" type="text" name="copy_hostname" class="form-control "
                                            placeholder="" autocomplete="off">
                                     <div class="form-control-focus"></div>
                                 </div>
@@ -1267,20 +1191,24 @@
 
                                 </div>
                             </div>
-                            <hr>
+
                             <div class="form-group " style="text-align:center">
-                                <button type="button" id="kvm_start" name="kvm_start" class="btn green">
-                                        开机
-                                </button>
                                 <button type="button" id="kvm_destroy" name="kvm_destroy" class="btn green">
                                         断电
                                 </button>
+                                <button type="button" id="kvm_start" name="kvm_start" class="btn green">
+                                        开机
+                                </button>
+
                             </div>
                         </div>
 
                         <div class="form-actions ">
                             <div class="modal-footer">
                                 <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
+                                </button>
+                                <button type="button" id="kvm_power_on" name="kvm_power_on" class="btn green">
+                                        给电
                                 </button>
 
                             </div>
