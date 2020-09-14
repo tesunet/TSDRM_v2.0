@@ -1,6 +1,6 @@
 from drm import remote
 from lxml import etree
-
+import time
 
 class KVMApi():
     def __init__(self, credit):
@@ -100,7 +100,12 @@ class KVMApi():
             result = self.remote_linux(exe_cmd)
             if result['data'].strip() == 'Domain {0} is being shutdown'.format(kvm_name) or \
                     result['data'].strip() == '域 {0} 被关闭'.format(kvm_name):
-                result = '关闭成功。'
+                time.sleep(5)
+                state = self.domstate(kvm_name)
+                if state == 'shut off' or state == '关闭':
+                    result = '关闭成功。'
+                else:
+                    result = '关闭失败。'
             else:
                 result = '关闭失败。'
         elif kvm_state == '暂停' or kvm_state == 'paused':

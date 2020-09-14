@@ -2642,7 +2642,6 @@ def kvm_shutdown(request):
 
     try:
         result_info = KVMApi(kvm_credit).kvm_shutdown(kvm_state, kvm_name)
-        time.sleep(5)
         result["res"] = result_info
     except Exception as e:
         print(e)
