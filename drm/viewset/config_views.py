@@ -2464,11 +2464,12 @@ def kvm_manage_data(request):
 
     try:
         kvm_list = KVMApi(kvm_credit).kvm_all_list()
-        for kvm in kvm_list:
-            kvm_info = KVMApi(kvm_credit).kvm_info_data(kvm['name'])
-            kvm_info['kvm_name'] = kvm['name']
-            kvm_info['kvm_state'] = kvm['state']
-            kvm_info_list.append(kvm_info)
+        if len(kvm_list) > 0:
+            for kvm in kvm_list:
+                kvm_info = KVMApi(kvm_credit).kvm_info_data(kvm['name'])
+                kvm_info['kvm_name'] = kvm['name']
+                kvm_info['kvm_state'] = kvm['state']
+                kvm_info_list.append(kvm_info)
     except Exception as e:
         print(e)
     return JsonResponse({'data': kvm_info_list})
