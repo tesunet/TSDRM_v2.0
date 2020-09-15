@@ -60,6 +60,66 @@ class KVMApi():
 
         return kvm_all_list_dict
 
+    def kvm_exclude_copy_list(self):
+        # 获取除实例之外所有kvm虚拟机
+        exe_cmd = r'virsh list --all'
+        result = self.remote_linux(exe_cmd)
+        kvm_list = [x for x in result['data'].split(' ') if x]
+
+        del kvm_list[0:4]
+        kvm_list_filter = []
+        for i in kvm_list:
+            if i == 'shut':
+                continue
+            if i == 'off':
+                i = '关闭'
+            if i == 'running':
+                i = '运行中'
+            if i == 'paused':
+                i = '暂停'
+            kvm_list_filter.append(i)
+        end_list = self.list_of_groups(kvm_list_filter, 3)
+        kvm_all_list_dict = []
+        for item in end_list:
+            data = {}
+            if '@' not in item[1]:
+                data['name'] = item[1]
+                data['state'] = item[2]
+                kvm_all_list_dict.append(data)
+
+        return kvm_all_list_dict
+
+    def kvm_include_copy_list(self, kvm_copy_name):
+        # 获取所有实例虚拟机
+        exe_cmd = r'virsh list --all'
+        result = self.remote_linux(exe_cmd)
+        kvm_list = [x for x in result['data'].split(' ') if x]
+
+        del kvm_list[0:4]
+        kvm_list_filter = []
+        for i in kvm_list:
+            if i == 'shut':
+                continue
+            if i == 'off':
+                i = '关闭'
+            if i == 'running':
+                i = '运行中'
+            if i == 'paused':
+                i = '暂停'
+            kvm_list_filter.append(i)
+        end_list = self.list_of_groups(kvm_list_filter, 3)
+        kvm_all_list_dict = []
+        for item in end_list:
+            data = {}
+            copyname = kvm_copy_name + '@'
+            if copyname in item[1]:
+                data['name'] = item[1]
+                data['state'] = item[2]
+                kvm_all_list_dict.append(data)
+
+        return kvm_all_list_dict
+
+
     def kvm_run_list(self):
         # 获取正在运行的虚拟机
         exe_cmd = r'virsh list'
@@ -645,4 +705,6 @@ linuxserver_credit = {
 # print(result)
 # result = KVMApi(linuxserver_credit).kvm_disk_space()
 # result = KVMApi(linuxserver_credit).kvm_info_data('Test-1')
+# result = KVMApi(linuxserver_credit).kvm_include_copy_list('Test-1')
+# result = KVMApi(linuxserver_credit).kvm_exclude_copy_list()
 # print(result)

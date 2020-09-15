@@ -261,7 +261,8 @@ urlpatterns = [
 
     # 虚拟机管理
     url(r'^kvm_manage/$', kvm_manage, {'funid': '118'}),
-    url(r'^kvm_manage_data/$', kvm_manage_data),
+    url(r'^get_kvm_tree/$', get_kvm_tree),
+    # url(r'^kvm_manage_data/$', kvm_manage_data),
     url(r'^kvm_suspend/$', kvm_suspend),
     url(r'^kvm_resume/$', kvm_resume),
     url(r'^kvm_shutdown/$', kvm_shutdown),

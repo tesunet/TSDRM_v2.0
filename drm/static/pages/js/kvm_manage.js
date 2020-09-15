@@ -1,110 +1,71 @@
-$(document).ready(function () {
-    $('#kvm_manage_dt').dataTable({
-        "bAutoWidth": true,
-        "bSort": false,
-        "bProcessing": true,
-        "ajax": "../kvm_manage_data/?utils_id=" + $('#utils_id').val(),
-        "columns": [
-            {"data": "kvm_name"},
-            {"data": "kvm_cpu"},
-            {"data": "kvm_memory"},
-            {"data": "kvm_disk"},
-            {"data": "kvm_os"},
-            {"data": "kvm_state"},
-            {"data": null}
-        ],
-        "columnDefs": [
-            {
-                "targets": -2,
-                "mRender": function (data, type, full) {
-                    if (full.kvm_state == '运行中'){
-                        return "<span class='fa fa-plug' style='color:green; height:20px;width:14px;'></span>"
-                    }
-                    if (full.kvm_state == '关闭'){
-                        return "<span class='fa fa-plug' style='color:red; height:20px;width:14px;'></span>"
-                    }
-                    if (full.kvm_state == '暂停'){
-                        return "<span class='fa fa-plug' style='color:indianred; height:20px;width:14px;'></span>"
-                    }
-                }
-            },
-            {
-                "targets": -1,
-                "data": null,
-                "width": "100px",
-                "defaultContent": "<button  id='edit' title='编辑' data-toggle='modal'  data-target='#static01'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-edit'></i></button>" +
-                    "<button title='删除'  id='delrow' class='btn btn-xs btn-primary' type='button'><i class='fa fa-trash-o'></i></button>"
-
-        }],
-        "oLanguage": {
-            "sLengthMenu": "每页显示 _MENU_ 条记录",
-            "sZeroRecords": "抱歉， 没有找到",
-            "sInfo": "从 _START_ 到 _END_ /共 _TOTAL_ 条数据",
-            "sInfoEmpty": "没有数据",
-            "sInfoFiltered": "(从 _MAX_ 条数据中检索)",
-            "sSearch": "搜索",
-            "oPaginate": {
-                "sFirst": "首页",
-                "sPrevious": "前一页",
-                "sNext": "后一页",
-                "sLast": "尾页"
-            },
-            "sZeroRecords": "没有检索到数据",
-
+function getkvmtree() {
+     $.ajax({
+        type: "POST",
+        dataType: "json",
+        url: "../get_kvm_tree/",
+        data: {
+            id: $('#id').val(),
         },
-    });
-
-
-    $('#kvm_manage_dt tbody').on('click', 'button#edit', function () {
-        var table = $('#kvm_manage_dt').DataTable();
-        var data = table.row($(this).parents('tr')).data();
-        $('#kvm_name').val(data.kvm_name);
-        $('#kvm_state').val(data.kvm_state);
-        $('#kvm_cpu').val(data.kvm_cpu);
-        $('#kvm_memory').val(data.kvm_memory);
-        $('#kvm_disk').val(data.kvm_disk);
-        $('#kvm_os').val(data.kvm_os);
-
-        if($("#kvm_state").val() == '运行中'){
-            $("#kvm_start").hide();
-            $("#kvm_shutdown").show();
-
-        }
-        if($("#kvm_state").val() == '关闭'){
-            $("#kvm_start").show();
-            $("#kvm_shutdown").hide();
-        }
-    });
-
-
-    $('#kvm_manage_dt tbody').on('click', 'button#delrow', function () {
-        if (confirm("确定要删除该虚拟机？")) {
-            var table = $('#kvm_manage_dt').DataTable();
-            var data = table.row($(this).parents('tr')).data();
-            $.ajax({
-                type: "POST",
-                url: "../kvm_delete/",
-                data:
-                    {
-                        utils_id: $("#utils_id").val(),
-                        kvm_name: $("#kvm_name").val(),
-                        kvm_state: $("#kvm_state").val(),
+        success: function (data) {
+            if (data.ret == 0) {
+                alert(data.data)
+            } else {
+                $('#loading').hide();
+                $('#showdata').show();
+                $('#tree_kvm_manage').jstree({
+                    'core': {
+                        "themes": {
+                            "responsive": false
+                        },
+                        "check_callback": true,
+                        'data': data.data
                     },
-                success: function (data) {
-                    var myres = data["res"];
-                    if (myres == "删除成功。") {
-                        $('#static01').modal('hide');
-                        table.ajax.reload();
-                    }
-                    alert(myres);
-                },
-                error: function (e) {
-                    alert("删除失败，请于管理员联系。");
-                }
-            });
+                    "types": {
+                        "NODE": {
+                            "icon": "fa fa-folder icon-state-warning icon-lg"
+                        },
+                        "PROCESS": {
+                            "icon": "fa fa-file-code-o icon-state-warning icon-lg"
+                        }
+                    },
+                    "contextmenu": {
+                        "items": {
+                            "create": null,
+                            "rename": null,
+                            "remove": null,
+                            "ccp": null,
+
+                        }
+                    },
+                    "plugins": ["contextmenu", "dnd", "types", "role"]
+                })
+                    .bind('select_node.jstree', function (event, data) {
+                        var node = data.node;
+                        $('#id').val(node.id);
+                        $('#pid').val(node.parent);
+                        if (node.parent == "#"){
+                            $("#form_div").hide();
+                            $("#node_save").hide();
+                            $("#interface_save").hide();
+                        } else {
+                            $("#form_div").show();
+                            $("#node_save").show();
+                            $("#interface_save").show();
+
+                        }
+                    })
+
+            }
         }
     });
 
+}
+
+
+$(document).ready(function () {
+    $('#loading').show();
+    $('#showdata').hide();
+    getkvmtree();
 
     $('#utils_id').change(function () {
         var table = $('#kvm_manage_dt').DataTable();

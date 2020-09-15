@@ -2395,6 +2395,72 @@ def kvm_manage(request, funid):
                    })
 
 
+def get_kvm_copy_node(parent, kvm_credit):
+    datas = []
+    children = KVMApi(kvm_credit).kvm_include_copy_list(parent)  # 副本虚拟机
+    for child in children:
+        data = dict()
+        data['text'] = child['name']
+        data['state'] = {'opened': 'True'}
+        data['data'] = {
+            'name': child['name'],
+            'pname': parent,
+            'remark': ''
+        }
+        data['type'] = 'NODE'
+        datas.append(data)
+    return datas
+
+
+def get_kvm_node(parent, kvm_credit):
+    nodes = []
+    children = KVMApi(kvm_credit).kvm_exclude_copy_list()
+    for child in children:
+        node = dict()
+        node['text'] = child['name']
+        node['state'] = {'opened': 'True'}
+        node['data'] = {
+            'name': child['name'],
+            'pname': parent,
+            'remark': ''
+        }
+        node['type'] = 'NODE'
+        # 获取三级菜单：实例虚拟机
+        node["children"] = get_kvm_copy_node(child['name'], kvm_credit)
+        nodes.append(node)
+    return nodes
+
+
+@login_required
+def get_kvm_tree(request):
+    # 循环一级菜单工具管理：kvm
+    util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
+    tree_data = []
+    for utils in util_manage:
+        utils_kvm_info = UtilsManage.objects.filter(id=utils.id)
+        content = utils_kvm_info[0].content
+        util_type = utils_kvm_info[0].util_type
+        kvm_credit = get_credit_info(content, util_type.upper())
+
+        root = dict()
+        root["text"] = utils.code,
+        root['id'] = utils.id
+        root['state'] = {'opened': 'True'}
+        root['data'] = {
+            'name': utils.name,
+            'pname': '无',
+            'remark': ''
+        }
+        root['type'] = 'NODE'
+        # 循环二级菜单：虚拟机
+        root["children"] = get_kvm_node(utils.code, kvm_credit)
+        tree_data.append(root)
+    return JsonResponse({
+        "ret": 1,
+        "data": tree_data
+    })
+
+
 @login_required
 def kvm_manage_data(request):
     kvm_info_list = []
