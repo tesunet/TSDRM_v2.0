@@ -249,9 +249,6 @@ urlpatterns = [
     url(r'^kvm_machine_data/$', kvm_machine_data),
     url(r'^kvm_save/$', kvm_save),
     url(r'^kvm_del/$', kvm_del),
-    # url(r'^zfs_snapshot_data/$', zfs_snapshot_data),
-    # url(r'^zfs_snapshot_save/$', zfs_snapshot_save),
-    # url(r'^zfs_snapshot_del/$', zfs_snapshot_del),
     url(r'^kvm_copy_create/$', kvm_copy_create),
     url(r'^kvm_copy_data/$', kvm_copy_data),
     url(r'^kvm_copy_del/$', kvm_copy_del),
@@ -262,7 +259,7 @@ urlpatterns = [
     # 虚拟机管理
     url(r'^kvm_manage/$', kvm_manage, {'funid': '118'}),
     url(r'^get_kvm_tree/$', get_kvm_tree),
-    # url(r'^kvm_manage_data/$', kvm_manage_data),
+    url(r'^kvm_manage_data/$', kvm_manage_data),
     url(r'^kvm_suspend/$', kvm_suspend),
     url(r'^kvm_resume/$', kvm_resume),
     url(r'^kvm_shutdown/$', kvm_shutdown),

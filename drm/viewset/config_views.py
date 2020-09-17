@@ -2407,7 +2407,21 @@ def get_kvm_copy_node(parent, kvm_credit):
             'pname': parent,
             'remark': ''
         }
-        data['type'] = 'NODE'
+        data['type'] = 'COPY'
+        # 获取kvm虚拟机信息
+        kvm_info = KVMApi(kvm_credit).kvm_info_data(child['name'])
+        state = KVMApi(kvm_credit).domstate(child['name'])
+        state_dict = {
+            'running': '运行中',
+            'shut off': '关闭',
+            'paused': '暂停'
+        }
+        if state in state_dict:
+            state = state_dict[state]
+        kvm_info['kvm_name'] = child['name']
+        kvm_info['kvm_state'] = state
+
+        data['kvm_info'] = kvm_info
         datas.append(data)
     return datas
 
@@ -2424,7 +2438,23 @@ def get_kvm_node(parent, kvm_credit):
             'pname': parent,
             'remark': ''
         }
-        node['type'] = 'NODE'
+        node['type'] = 'KVM'
+
+        # 获取kvm虚拟机信息
+        kvm_info = KVMApi(kvm_credit).kvm_info_data(child['name'])
+        state = KVMApi(kvm_credit).domstate(child['name'])
+        state_dict = {
+            'running': '运行中',
+            'shut off': '关闭',
+            'paused': '暂停'
+        }
+        if state in state_dict:
+            state = state_dict[state]
+        kvm_info['kvm_name'] = child['name']
+        kvm_info['kvm_state'] = state
+
+        node['kvm_info'] = kvm_info
+
         # 获取三级菜单：实例虚拟机
         node["children"] = get_kvm_copy_node(child['name'], kvm_credit)
         nodes.append(node)
@@ -2451,7 +2481,7 @@ def get_kvm_tree(request):
             'pname': '无',
             'remark': ''
         }
-        root['type'] = 'NODE'
+        root['kvm_credit'] = kvm_credit
         # 循环二级菜单：虚拟机
         root["children"] = get_kvm_node(utils.code, kvm_credit)
         tree_data.append(root)
@@ -2463,9 +2493,9 @@ def get_kvm_tree(request):
 
 @login_required
 def kvm_manage_data(request):
-    kvm_info_list = []
-    utils_id = request.GET.get("utils_id", "")
-
+    name = request.POST.get("name", "")
+    utils_id = request.POST.get("utils_id", "")
+    ret = 1
     try:
         utils_id = int(utils_id)
     except:
@@ -2476,16 +2506,25 @@ def kvm_manage_data(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     try:
-        kvm_list = KVMApi(kvm_credit).kvm_all_list()
-        if len(kvm_list) > 0:
-            for kvm in kvm_list:
-                kvm_info = KVMApi(kvm_credit).kvm_info_data(kvm['name'])
-                kvm_info['kvm_name'] = kvm['name']
-                kvm_info['kvm_state'] = kvm['state']
-                kvm_info_list.append(kvm_info)
+        result = KVMApi(kvm_credit).kvm_info_data(name)
+        state = KVMApi(kvm_credit).domstate(name)
+        state_dict = {
+            'running': '运行中',
+            'shut off': '关闭',
+            'paused': '暂停'
+        }
+        if state in state_dict:
+            state = state_dict[state]
+        result['kvm_name'] = name
+        result['kvm_state'] = state
+
     except Exception as e:
         print(e)
-    return JsonResponse({'data': kvm_info_list})
+        ret = 0
+        result = '获取信息失败。'
+    return JsonResponse({
+        'ret': ret,
+        'data': result})
 
 
 @login_required
@@ -2567,13 +2606,14 @@ def kvm_reboot(request):
 
 @login_required
 def kvm_delete(request):
-    # 删除虚拟机 + 删除文件系统
+    # 删除副本：删除虚拟机 + 删除文件系统 + 删除快照 + 删除本地数据库数据
     result = {}
+    id = request.POST.get("id", "")
     utils_id = request.POST.get("utils_id", "")
-    kvm_name = request.POST.get("kvm_name", "")
-    kvm_state = request.POST.get("kvm_state", "")
-
+    name = request.POST.get("name", "")
+    state = request.POST.get("state", "")
     try:
+        id = int(id)
         utils_id = int(utils_id)
     except:
         pass
@@ -2582,10 +2622,31 @@ def kvm_delete(request):
     util_type = utils_kvm_info[0].util_type
     kvm_credit = get_credit_info(content, util_type.upper())
 
-    filesystem = 'tank/' + kvm_name       # 拼接文件系统 tank/CentOS-7
+    filesystem_snapshot = 'data/vmdata/' + name         # data/vmdata/CentOS-7@test2    快照
+    filesystem = filesystem_snapshot.replace('@', '-')  # data/vmdata/CentOS-7-test2    文件系统
+
+
     try:
-        result_info = KVMApi(kvm_credit).undefine(kvm_name, kvm_state, filesystem)
-        result["res"] = result_info
+        # ①删除虚拟机
+        result_info = KVMApi(kvm_credit).undefine(name, state)
+        if result_info == '取消定义成功。':
+            # ②删除文件系统
+            result_info = KVMApi(kvm_credit).filesystem_del(filesystem)
+            if result_info == '删除文件系统成功。':
+                # ③删除快照
+                result_info = KVMApi(kvm_credit).zfs_snapshot_del(filesystem_snapshot)
+                if result_info == '删除快照成功。':
+                    # ④删除数据库数据
+                    kvmcopy = KvmCopy.objects.get(id=id)
+                    kvmcopy.state = '9'
+                    kvmcopy.save()
+                    result["res"] = '删除成功。'
+                else:
+                    result["res"] = result_info
+            else:
+                result["res"] = result_info
+        else:
+            result["res"] = result_info
     except Exception as e:
         print(e)
         result["res"] = '删除失败。'
@@ -2611,7 +2672,7 @@ def kvm_clone_save(request):
     util_type = utils_kvm_info[0].util_type
     kvm_credit = get_credit_info(content, util_type.upper())
 
-    filesystem = 'tank/' + kvm_name_clone  # 文件系统
+    filesystem = 'data/vmdata/' + kvm_name_clone  # 文件系统
     if not kvm_name_clone.strip():
         result['res'] = '新虚拟机名称未填写。'
     if kvm_state == 'running' or kvm_state == '运行中':

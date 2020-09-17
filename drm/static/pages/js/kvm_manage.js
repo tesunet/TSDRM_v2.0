@@ -40,20 +40,54 @@ function getkvmtree() {
                     "plugins": ["contextmenu", "dnd", "types", "role"]
                 })
                     .bind('select_node.jstree', function (event, data) {
-                        var node = data.node;
-                        $('#id').val(node.id);
-                        $('#pid').val(node.parent);
-                        if (node.parent == "#"){
-                            $("#form_div").hide();
-                            $("#node_save").hide();
-                            $("#interface_save").hide();
-                        } else {
-                            $("#form_div").show();
-                            $("#node_save").show();
-                            $("#interface_save").show();
+                        $("#form_div").show();
+                        var type = data.node.original.type;
+                        $("#id").val(data.node.id);
+                        $("#pid").val(data.node.parent);
+                        $("#utils_id").val(data.node.id);
+                        $("#my_type").val(type);
+                        $("#title").text(data.node.data.name);
+                        $('#pname').val(data.node.data.pname);
+
+                        if (data.node.parent == "#") {
+                            $("#node").show();
+                            $("#kvm_info").hide();
+                            $("#node_id").val(data.node.id);
+                            $("#node_pname").val(data.node.data.pname);
+                            $("#node_name").val(data.node.data.name);
+                            $("#host_ip").val(data.node.original.kvm_credit.KvmHost);
+                            $("#username").val(data.node.original.kvm_credit.KvmUser);
+                            $("#password").val(data.node.original.kvm_credit.KvmPasswd);
+                            $("#os").val(data.node.original.kvm_credit.SystemType);
 
                         }
-                    })
+                        if (type == 'KVM') {
+                            // 虚拟机
+                            $("#node").hide();
+                            $("#kvm_info").show();
+                            $("#kvm_undefine").hide();
+                            $("#kvm_node_pname").val(data.node.data.pname);
+                            $("#kvm_name").val(data.node.original.kvm_info.kvm_name);
+                            $("#kvm_state").val(data.node.original.kvm_info.kvm_state);
+                            $("#kvm_cpu").val(data.node.original.kvm_info.kvm_cpu);
+                            $("#kvm_memory").val(data.node.original.kvm_info.kvm_memory);
+                            $("#kvm_disk").val(data.node.original.kvm_info.kvm_disk);
+                            $("#kvm_os").val(data.node.original.kvm_info.kvm_os);
+                        }
+                        if (type == 'COPY') {
+                            // 实例
+                            $("#node").hide();
+                            $("#kvm_info").show();
+                            $("#kvm_undefine").show();
+                            $("#kvm_node_pname").val(data.node.data.pname);
+                            $("#kvm_name").val(data.node.original.kvm_info.kvm_name);
+                            $("#kvm_state").val(data.node.original.kvm_info.kvm_state);
+                            $("#kvm_cpu").val(data.node.original.kvm_info.kvm_cpu);
+                            $("#kvm_memory").val(data.node.original.kvm_info.kvm_memory);
+                            $("#kvm_disk").val(data.node.original.kvm_info.kvm_disk);
+                            $("#kvm_os").val(data.node.original.kvm_info.kvm_os);
+                        }
+                    });
 
             }
         }
@@ -67,15 +101,9 @@ $(document).ready(function () {
     $('#showdata').hide();
     getkvmtree();
 
-    $('#utils_id').change(function () {
-        var table = $('#kvm_manage_dt').DataTable();
-        table.ajax.url("../kvm_manage_data/?utils_id=" + $('#utils_id').val()).load();
-    });
-
 
     $('#kvm_suspend').click(function () {
         if (confirm("确定要暂停该虚拟机？")) {
-            var table = $('#kvm_manage_dt').DataTable();
             $.ajax({
                 type: "POST",
                 dataType: 'json',
@@ -89,8 +117,7 @@ $(document).ready(function () {
                 success: function (data) {
                     var myres = data["res"];
                     if (myres == "暂停成功。") {
-                        $('#static01').modal('hide');
-                        table.ajax.reload();
+                        getkvmtree();
                     }
                     alert(myres);
                 },
@@ -103,7 +130,6 @@ $(document).ready(function () {
 
 
     $('#kvm_resume').click(function () {
-        var table = $('#kvm_manage_dt').DataTable();
         $.ajax({
             type: "POST",
             dataType: 'json',
@@ -117,8 +143,7 @@ $(document).ready(function () {
             success: function (data) {
                 var myres = data["res"];
                 if (myres == "运行成功。") {
-                    $('#static01').modal('hide');
-                    table.ajax.reload();
+                    getkvmtree();
                 }
                 alert(myres);
             },
@@ -132,7 +157,6 @@ $(document).ready(function () {
 
     $('#kvm_shutdown').click(function () {
         if (confirm("确定要关闭该虚拟机？")) {
-            var table = $('#kvm_manage_dt').DataTable();
             $.ajax({
                 type: "POST",
                 dataType: 'json',
@@ -146,8 +170,7 @@ $(document).ready(function () {
                 success: function (data) {
                     var myres = data["res"];
                     if (myres == "关闭成功。") {
-                        $('#static01').modal('hide');
-                        table.ajax.reload();
+                        getkvmtree();
                     }
                     alert(myres);
                 },
@@ -160,7 +183,6 @@ $(document).ready(function () {
 
 
     $('#kvm_reboot').click(function () {
-        var table = $('#kvm_manage_dt').DataTable();
         $.ajax({
             type: "POST",
             dataType: 'json',
@@ -174,8 +196,7 @@ $(document).ready(function () {
             success: function (data) {
                 var myres = data["res"];
                 if (myres == "重启成功。") {
-                    $('#static01').modal('hide');
-                    table.ajax.reload();
+                    getkvmtree();
                 }
                 alert(myres);
             },
@@ -189,8 +210,6 @@ $(document).ready(function () {
 
     $('#kvm_undefine').click(function () {
        if (confirm("确定要删除该虚拟机？")) {
-            var table = $('#kvm_manage_dt').DataTable();
-            var data = table.row($(this).parents('tr')).data();
             $.ajax({
                 type: "POST",
                 url: "../kvm_delete/",
@@ -203,8 +222,7 @@ $(document).ready(function () {
                 success: function (data) {
                     var myres = data["res"];
                     if (myres == "删除成功。") {
-                        $('#static01').modal('hide');
-                        table.ajax.reload();
+                        getkvmtree();
                     }
                     alert(myres);
                 },
@@ -213,12 +231,11 @@ $(document).ready(function () {
                 }
             });
         }
-
     });
 
 
     $('#kvm_clone').click(function () {
-        $('#static02').modal('show');
+        $('#static01').modal('show');
         $('#loading1').hide();
         $('#kvm_clone_div').show();
 
@@ -246,9 +263,7 @@ $(document).ready(function () {
                 if (myres == "克隆成功。") {
                     $('#loading1').hide();
                     $('#static01').modal('hide');
-                    $('#static02').modal('hide');
-                    var table = $('#kvm_manage_dt').DataTable();
-                    table.ajax.reload();
+                    getkvmtree();
                 }
                 alert(myres);
                 $('#loading1').hide();
@@ -265,7 +280,6 @@ $(document).ready(function () {
 
     $('#kvm_destroy').click(function () {
         if (confirm("确定要断电该虚拟机？")) {
-            var table = $('#kvm_manage_dt').DataTable();
             $.ajax({
                 type: "POST",
                 dataType: 'json',
@@ -279,8 +293,7 @@ $(document).ready(function () {
                 success: function (data) {
                     var myres = data["res"];
                     if (myres == "断电成功。") {
-                        $('#static01').modal('hide');
-                        table.ajax.reload();
+                       getkvmtree();
                     }
                     alert(myres);
                 },
@@ -308,8 +321,7 @@ $(document).ready(function () {
             success: function (data) {
                 var myres = data["res"];
                 if (myres == "开机成功。") {
-                    $('#static01').modal('hide');
-                    table.ajax.reload();
+                    getkvmtree();
                 }
                 alert(myres);
             },
