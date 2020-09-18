@@ -1,7 +1,4 @@
 # 流程配置：场景配置、脚本配置、流程配置、主机配置
-import xlrd
-import xlwt
-
 from django.shortcuts import render
 from django.http import HttpResponseRedirect, Http404, HttpResponse, JsonResponse
 from django.http import StreamingHttpResponse
@@ -3740,6 +3737,7 @@ def get_adg_status(request):
                     database_role = db_status_row[1] if db_status_row else ""
                     switchover_status = db_status_row[2] if db_status_row else ""
                 except Exception as e:
+                    print(e)
                     check_host = ServerByPara('cd ..', host_ip, host_username, host_password, host_os)
                     result = check_host.run("")
                     if result["exec_tag"] == "1":

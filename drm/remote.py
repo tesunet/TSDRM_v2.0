@@ -4,70 +4,72 @@ linux下脚本语法错误,或者命令不存在等没有通过stderr变量接�
 windows下可以接收到错误信息并作出判断；
 """
 import paramiko
-import winrm
 import socket
 import requests
 import datetime
-from winrm.exceptions import WinRMTransportError, WinRMOperationTimeoutError, WinRMError
 from requests.exceptions import ConnectionError
 
+import sys
+if sys.platform.startswith('win'):
+    import winrm
+    from winrm.exceptions import WinRMTransportError, WinRMOperationTimeoutError, WinRMError
 
-###############################################################
-# 为实现 WINDOWS下执行脚本时长超时设置，对wimrm中相关类进行重写。#
-###############################################################
-# 重写Protocol类
-class Protocol(winrm.protocol.Protocol):
-    def get_command_output(self, shell_id, command_id):
-        """
-        Get the Output of the given shell and command
-        @param string shell_id: The shell id on the remote machine.
-         See #open_shell
-        @param string command_id: The command id on the remote machine.
-         See #run_command
-        #@return [Hash] Returns a Hash with a key :exitcode and :data.
-         Data is an Array of Hashes where the cooresponding key
-        #   is either :stdout or :stderr.  The reason it is in an Array so so
-         we can get the output in the order it ocurrs on
-        #   the console.
-        """
-        stdout_buffer, stderr_buffer = [], []
-        command_done = False
+    ###############################################################
+    # 为实现 WINDOWS下执行脚本时长超时设置，对wimrm中相关类进行重写。#
+    ###############################################################
+    # 重写Protocol类
+    class Protocol(winrm.protocol.Protocol):
+        def get_command_output(self, shell_id, command_id):
+            """
+            Get the Output of the given shell and command
+            @param string shell_id: The shell id on the remote machine.
+            See #open_shell
+            @param string command_id: The command id on the remote machine.
+            See #run_command
+            #@return [Hash] Returns a Hash with a key :exitcode and :data.
+            Data is an Array of Hashes where the cooresponding key
+            #   is either :stdout or :stderr.  The reason it is in an Array so so
+            we can get the output in the order it ocurrs on
+            #   the console.
+            """
+            stdout_buffer, stderr_buffer = [], []
+            command_done = False
 
-        ############################################################################
-        # 限时6*60s                                                                #
-        #   程序反复查看相应，如果相应成功，且在超时时限内则命令成功，否则报超时异常。 #
-        #   获取响应的时长较长。                                                    #
-        ############################################################################
-        return_code = -1
-        limited_seconds = 6 * 60
-        start_time = datetime.datetime.now()
-        while not command_done:
-            print('get the response from windows...')
-            try:
-                stdout, stderr, return_code, command_done = \
-                    self._raw_get_command_output(shell_id, command_id)
-                stdout_buffer.append(stdout)
-                stderr_buffer.append(stderr)
-            except WinRMOperationTimeoutError as e:
-                # this is an expected error when waiting for a long-running process, just silently retry
-                pass
+            ############################################################################
+            # 限时6*60s                                                                #
+            #   程序反复查看相应，如果相应成功，且在超时时限内则命令成功，否则报超时异常。 #
+            #   获取响应的时长较长。                                                    #
+            ############################################################################
+            return_code = -1
+            limited_seconds = 6 * 60
+            start_time = datetime.datetime.now()
+            while not command_done:
+                print('get the response from windows...')
+                try:
+                    stdout, stderr, return_code, command_done = \
+                        self._raw_get_command_output(shell_id, command_id)
+                    stdout_buffer.append(stdout)
+                    stderr_buffer.append(stderr)
+                except WinRMOperationTimeoutError as e:
+                    # this is an expected error when waiting for a long-running process, just silently retry
+                    pass
 
-            end_time = datetime.datetime.now()
-            delta_time = end_time - start_time
-            total_seconds = delta_time.total_seconds()
-            if total_seconds > limited_seconds:
-                raise WinRMOperationTimeoutError()
-        return b''.join(stdout_buffer), b''.join(stderr_buffer), return_code
+                end_time = datetime.datetime.now()
+                delta_time = end_time - start_time
+                total_seconds = delta_time.total_seconds()
+                if total_seconds > limited_seconds:
+                    raise WinRMOperationTimeoutError()
+            return b''.join(stdout_buffer), b''.join(stderr_buffer), return_code
 
 
-# 重写Session类
-class Session(winrm.Session):
-    # TODO implement context manager methods
-    def __init__(self, target, auth, **kwargs):
-        username, password = auth
-        self.url = self._build_url(target, kwargs.get('transport', 'plaintext'))
-        self.protocol = Protocol(self.url,
-                                 username=username, password=password, **kwargs)
+    # 重写Session类
+    class Session(winrm.Session):
+        # TODO implement context manager methods
+        def __init__(self, target, auth, **kwargs):
+            username, password = auth
+            self.url = self._build_url(target, kwargs.get('transport', 'plaintext'))
+            self.protocol = Protocol(self.url,
+                                    username=username, password=password, **kwargs)
 
 
 class ServerByPara(object):

@@ -10,14 +10,17 @@ from drm.api.commvault import SQLApi
 from drm.api.commvault.RestApi import *
 
 import datetime
-import pythoncom
 from ping3 import ping
 import cx_Oracle
 import pymysql
-
-pythoncom.CoInitialize()
-import wmi
 from ..kvm import KVMApi
+
+import sys
+if sys.platform.startswith('win'):
+    import pythoncom
+
+    pythoncom.CoInitialize()
+    import wmi
 
 
 ######################
