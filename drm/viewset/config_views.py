@@ -2979,8 +2979,8 @@ def get_cvinfo(request):
         for future in as_completed(all_tasks):
             if future.result():
                 data.append(future.result())
-    except:
-        pass
+    except Exception as e:
+        print(e)
     # for um in utils_manage:
     #     data.append(get_instance_list(um))
 

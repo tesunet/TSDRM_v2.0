@@ -4,7 +4,8 @@ import copy
 # from TSDRM import settings
 # from faconstor.CVApi_bak import *
 import re
-import pyodbc
+# import pyodbc
+import pymssql
 
 
 class DataMonitor(object):
@@ -19,10 +20,9 @@ class DataMonitor(object):
     @property
     def _connection(self):
         try:
-            connection = pyodbc.connect('DRIVER={SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s' % (
-                self.host, self.database, self.user, self.password))
-
-            # connection = pymssql.connect(host=self.host, user=self.user, password=self.password, database=self.database)
+            # connection = pyodbc.connect('DRIVER={SQL Server};SERVER=%s;DATABASE=%s;UID=%s;PWD=%s' % (
+            #     self.host, self.database, self.user, self.password))
+            connection = pymssql.connect(host=self.host, user=self.user, password=self.password, database=self.database)
         except Exception as e:
             self.msg = "链接数据库失败。"
             return None
