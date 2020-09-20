@@ -503,7 +503,7 @@ $(document).ready(function () {
                 else{
                     $('#kvm_disk_space input').eq(0).val(kvm_space["used_percent"]).trigger('change');
                 }
-                $('#kvm_disk_space h4').eq(1).text(kvm_space["used_total"] + " TB/" + kvm_space["size_total"] + " TB");
+                $('#kvm_disk_space h4').eq(1).text(kvm_space["used_total"] + " GB/" + kvm_space["size_total"] + " GB");
 
             }
         });

@@ -617,61 +617,135 @@ class KVMApi():
         tank/CentOS-7-2020-09-01  191G  1.5G  190G    1% /tank/CentOS-7-2020-09-01
         """
 
-        exe_cmd = r'df -lh'
+        exe_cmd = r'zfs list'
         result = self.remote_linux(exe_cmd)
         kvm_space_list = [x for x in result['data'].split(' ') if x]
 
-        del kvm_space_list[0:6]
-        end_list = self.list_of_groups(kvm_space_list, 6)
-        kvm_all_space_list = []
+        del kvm_space_list[0:5]
+        end_list = self.list_of_groups(kvm_space_list, 5)
+        data = {}
         for item in end_list:
-            if 'tank/' in item[0]:
+            if 'data' == item[0]:
+                data['used_total'] = float(item[1].replace('G', ''))
+                data['size_total'] = float(item[2].replace('G', ''))
+                data['used_percent'] = round(float(item[1].replace('G', ''))/float(item[2].replace('G', '')), 2)*100
+
+        return data
+
+    def memory_usage(self):
+        """
+        宿主机查看内存使用率：cat /proc/meminfo
+        """
+        data = ''
+        try:
+            exe_cmd = r'cat /proc/meminfo'
+            result = self.remote_linux(exe_cmd)
+            memory_info = [x for x in result['data'].split(' ') if x]
+            end_list = self.list_of_groups(memory_info, 3)[0:5]
+            memtotal = end_list[0][1]   # 总内存
+            memfree = end_list[1][1]    # 空闲内存
+            buffers = end_list[3][1]    # 给文件缓存大小
+            cached = end_list[4][1]     # 高速缓冲存储器使用的大小
+
+            free_mem = int(memfree) + int(buffers) + int(cached)
+            used_mem = int(memtotal) - free_mem
+            memory_usage = round(100 * used_mem / float(memtotal), 2)
+
+            data = {
+                'mem_total': round(memtotal / 1024 / 1024, 2),
+                'mem_used': round(used_mem / 1024 / 1024, 2),
+                'memory_usage': memory_usage
+            }
+        except Exception as e:
+            print(e)
+        return data
+
+    def disk_usage(self):
+        """
+        宿主机查看存储使用率：df
+        """
+        data = ''
+        try:
+            exe_cmd = r'df'
+            result = self.remote_linux(exe_cmd)
+            disk_info = [x for x in result['data'].split(' ') if x]
+            del disk_info[0:6]
+            end_list = self.list_of_groups(disk_info, 6)
+            disk_info_list = []
+            for item in end_list:
                 data = {}
-                data['filesystem'] = item[0]
-                size = ''
-                used = ''
-                avail = ''
-                if 'G' in item[1]:
-                    size = float(item[1].replace('G', '')) * 1024
-                if 'M' in item[1]:
-                    size = float(item[1].replace('M', ''))
-                data['size'] = size
+                data['name'] = item[0]
+                data['total'] = item[1]
+                data['used'] = item[2]
+                disk_info_list.append(data)
 
-                if 'G' in item[2]:
-                    used = float(item[2].replace('G', '')) * 1024
-                if 'M' in item[2]:
-                    used = float(item[2].replace('M', ''))
-                data['used'] = used
+            total = 0
+            used = 0
+            for i in disk_info_list:
+                total += int(i['total'])
+                used += int(i['used'])
+            disk_usage = round(used / total * 100, 2)
 
-                if 'G' in item[3]:
-                    avail = float(item[3].replace('G', '')) * 1024
-                if 'M' in item[3]:
-                    avail = float(item[3].replace('M', ''))
-                data['avail'] = avail
-                kvm_all_space_list.append(data)
+            data = {
+                'disk_total': round(total / 1024 / 1024, 2),
+                'disk_used': round(used / 1024 / 1024, 2),
+                'disk_usage': disk_usage
+            }
+        except Exception as e:
+            print(e)
 
-        size_total = 0
-        used_total = 0
-        avail_total = 0
-        for i in kvm_all_space_list:
-            size_total += i['size']
-            used_total += i['used']
-            avail_total += i['avail']
+        return data
 
-        size_total = round(size_total/1024/1024, 2)
-        used_total = round(used_total/1024/1024, 2)
-        avail_total = round(avail_total/1024/1024, 2)
+    def cpu_usage(self):
+        """
+        宿主机查看cpu使用率：
+        """
+        cpu_usage = ''
+        try:
+            exe_cmd = r"top -n1 | awk '/Cpu/{print $2}'"
+            result = self.remote_linux(exe_cmd)
+            cpu_usage = result['data']
+        except Exception as e:
+            print(e)
+        return cpu_usage
 
-        avail_percent = round(avail_total / size_total * 100, 2)
-        used_percent = round(100 - avail_percent, 2)
-        all_kvm_space = {
-            'size_total': size_total,
-            'used_total': used_total,
-            'avail_total': avail_total,
-            'avail_percent': avail_percent,
-            'used_percent': used_percent,
+    def kvm_cpu_mem_usage(self):
+        kvm_mem_usage = ''
+        kvm_cpu_usage = ''
+        kvm_disk_data = []
+        try:
+            exe_cmd = r"./test2.py"
+            result = self.remote_linux(exe_cmd)
+            kvm_mem_usage = result['data']
+            exe_cmd = r"./test1.py"
+            result = self.remote_linux(exe_cmd)
+            kvm_cpu_usage = result['data']
+
+            exe_cmd = r'df'
+            result = self.remote_linux(exe_cmd)
+            kvm_space_list = [x for x in result['data'].split(' ') if x]
+
+            del kvm_space_list[0:6]
+            end_list = self.list_of_groups(kvm_space_list, 6)
+
+            for item in end_list:
+                if 'data/vmdata/' in item[0]:
+                    data = {}
+                    data['filesystem'] = item[0]
+                    data['total'] = round(int(item[1]) / 1024 / 1024, 2)
+                    data['used'] = round(int(item[2]) / 1024 / 1024, 2)
+                    data['free'] = round(int(item[3]) / 1024 / 1024, 2)
+                    data['disk_usage'] = round(int(item[2]) / int(item[3]) * 100, 2)
+                    kvm_disk_data.append(data)
+        except Exception as e:
+            print(e)
+
+        data = {
+            'kvm_mem_usage': kvm_mem_usage,
+            'kvm_cpu_usage': kvm_cpu_usage,
+            'kvm_disk_data': kvm_disk_data
         }
-        return all_kvm_space
+        return data
 
 
 linuxserver_credit = {
@@ -707,4 +781,5 @@ linuxserver_credit = {
 # result = KVMApi(linuxserver_credit).kvm_info_data('Test-1')
 # result = KVMApi(linuxserver_credit).kvm_include_copy_list('Test-1')
 # result = KVMApi(linuxserver_credit).kvm_exclude_copy_list()
+# result = KVMApi(linuxserver_credit).kvm_disk_space()
 # print(result)

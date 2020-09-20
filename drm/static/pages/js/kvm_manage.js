@@ -10,6 +10,7 @@ function getkvmtree() {
             if (data.ret == 0) {
                 alert(data.data)
             } else {
+                console.log(data.data, '555')
                 $('#loading').hide();
                 $('#showdata').show();
                 $('#tree_kvm_manage').jstree({
@@ -231,6 +232,7 @@ $(document).ready(function () {
                 }
             });
         }
+
     });
 
 
@@ -293,7 +295,7 @@ $(document).ready(function () {
                 success: function (data) {
                     var myres = data["res"];
                     if (myres == "断电成功。") {
-                       getkvmtree();
+                        getkvmtree();
                     }
                     alert(myres);
                 },
@@ -306,7 +308,6 @@ $(document).ready(function () {
 
 
     $('#kvm_start').click(function () {
-        var table = $('#kvm_manage_dt').DataTable();
         $.ajax({
             type: "POST",
             dataType: 'json',
