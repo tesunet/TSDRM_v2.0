@@ -35,116 +35,245 @@
                         <input hidden type="text"  id="id" name="id" value="">
                         <input hidden type="text"  id="pid" name="pid" value="">
                         <div id="node" hidden>
-                            <div class="row">
-                                <div class="col-md-12">
-                                    <div class="panel panel-default">
-                                        <div class="panel-body easypiechart-panel">
-                                            <div class="col-md-12">
-                                                <div class="col-md-4">
-                                                    <span class="caption-subject bold uppercase font-green" style="font-size:16px">内存空间使用情况</span>
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="panel panel-default">
+                                            <div class="panel-body easypiechart-panel">
+                                                <div class="col-md-12">
+                                                    <div class="col-md-4">
+                                                        <span class="caption-subject bold uppercase font-green" style="font-size:16px">内存空间使用情况</span>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <span class="caption-subject bold uppercase font-green" style="font-size:16px">CPU使用率</span>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <span class="caption-subject bold uppercase font-green" style="font-size:16px">磁盘空间使用情况</span>
+                                                    </div>
                                                 </div>
-                                                <div class="col-md-4">
-                                                    <span class="caption-subject bold uppercase font-green" style="font-size:16px">磁盘空间使用情况</span>
-                                                </div>
-                                                <div class="col-md-4">
-                                                    <span class="caption-subject bold uppercase font-green" style="font-size:16px">CPU使用率</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4" align="center" style="padding-top: 20px;" id="memory_space">
-                                                <div style="float:left;padding-left: 50px">
-                                                    <input readonly class="knob" data-width="100"
-                                                        data-fgcolor="#3598DC" data-min="0"
-                                                        data-displayprevious=true value="100">
-                                                </div>
-                                                <div style="float:left;padding-left: 40px;padding-top: 20px">
-                                                    <h4>内存空间</h4>
-                                                    <h4 class="">0 GB/0 GB </h4>
-                                                </div>
-
-                                            </div>
-                                            <div class="col-md-4" align="center" style="padding-top: 20px;" id="disk_space">
-                                                <div style="float:left;padding-left: 50px">
-                                                    <input readonly class="knob" data-width="100"
-                                                        data-fgcolor="#3598DC" data-min="0"
-                                                        data-displayprevious=true value="100">
-                                                </div>
-                                                <div style="float:left;padding-left: 40px;padding-top: 20px">
-                                                    <h4>磁盘空间</h4>
-                                                    <h4 class="">0 GB/0 GB </h4>
+                                                <div class="col-md-4" align="center" style="padding-top: 20px;" id="memory_space">
+                                                    <div style="float:left;padding-left: 20px">
+                                                        <input readonly class="knob" data-width="100"
+                                                            data-fgcolor="#3598DC" data-min="0"
+                                                            data-displayprevious=true value="100">
+                                                    </div>
+                                                    <div style="float:left;padding-left: 20px;padding-top: 20px">
+                                                        <h4>内存空间</h4>
+                                                        <h4 class="">0 GB/0 GB </h4>
+                                                    </div>
 
                                                 </div>
-                                            </div>
-                                            <div class="col-md-4" align="center" style="padding-top: 20px" id="cpu_space">
-                                                <div style="float:left;padding-left: 50px">
-                                                    <input readonly class="knob" data-width="100"
-                                                       data-fgcolor="#32C5D2" data-min="0"
-                                                       data-displayprevious=true value="100">
+                                                <div class="col-md-4" align="center" style="padding-top: 20px" id="cpu_space">
+                                                    <div style="float:left;padding-left: 20px">
+                                                        <input readonly class="knob" data-width="100"
+                                                           data-fgcolor="#3598DC" data-min="0"
+                                                           data-displayprevious=true value="100">
+                                                    </div>
+                                                    <div style="float:left;padding-left: 20px;padding-top: 20px">
+                                                        <h4>CPU使用率</h4>
+                                                        <h4 class="">0 %/100 %</h4>
+                                                    </div>
                                                 </div>
-                                                <div style="float:left;padding-left: 40px;padding-top: 20px">
-                                                    <h4>CPU使用率</h4>
-                                                    <h4 class="">0 %/100 %</h4>
+                                                <div class="col-md-4" align="center" style="padding-top: 20px;" id="disk_space">
+                                                    <div style="float:left;padding-left: 20px">
+                                                        <input readonly class="knob" data-width="100"
+                                                            data-fgcolor="#3598DC" data-min="0"
+                                                            data-displayprevious=true value="100">
+                                                    </div>
+                                                    <div style="float:left;padding-left: 20px;padding-top: 20px">
+                                                        <h4>磁盘空间</h4>
+                                                        <h4 class="">0 GB/0 GB </h4>
+
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label class="col-md-2 control-label" for="form_control_1"
+                                       style="vertical-align: inherit;font-weight:bold;">基础信息
+                                </label>
+                                <div class="col-md-10">
+                                    <hr>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                    <label class="col-md-2 control-label">主机名</label>
+                                    <div class="col-md-10">
+                                        <input readonly id="hostname" type="text" name="hostname" class="form-control " placeholder="">
+                                        <div class="form-control-focus"></div>
+                                    </div>
+                                </div>
+                            <div class="form-group">
+                                <label class="col-md-2 control-label">IP</label>
+                                <div class="col-md-10">
+                                    <input readonly id="host_ip" type="text" name="host_ip" class="form-control " placeholder="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-md-2 control-label">CPU</label>
+                                <div class="col-md-10">
+                                    <input readonly id="cpu" type="text" name="cpu" class="form-control " placeholder="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-md-2 control-label">操作系统</label>
+                                <div class="col-md-10">
+                                    <input readonly id="os" type="text" name="os" class="form-control " placeholder="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                            <div class="form-group " style="text-align:center">
+                                <label class="col-md-2 control-label"></label>
+                                <div class="col-md-10">
+                                    <button type="button" id="create_kvm_machine" name="create_kvm_machine" class="btn green">
+                                        新建虚拟机
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group" hidden>
+                                <label class="col-md-2 control-label">虚拟机cpu信息</label>
+                                <div class="col-md-10">
+                                    <textarea class="form-control" id="kvm_mem_cpu_disk_data" name="kvm_mem_cpu_disk_data" readonly></textarea>
+                                </div>
+                            </div>
                         </div>
 
                         <div id="kvm_info" hidden>
-                            <div class="form-body">
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="panel panel-default">
+                                            <div class="panel-body easypiechart-panel">
+                                                <div class="col-md-12">
+                                                    <div class="col-md-4">
+                                                        <span class="caption-subject bold uppercase font-green" style="font-size:16px">内存空间使用情况</span>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <span class="caption-subject bold uppercase font-green" style="font-size:16px">CPU使用率</span>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <span class="caption-subject bold uppercase font-green" style="font-size:16px">磁盘空间使用情况</span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4" align="center" style="padding-top: 20px;" id="kvm_memory_space">
+                                                    <div style="float:left;padding-left: 20px">
+                                                        <input readonly class="knob" data-width="100"
+                                                            data-fgcolor="#3598DC" data-min="0"
+                                                            data-displayprevious=true value="100">
+                                                    </div>
+                                                    <div style="float:left;padding-left: 20px;padding-top: 20px">
+                                                        <h4>内存空间</h4>
+                                                        <h4 class="">0 GB/0 GB </h4>
+                                                    </div>
 
-                                <div class="form-group" style="margin-top:-20px">
-                                    <label class="col-md-2 control-label">所属节点</label>
-                                    <div class="col-md-10">
-                                        <input readonly id="kvm_node_pname" type="text" name="kvm_node_pname" class="form-control " placeholder="">
-                                        <div class="form-control-focus"></div>
-                                    </div>
-                                </div>
+                                                </div>
+                                                <div class="col-md-4" align="center" style="padding-top: 20px" id="kvm_cpu_space">
+                                                    <div style="float:left;padding-left: 20px">
+                                                        <input readonly class="knob" data-width="100"
+                                                           data-fgcolor="#3598DC" data-min="0"
+                                                           data-displayprevious=true value="100">
+                                                    </div>
+                                                    <div style="float:left;padding-left: 20px;padding-top: 20px">
+                                                        <h4>CPU使用率</h4>
+                                                        <h4 class="">0 %/100 %</h4>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-4" align="center" style="padding-top: 20px;" id="kvm_disk_space">
+                                                    <div style="float:left;padding-left: 20px">
+                                                        <input readonly class="knob" data-width="100"
+                                                            data-fgcolor="#3598DC" data-min="0"
+                                                            data-displayprevious=true value="100">
+                                                    </div>
+                                                    <div style="float:left;padding-left: 20px;padding-top: 20px">
+                                                        <h4>磁盘空间</h4>
+                                                        <h4 class="">0 GB/0 GB </h4>
 
-                                <div class="form-group">
-                                    <label class="col-md-2 control-label">虚拟机名称</label>
-                                    <div class="col-md-10">
-                                        <input readonly type="text" class="form-control" id="kvm_name" name="kvm_name"  value="">
-                                        <div class="form-control-focus"></div>
-                                    </div>
-                                </div>
-                                <div class="form-group ">
-                                    <label class="col-md-2 control-label" for="form_control_1">状态</label>
-                                    <div class="col-md-10">
-                                        <input readonly type="text" class="form-control" id="kvm_state" name="kvm_state"  value="">
-                                        <div class="form-control-focus"></div>
-                                    </div>
-                                </div>
-                                <div class="form-group">
-                                        <label class="col-md-2 control-label">CPU</label>
-                                        <div class="col-md-10">
-                                            <input readonly id="kvm_cpu" type="text" name="kvm_cpu" class="form-control " placeholder="">
-                                            <div class="form-control-focus"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                <div class="form-group">
-                                    <label class="col-md-2 control-label">内存</label>
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                            <label class="col-md-2 control-label" for="form_control_1"
+                                   style="vertical-align: inherit;font-weight:bold;">基础信息
+                            </label>
+                            <div class="col-md-10">
+                                <hr>
+                            </div>
+                        </div>
+
+                            <div class="form-group">
+                                <label class="col-md-2 control-label">所属节点</label>
+                                <div class="col-md-10">
+                                    <input readonly id="kvm_node_pname" type="text" name="kvm_node_pname" class="form-control " placeholder="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="col-md-2 control-label">虚拟机名称</label>
+                                <div class="col-md-10">
+                                    <input readonly type="text" class="form-control" id="kvm_name" name="kvm_name"  value="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                            <div class="form-group ">
+                                <label class="col-md-2 control-label" for="form_control_1">状态</label>
+                                <div class="col-md-10">
+                                    <input readonly type="text" class="form-control" id="kvm_state" name="kvm_state"  value="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                            <div class="form-group ">
+                                <label class="col-md-2 control-label" for="form_control_1">主机名</label>
+                                <div class="col-md-10">
+                                    <input readonly type="text" class="form-control" id="kvm_hostname" name="kvm_hostname"  value="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                            <div class="form-group ">
+                                <label class="col-md-2 control-label" for="form_control_1">IP</label>
+                                <div class="col-md-10">
+                                    <input readonly type="text" class="form-control" id="kvm_ip" name="kvm_ip"  value="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                    <label class="col-md-2 control-label">CPU</label>
                                     <div class="col-md-10">
-                                        <input readonly id="kvm_memory" type="text" name="kvm_memory" class="form-control " placeholder="">
+                                        <input readonly id="kvm_cpu" type="text" name="kvm_cpu" class="form-control " placeholder="">
                                         <div class="form-control-focus"></div>
                                     </div>
                                 </div>
-                                <div class="form-group">
-                                    <label class="col-md-2 control-label">磁盘</label>
-                                    <div class="col-md-10">
-                                        <input readonly id="kvm_disk" type="text" name="kvm_disk" class="form-control " placeholder="">
-                                        <div class="form-control-focus"></div>
-                                    </div>
+                            <div class="form-group">
+                                <label class="col-md-2 control-label">内存</label>
+                                <div class="col-md-10">
+                                    <input readonly id="kvm_memory" type="text" name="kvm_memory" class="form-control " placeholder="">
+                                    <div class="form-control-focus"></div>
                                 </div>
-                                 <div class="form-group">
-                                    <label class="col-md-2 control-label">系统</label>
-                                    <div class="col-md-10">
-                                        <input readonly id="kvm_os" type="text" name="kvm_os" class="form-control " placeholder="">
-                                        <div class="form-control-focus"></div>
-                                    </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="col-md-2 control-label">磁盘</label>
+                                <div class="col-md-10">
+                                    <input readonly id="kvm_disk" type="text" name="kvm_disk" class="form-control " placeholder="">
+                                    <div class="form-control-focus"></div>
                                 </div>
-                                <div class="form-group " style="text-align:center">
+                            </div>
+                            <div class="form-group">
+                                <label class="col-md-2 control-label">系统</label>
+                                <div class="col-md-10">
+                                    <input readonly id="kvm_os" type="text" name="kvm_os" class="form-control " placeholder="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                            </div>
+                            <div class="form-group " style="text-align:center">
                                     <label class="col-md-2 control-label"></label>
                                     <div class="col-md-10">
                                         <button type="button" id="kvm_suspend" name="kvm_suspend" class="btn green">
@@ -174,7 +303,6 @@
                                     </div>
 
                                 </div>
-                            </div>
                         </div>
                     </form>
                 </div>

@@ -2417,7 +2417,6 @@ def get_kvm_copy_node(parent, kvm_credit):
             state = state_dict[state]
         kvm_info['kvm_name'] = child['name']
         kvm_info['kvm_state'] = state
-
         data['kvm_info'] = kvm_info
         datas.append(data)
     return datas
@@ -2481,15 +2480,11 @@ def get_kvm_tree(request):
         root['kvm_credit'] = kvm_credit
 
         # 宿主机和kvm虚拟机cpu、内存、磁盘信息
-        cpu_data = KVMApi(kvm_credit).cpu_usage()
-        disk_data = KVMApi(kvm_credit).disk_usage()
-        memory_data = KVMApi(kvm_credit).disk_usage()
-        kvm_cpu_mem_data = KVMApi(kvm_credit).kvm_cpu_mem_usage()
+        memory_disk_cpu_data = KVMApi(kvm_credit).memory_disk_cpu_data()
+        root['memory_disk_cpu_data'] = memory_disk_cpu_data
 
-        root['cpu_data'] = cpu_data
-        root['disk_data'] = disk_data
-        root['memory_data'] = memory_data
-        root['kvm_cpu_mem_data'] = kvm_cpu_mem_data
+        kvm_cpu_mem_data = KVMApi(kvm_credit).kvm_cpu_mem_usage()
+        root['kvm_memory_disk_cpu_data'] = kvm_cpu_mem_data
 
         # 循环二级菜单：虚拟机
         root["children"] = get_kvm_node(utils.code, kvm_credit)

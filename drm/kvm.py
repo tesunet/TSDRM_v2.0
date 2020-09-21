@@ -1,6 +1,8 @@
 from drm import remote
 from lxml import etree
 import time
+import json
+
 
 class KVMApi():
     def __init__(self, credit):
@@ -320,7 +322,7 @@ class KVMApi():
 
         kvm_os = kvm_os.text
         kvm_cpu = int(kvm_cpu.text)
-        kvm_memory = str(int(int(kvm_memory.text)/1024)) + 'MB'
+        kvm_memory = int(int(kvm_memory.text)/1024)
         kvm_disk = kvm_diskpath.attrib['file']
 
         kvm_info = {
@@ -610,11 +612,7 @@ class KVMApi():
 
     def kvm_disk_space(self):
         """
-        获取kvm文件系统磁盘使用情况：df -lh
-        tank/Test-1               191G  1.3G  190G    1% /tank/Test-1
-        tank/CentOS-7             191G  1.5G  190G    1% /tank/CentOS-7
-        tank/win2k16              190G  979M  190G    1% /tank/win2k16
-        tank/CentOS-7-2020-09-01  191G  1.5G  190G    1% /tank/CentOS-7-2020-09-01
+        获取kvm文件系统磁盘使用情况：zfs list
         """
 
         exe_cmd = r'zfs list'
@@ -632,12 +630,17 @@ class KVMApi():
 
         return data
 
-    def memory_usage(self):
+    def memory_disk_cpu_data(self):
         """
         宿主机查看内存使用率：cat /proc/meminfo
+        查看cpu使用率
+        查看磁盘使用率
+        查看操作系统
+        查看主机名
         """
         data = ''
         try:
+            # 内存
             exe_cmd = r'cat /proc/meminfo'
             result = self.remote_linux(exe_cmd)
             memory_info = [x for x in result['data'].split(' ') if x]
@@ -651,21 +654,7 @@ class KVMApi():
             used_mem = int(memtotal) - free_mem
             memory_usage = round(100 * used_mem / float(memtotal), 2)
 
-            data = {
-                'mem_total': round(memtotal / 1024 / 1024, 2),
-                'mem_used': round(used_mem / 1024 / 1024, 2),
-                'memory_usage': memory_usage
-            }
-        except Exception as e:
-            print(e)
-        return data
-
-    def disk_usage(self):
-        """
-        宿主机查看存储使用率：df
-        """
-        data = ''
-        try:
+            # 磁盘
             exe_cmd = r'df'
             result = self.remote_linux(exe_cmd)
             disk_info = [x for x in result['data'].split(' ') if x]
@@ -677,37 +666,55 @@ class KVMApi():
                 data['name'] = item[0]
                 data['total'] = item[1]
                 data['used'] = item[2]
+                data['mount'] = item[5]
                 disk_info_list.append(data)
-
             total = 0
             used = 0
             for i in disk_info_list:
-                total += int(i['total'])
-                used += int(i['used'])
+                if i['mount'] == '/' or i['mount'] == '/data' or i['mount'] == '/boot':
+                    total += int(i['total'])
+                    used += int(i['used'])
             disk_usage = round(used / total * 100, 2)
 
+            # cpu使用率
+            exe_cmd = r"top -n1 | awk '/Cpu/{print $2}'"
+            result = self.remote_linux(exe_cmd)
+            cpu_usage = float(result['data'])
+
+            # cpu个数
+            exe_cmd = r'cat /proc/cpuinfo| grep "physical id"| sort| uniq| wc -l'
+            result = self.remote_linux(exe_cmd)
+            cpu_count = result['data']
+
+            # 操作系统
+            exe_cmd = r"cat /etc/centos-release"
+            result = self.remote_linux(exe_cmd)
+            os = result['data']
+
+            # 主机名
+            exe_cmd = r"cat /etc/hostname"
+            result = self.remote_linux(exe_cmd)
+            hostname = result['data']
+
             data = {
+                'mem_total': round(int(memtotal) / 1024 / 1024, 2),
+                'mem_used': round(used_mem / 1024 / 1024, 2),
+                'memory_usage': memory_usage,
+
                 'disk_total': round(total / 1024 / 1024, 2),
                 'disk_used': round(used / 1024 / 1024, 2),
-                'disk_usage': disk_usage
+                'disk_usage': disk_usage,
+
+                'cpu_usage': cpu_usage,
+                'cpu_count': cpu_count,
+
+                'os': os,
+                'hostname': hostname
+
             }
         except Exception as e:
             print(e)
-
         return data
-
-    def cpu_usage(self):
-        """
-        宿主机查看cpu使用率：
-        """
-        cpu_usage = ''
-        try:
-            exe_cmd = r"top -n1 | awk '/Cpu/{print $2}'"
-            result = self.remote_linux(exe_cmd)
-            cpu_usage = result['data']
-        except Exception as e:
-            print(e)
-        return cpu_usage
 
     def kvm_cpu_mem_usage(self):
         kvm_mem_usage = ''
@@ -739,11 +746,12 @@ class KVMApi():
                     kvm_disk_data.append(data)
         except Exception as e:
             print(e)
-
+        kvm_mem_usage = json.loads(kvm_mem_usage)
+        kvm_cpu_usage = json.loads(kvm_cpu_usage)
         data = {
-            'kvm_mem_usage': kvm_mem_usage,
-            'kvm_cpu_usage': kvm_cpu_usage,
-            'kvm_disk_data': kvm_disk_data
+            "kvm_mem_usage": kvm_mem_usage,
+            "kvm_cpu_usage": kvm_cpu_usage,
+            "kvm_disk_data": kvm_disk_data
         }
         return data
 
@@ -781,5 +789,5 @@ linuxserver_credit = {
 # result = KVMApi(linuxserver_credit).kvm_info_data('Test-1')
 # result = KVMApi(linuxserver_credit).kvm_include_copy_list('Test-1')
 # result = KVMApi(linuxserver_credit).kvm_exclude_copy_list()
-# result = KVMApi(linuxserver_credit).kvm_disk_space()
+# result = KVMApi(linuxserver_credit).kvm_cpu_mem_usage()
 # print(result)
