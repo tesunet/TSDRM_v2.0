@@ -900,6 +900,7 @@ function runCVProcess(processid, process_type) {
     /**
      * 自动化恢复流程
      */
+    $("#confirmtext").val("");
     $("#static").modal({ backdrop: "static" });
     $('#recovery_time').datetimepicker({
         format: 'yyyy-mm-dd hh:ii:ss',
@@ -915,6 +916,7 @@ function runCVProcess(processid, process_type) {
 
 
 function runprocess(processid, process_type) {
+    $("#confirmtext").val("");
     $("#static").modal({ backdrop: "static" });
     $('#recovery_time').datetimepicker({
         format: 'yyyy-mm-dd hh:ii:ss',
