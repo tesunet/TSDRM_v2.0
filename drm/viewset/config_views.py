@@ -2392,7 +2392,7 @@ def kvm_manage(request, funid):
                    })
 
 
-def get_kvm_copy_node(parent, kvm_credit):
+def get_kvm_copy_node(utils_id, parent, kvm_credit):
     datas = []
     children = KVMApi(kvm_credit).kvm_include_copy_list(parent)  # 副本虚拟机
     for child in children:
@@ -2400,29 +2400,19 @@ def get_kvm_copy_node(parent, kvm_credit):
         data['text'] = child['name']
         data['state'] = {'opened': 'True'}
         data['data'] = {
+            'id': child['id'],
+            'utils_id': utils_id,
             'name': child['name'],
+            'state': child['state'],
             'pname': parent,
             'remark': ''
         }
         data['type'] = 'COPY'
-        # 获取kvm虚拟机信息
-        kvm_info = KVMApi(kvm_credit).kvm_info_data(child['name'])
-        state = KVMApi(kvm_credit).domstate(child['name'])
-        state_dict = {
-            'running': '运行中',
-            'shut off': '关闭',
-            'paused': '暂停'
-        }
-        if state in state_dict:
-            state = state_dict[state]
-        kvm_info['kvm_name'] = child['name']
-        kvm_info['kvm_state'] = state
-        data['kvm_info'] = kvm_info
         datas.append(data)
     return datas
 
 
-def get_kvm_node(parent, kvm_credit):
+def get_kvm_node(utils_id, parent, kvm_credit):
     nodes = []
     children = KVMApi(kvm_credit).kvm_exclude_copy_list()
     for child in children:
@@ -2430,29 +2420,17 @@ def get_kvm_node(parent, kvm_credit):
         node['text'] = child['name']
         node['state'] = {'opened': 'True'}
         node['data'] = {
+            'id': child['id'],
+            'utils_id': utils_id,
             'name': child['name'],
+            'state': child['state'],
             'pname': parent,
             'remark': ''
         }
         node['type'] = 'KVM'
 
-        # 获取kvm虚拟机信息
-        kvm_info = KVMApi(kvm_credit).kvm_info_data(child['name'])
-        state = KVMApi(kvm_credit).domstate(child['name'])
-        state_dict = {
-            'running': '运行中',
-            'shut off': '关闭',
-            'paused': '暂停'
-        }
-        if state in state_dict:
-            state = state_dict[state]
-        kvm_info['kvm_name'] = child['name']
-        kvm_info['kvm_state'] = state
-
-        node['kvm_info'] = kvm_info
-
         # 获取三级菜单：实例虚拟机
-        node["children"] = get_kvm_copy_node(child['name'], kvm_credit)
+        node["children"] = get_kvm_copy_node(utils_id, child['name'], kvm_credit)
         nodes.append(node)
     return nodes
 
@@ -2473,21 +2451,15 @@ def get_kvm_tree(request):
         root['id'] = utils.id
         root['state'] = {'opened': 'True'}
         root['data'] = {
+            'utils_id': utils.id,
             'name': utils.name,
             'pname': '无',
             'remark': ''
         }
         root['kvm_credit'] = kvm_credit
 
-        # 宿主机和kvm虚拟机cpu、内存、磁盘信息
-        memory_disk_cpu_data = KVMApi(kvm_credit).memory_disk_cpu_data()
-        root['memory_disk_cpu_data'] = memory_disk_cpu_data
-
-        kvm_cpu_mem_data = KVMApi(kvm_credit).kvm_cpu_mem_usage()
-        root['kvm_memory_disk_cpu_data'] = kvm_cpu_mem_data
-
         # 循环二级菜单：虚拟机
-        root["children"] = get_kvm_node(utils.code, kvm_credit)
+        root["children"] = get_kvm_node(utils.id, utils.code, kvm_credit)
         tree_data.append(root)
     return JsonResponse({
         "ret": 1,
@@ -2496,9 +2468,11 @@ def get_kvm_tree(request):
 
 
 @login_required
-def kvm_manage_data(request):
-    name = request.POST.get("name", "")
+def get_kvm_detail(request):
+
     utils_id = request.POST.get("utils_id", "")
+    kvm_id = request.POST.get("kvm_id", "")
+    kvm_name = request.POST.get("kvm_name", "")
     ret = 1
     try:
         utils_id = int(utils_id)
@@ -2508,27 +2482,42 @@ def kvm_manage_data(request):
     content = utils_kvm_info[0].content
     util_type = utils_kvm_info[0].util_type
     kvm_credit = get_credit_info(content, util_type.upper())
-
     try:
-        result = KVMApi(kvm_credit).kvm_info_data(name)
-        state = KVMApi(kvm_credit).domstate(name)
-        state_dict = {
-            'running': '运行中',
-            'shut off': '关闭',
-            'paused': '暂停'
+        memory_disk_cpu_data = ''
+        kvm_info_data = ''
+        kvm_cpu_mem_data = ''
+        kvm_disk_data = ''
+        # 宿主机信息：cpu、内存、磁盘
+
+        if kvm_name == '' and kvm_id == '':
+            memory_disk_cpu_data = KVMApi(kvm_credit).memory_disk_cpu_data()
+
+        # kvm虚拟机磁盘文件信息：cpu、内存、磁盘
+        # 已开启的虚拟机有id，未开启的虚拟机id为-
+        if kvm_name and kvm_id != '-':
+            kvm_info_data = KVMApi(kvm_credit).kvm_info_data(kvm_name)
+            # kvm虚拟机cpu、内存、磁盘使用率
+            kvm_cpu_mem_data = KVMApi(kvm_credit).kvm_cpu_mem_usage(int(kvm_id))
+            kvm_disk_data = KVMApi(kvm_credit).kvm_disk_usage(kvm_name)
+        if kvm_name and kvm_id == '-':
+            kvm_info_data = KVMApi(kvm_credit).kvm_info_data(kvm_name)
+            kvm_disk_data = KVMApi(kvm_credit).kvm_disk_usage(kvm_name)
+        data = {
+            'memory_disk_cpu_data': memory_disk_cpu_data,
+            'kvm_info_data': kvm_info_data,
+            'kvm_cpu_mem_data': kvm_cpu_mem_data,
+            'kvm_disk_data': kvm_disk_data
+
         }
-        if state in state_dict:
-            state = state_dict[state]
-        result['kvm_name'] = name
-        result['kvm_state'] = state
 
     except Exception as e:
         print(e)
         ret = 0
-        result = '获取信息失败。'
+        data = '获取信息失败。'
+
     return JsonResponse({
         'ret': ret,
-        'data': result})
+        'data': data})
 
 
 @login_required

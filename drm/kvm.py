@@ -52,10 +52,11 @@ class KVMApi():
             if i == 'paused':
                 i = '暂停'
             kvm_list_filter.append(i)
-        end_list = self.list_of_groups(kvm_list_filter, 3)
+        end_list = self.list_of_groups(kvm_list_filter, 4)
         kvm_all_list_dict = []
         for item in end_list:
             data = {}
+            data['id'] = item[0]
             data['name'] = item[1]
             data['state'] = item[2]
             kvm_all_list_dict.append(data)
@@ -67,7 +68,6 @@ class KVMApi():
         exe_cmd = r'virsh list --all'
         result = self.remote_linux(exe_cmd)
         kvm_list = [x for x in result['data'].split(' ') if x]
-
         del kvm_list[0:4]
         kvm_list_filter = []
         for i in kvm_list:
@@ -85,6 +85,7 @@ class KVMApi():
         for item in end_list:
             data = {}
             if '@' not in item[1]:
+                data['id'] = item[0]
                 data['name'] = item[1]
                 data['state'] = item[2]
                 kvm_all_list_dict.append(data)
@@ -115,6 +116,7 @@ class KVMApi():
             data = {}
             copyname = kvm_copy_name + '@'
             if copyname in item[1]:
+                data['id'] = item[0]
                 data['name'] = item[1]
                 data['state'] = item[2]
                 kvm_all_list_dict.append(data)
@@ -716,34 +718,19 @@ class KVMApi():
             print(e)
         return data
 
-    def kvm_cpu_mem_usage(self):
+    def kvm_cpu_mem_usage(self, kvm_id):
         kvm_mem_usage = ''
         kvm_cpu_usage = ''
-        kvm_disk_data = []
         try:
-            exe_cmd = r"./test2.py"
+            # 获取内存使用信息
+            exe_cmd = r"./test5.py {0}".format(kvm_id)
             result = self.remote_linux(exe_cmd)
             kvm_mem_usage = result['data']
-            exe_cmd = r"./test1.py"
+            # 获取cpu使用信息
+            exe_cmd = r"./test4.py {0}".format(kvm_id)
             result = self.remote_linux(exe_cmd)
             kvm_cpu_usage = result['data']
 
-            exe_cmd = r'df'
-            result = self.remote_linux(exe_cmd)
-            kvm_space_list = [x for x in result['data'].split(' ') if x]
-
-            del kvm_space_list[0:6]
-            end_list = self.list_of_groups(kvm_space_list, 6)
-
-            for item in end_list:
-                if 'data/vmdata/' in item[0]:
-                    data = {}
-                    data['filesystem'] = item[0]
-                    data['total'] = round(int(item[1]) / 1024 / 1024, 2)
-                    data['used'] = round(int(item[2]) / 1024 / 1024, 2)
-                    data['free'] = round(int(item[3]) / 1024 / 1024, 2)
-                    data['disk_usage'] = round(int(item[2]) / int(item[3]) * 100, 2)
-                    kvm_disk_data.append(data)
         except Exception as e:
             print(e)
         kvm_mem_usage = json.loads(kvm_mem_usage)
@@ -751,8 +738,28 @@ class KVMApi():
         data = {
             "kvm_mem_usage": kvm_mem_usage,
             "kvm_cpu_usage": kvm_cpu_usage,
-            "kvm_disk_data": kvm_disk_data
         }
+        return data
+
+    def kvm_disk_usage(self, kvm_name):
+        kvm_disk_usage = ''
+        try:
+            # 获取磁盘使用信息
+            exe_cmd = r'virt-df -d {0}'.format(kvm_name)
+            result = self.remote_linux(exe_cmd)
+            kvm_disk_list = [x for x in result['data'].split(' ') if x]
+            del kvm_disk_list[0:5]
+            # ['CentOS-7:/dev/sda1', '10474496', '1004380', '9470116', '10%']
+            kvm_disk_usage = {
+                'kvm_name': kvm_disk_list[0].split(':')[0],
+                'disk_filesystem': kvm_disk_list[0],
+                'disk_total': round(int(kvm_disk_list[1]) / 1024 / 1024, 2),
+                'disk_used': round(int(kvm_disk_list[2]) / 1024 / 1024, 2),
+                'disk_usage': kvm_disk_list[4]
+            }
+        except Exception as e:
+            print(e)
+        data = {"kvm_disk_usage": kvm_disk_usage}
         return data
 
 
@@ -787,7 +794,7 @@ linuxserver_credit = {
 # print(result)
 # result = KVMApi(linuxserver_credit).kvm_disk_space()
 # result = KVMApi(linuxserver_credit).kvm_info_data('Test-1')
-# result = KVMApi(linuxserver_credit).kvm_include_copy_list('Test-1')
+# result = KVMApi(linuxserver_credit).kvm_include_copy_list('CentOS-7')
 # result = KVMApi(linuxserver_credit).kvm_exclude_copy_list()
-# result = KVMApi(linuxserver_credit).kvm_cpu_mem_usage()
+# result = KVMApi(linuxserver_credit).kvm_cpu_mem_usage(1,'CentOS-7@test1')
 # print(result)
