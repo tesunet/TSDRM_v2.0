@@ -1964,7 +1964,7 @@ def kvm_data(request):
         util_type = utils_kvm_info[0].util_type
         kvm_credit = get_credit_info(content, util_type.upper())
         try:
-            kvm_list = KVMApi(kvm_credit).kvm_all_list()
+            kvm_list = KVMApi(kvm_credit).kvm_exclude_copy_list()
             all_kvm_dict[utils_id] = kvm_list
         except Exception as e:
             print(e)
@@ -2397,7 +2397,6 @@ def get_kvm_copy_node(utils_id, parent, kvm_credit):
     children = KVMApi(kvm_credit).kvm_include_copy_list(parent)  # 副本虚拟机
     for child in children:
         data = dict()
-        data['text'] = child['name']
         data['state'] = {'opened': 'True'}
         data['data'] = {
             'id': child['id'],
@@ -2405,8 +2404,11 @@ def get_kvm_copy_node(utils_id, parent, kvm_credit):
             'name': child['name'],
             'state': child['state'],
             'pname': parent,
-            'remark': ''
         }
+        if child['state'] == '运行中':
+            data['text'] = "<span class='fa fa-plug' style='color:green; height:24px;width:20px;'></span>" + child['name']
+        else:
+            data['text'] = "<span class='fa fa-plug' style='color:red; height:24px;width:20px;'></span>" + child['name']
         data['type'] = 'COPY'
         datas.append(data)
     return datas
@@ -2417,7 +2419,6 @@ def get_kvm_node(utils_id, parent, kvm_credit):
     children = KVMApi(kvm_credit).kvm_exclude_copy_list()
     for child in children:
         node = dict()
-        node['text'] = child['name']
         node['state'] = {'opened': 'True'}
         node['data'] = {
             'id': child['id'],
@@ -2425,8 +2426,12 @@ def get_kvm_node(utils_id, parent, kvm_credit):
             'name': child['name'],
             'state': child['state'],
             'pname': parent,
-            'remark': ''
         }
+        if child['state'] == '运行中':
+            node['text'] = "<span class='fa fa-plug' style='color:green; height:24px;width:20px;'></span>" + child['name']
+        else:
+            node['text'] = "<span class='fa fa-plug' style='color:red; height:24px;width:20px;'></span>" + child['name']
+
         node['type'] = 'KVM'
 
         # 获取三级菜单：实例虚拟机
@@ -2447,16 +2452,16 @@ def get_kvm_tree(request):
         kvm_credit = get_credit_info(content, util_type.upper())
 
         root = dict()
-        root["text"] = utils.code,
+        root["text"] = "<img src = '/static/pages/images/ts.png' height='24px'>"  + utils.code,
         root['id'] = utils.id
         root['state'] = {'opened': 'True'}
         root['data'] = {
             'utils_id': utils.id,
             'name': utils.name,
             'pname': '无',
-            'remark': ''
         }
         root['kvm_credit'] = kvm_credit
+        root['type'] = 'ROOT'
 
         # 循环二级菜单：虚拟机
         root["children"] = get_kvm_node(utils.id, utils.code, kvm_credit)

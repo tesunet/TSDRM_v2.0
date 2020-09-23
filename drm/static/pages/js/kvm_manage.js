@@ -22,11 +22,14 @@ function getkvmtree() {
                         'data': data.data
                     },
                     "types": {
-                        "NODE": {
-                            "icon": "fa fa-folder icon-state-warning icon-lg"
+                        "KVM": {
+                            "icon": false
                         },
-                        "PROCESS": {
-                            "icon": "fa fa-file-code-o icon-state-warning icon-lg"
+                        "COPY": {
+                            "icon": false
+                        },
+                        "ROOT": {
+                            "icon": false
                         }
                     },
                     "contextmenu": {
@@ -54,7 +57,7 @@ function getkvmtree() {
                         $("#title").text(data.node.data.name);
                         $('#pname').val(data.node.data.pname);
 
-
+                        // 根节点
                         if (data.node.parent == "#") {
                             $("#loading2").show();
                             $("#form_div").hide();
@@ -99,15 +102,15 @@ function getkvmtree() {
                                 }
                             });
                         }
-
-
-                        if (type == 'KVM') {
+                        // 虚拟机
+                        else{
                             $("#loading2").show();
                             $("#form_div").hide();
                             var kvm_info = data.node.data;
                             $("#kvm_name").val(kvm_info.name);
                             $("#kvm_state").val(kvm_info.state);
                             $("#kvm_node_pname").val(data.node.data.pname);
+
 
                             $.ajax({
                                 type: "POST",
@@ -120,9 +123,15 @@ function getkvmtree() {
                                 },
                                 success: function (data) {
                                     if (data.ret == 1) {
+                                        if (type == 'KVM') {
+                                            $("#kvm_undefine").hide();
+                                        }
+                                        if (type == 'COPY') {
+                                            $("#kvm_undefine").show();
+                                        }
                                         $("#node").hide();
                                         $("#kvm_info").show();
-                                        $("#kvm_undefine").hide();
+
                                         $("#loading2").hide();
                                         $("#form_div").show();
                                         var kvm_info = data.data.kvm_info_data;
@@ -168,73 +177,6 @@ function getkvmtree() {
                             });
                         }
 
-                        if (type == 'COPY') {
-                            $("#loading2").show();
-                            $("#form_div").hide();
-                            var kvm_info = data.node.data;
-                            $("#kvm_name").val(kvm_info.name);
-                            $("#kvm_state").val(kvm_info.state);
-                            $("#kvm_node_pname").val(data.node.data.pname);
-
-                             $.ajax({
-                                type: "POST",
-                                dataType: 'json',
-                                url: "../get_kvm_detail/",
-                                data: {
-                                    kvm_id: kvm_id,
-                                    utils_id: utils_id,
-                                    kvm_name: kvm_name
-                                },
-                                success: function (data) {
-                                    if (data.ret == 1) {
-                                        $("#node").hide();
-                                        $("#kvm_info").show();
-                                        $("#kvm_undefine").show();
-                                        $("#loading2").hide();
-                                        $("#form_div").show();
-                                        var kvm_info = data.data.kvm_info_data;
-                                        $("#kvm_cpu").val(kvm_info.kvm_cpu + ' 个');
-                                        $("#kvm_memory").val(kvm_info.kvm_memory + ' MB');
-                                        $("#kvm_disk").val(kvm_info.kvm_disk);
-                                        $("#kvm_os").val(kvm_info.kvm_os);
-                                        var cpu_data = data.data.kvm_cpu_mem_data["kvm_cpu_usage"];
-                                        var mem_data = data.data.kvm_cpu_mem_data["kvm_mem_usage"];
-                                        var disk_data = data.data.kvm_disk_data["kvm_disk_usage"];
-                                        if ($("#kvm_state").val() == '运行中'){
-                                            $('#kvm_memory_space input').eq(0).val(mem_data["mem_usage"].toFixed(0)).trigger('change');
-                                            $('#kvm_memory_space h4').eq(1).text(mem_data["mem_used"] + " GB/" + mem_data["mem_total"] + " GB");
-                                            if (cpu_data["cpu_usage"] < 0.5) {
-                                                $('#kvm_cpu_space input').eq(0).val(1).trigger('change');
-                                            }else{
-                                                $('#kvm_cpu_space input').eq(0).val(cpu_data["cpu_usage"].toFixed(0)).trigger('change');
-                                            }
-                                            $('#kvm_cpu_space h4').eq(1).text(cpu_data["cpu_usage"] + " %/" + '100' + " %")
-                                        }
-
-                                        if ($("#kvm_state").val() == '关闭'){
-                                            $('#kvm_memory_space input').eq(0).val(0).trigger('change');
-                                            $('#kvm_memory_space h4').eq(1).text(0 + " GB/" + kvm_info.kvm_memory/1024 + " GB");
-                                            $('#kvm_cpu_space input').eq(0).val(0).trigger('change');
-                                            $('#kvm_cpu_space h4').eq(1).text('0' + " %/" + '100' + " %");
-                                        }
-
-                                        $('#kvm_disk_space input').eq(0).val(disk_data["disk_usage"]).trigger('change');
-                                        $('#kvm_disk_space h4').eq(1).text(disk_data["disk_used"] + " GB/" + disk_data["disk_total"] + " GB");
-                                    }
-                                    else {
-                                        alert(data.info);
-                                        $("#loading2").show();
-                                        $("#form_div").hide();
-                                    }
-                                },
-                                error: function (e) {
-                                    alert("页面出现错误，请于管理员联系。");
-                                    $("#loading2").show();
-                                    $("#form_div").hide();
-                                }
-                            });
-
-                        }
                     });
             }
         }
