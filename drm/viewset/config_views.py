@@ -2616,12 +2616,10 @@ def kvm_reboot(request):
 def kvm_delete(request):
     # 删除副本：删除虚拟机 + 删除文件系统 + 删除快照 + 删除本地数据库数据
     result = {}
-    id = request.POST.get("id", "")
     utils_id = request.POST.get("utils_id", "")
-    name = request.POST.get("name", "")
-    state = request.POST.get("state", "")
+    name = request.POST.get("kvm_name", "")
+    state = request.POST.get("kvm_state", "")
     try:
-        id = int(id)
         utils_id = int(utils_id)
     except:
         pass
@@ -2644,11 +2642,13 @@ def kvm_delete(request):
                 # ③删除快照
                 result_info = KVMApi(kvm_credit).zfs_snapshot_del(filesystem_snapshot)
                 if result_info == '删除快照成功。':
-                    # ④删除数据库数据
-                    kvmcopy = KvmCopy.objects.get(id=id)
-                    kvmcopy.state = '9'
-                    kvmcopy.save()
-                    result["res"] = '删除成功。'
+                    # ④删除数据库数据:name为虚拟机的名称是唯一的
+                    kvmcopy = KvmCopy.objects.exclude(state='9').filter(name=name)
+                    if kvmcopy.exists():
+                        kvm = kvmcopy[0]
+                        kvm.state = '9'
+                        kvm.save()
+                        result["res"] = '删除成功。'
                 else:
                     result["res"] = result_info
             else:
@@ -2675,17 +2675,16 @@ def kvm_clone_save(request):
         utils_id = int(utils_id)
     except:
         pass
-    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
-    content = utils_kvm_info[0].content
-    util_type = utils_kvm_info[0].util_type
-    kvm_credit = get_credit_info(content, util_type.upper())
-
-    filesystem = 'data/vmdata/' + kvm_name_clone  # 文件系统
     if not kvm_name_clone.strip():
         result['res'] = '新虚拟机名称未填写。'
-    if kvm_state == 'running' or kvm_state == '运行中':
+    elif kvm_state == 'running' or kvm_state == '运行中':
         result['res'] = '虚拟机未关闭。'
     else:
+        utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+        content = utils_kvm_info[0].content
+        util_type = utils_kvm_info[0].util_type
+        kvm_credit = get_credit_info(content, util_type.upper())
+        filesystem = 'data/vmdata/' + kvm_name_clone  # 文件系统
         try:
             kvm_exist = []
             kvm_list = KVMApi(kvm_credit).kvm_all_list()

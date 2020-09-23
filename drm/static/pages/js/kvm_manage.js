@@ -122,13 +122,14 @@ function getkvmtree() {
                                     kvm_name: kvm_name
                                 },
                                 success: function (data) {
-                                    console.log(data, 'zzzzzz')
                                     if (data.ret == 1) {
                                         if (type == 'KVM') {
                                             $("#kvm_undefine").hide();
+                                            $("#kvm_clone").show();
                                         }
                                         if (type == 'COPY') {
                                             $("#kvm_undefine").show();
+                                            $("#kvm_clone").hide();
                                         }
                                         $("#node").hide();
                                         $("#kvm_info").show();
@@ -159,6 +160,14 @@ function getkvmtree() {
                                             $('#kvm_cpu_space input').eq(0).val(0).trigger('change');
                                             $('#kvm_cpu_space h4').eq(1).text('0' + " %/" + '100' + " %");
                                         }
+
+                                        if ($("#kvm_state").val() == '暂停'){
+                                            $('#kvm_memory_space input').eq(0).val(0).trigger('change');
+                                            $('#kvm_memory_space h4').eq(1).text(0 + " GB/" + kvm_info.kvm_memory/1024 + " GB");
+                                            $('#kvm_cpu_space input').eq(0).val(0).trigger('change');
+                                            $('#kvm_cpu_space h4').eq(1).text('0' + " %/" + '100' + " %");
+                                        }
+
 
                                         $('#kvm_disk_space input').eq(0).val(disk_data["disk_usage"]).trigger('change');
                                         $('#kvm_disk_space h4').eq(1).text(disk_data["disk_used"] + " GB/" + disk_data["disk_total"] + " GB");
@@ -192,14 +201,12 @@ $(document).ready(function () {
     getkvmtree();
 
     var Dashboard = function () {
-
         return {
             componentsKnobDials: function () {
                 //knob does not support ie8 so skip it
                 if (!jQuery().knob || App.isIE8()) {
                     return;
                 }
-
                 // general knob
                 $(".knob").knob({
                     'dynamicDraw': true,
@@ -208,7 +215,6 @@ $(document).ready(function () {
                     'skin': 'tron'
                 });
             },
-
             init: function () {
                 this.componentsKnobDials();
             }
@@ -248,8 +254,6 @@ $(document).ready(function () {
             });
         }
     });
-
-
     $('#kvm_resume').click(function () {
         $.ajax({
             type: "POST",
@@ -274,8 +278,6 @@ $(document).ready(function () {
         });
 
     });
-
-
     $('#kvm_shutdown').click(function () {
         if (confirm("确定要关闭该虚拟机？")) {
             $.ajax({
@@ -301,8 +303,6 @@ $(document).ready(function () {
             });
         }
     });
-
-
     $('#kvm_reboot').click(function () {
         $.ajax({
             type: "POST",
@@ -327,8 +327,6 @@ $(document).ready(function () {
         });
 
     });
-
-
     $('#kvm_undefine').click(function () {
        if (confirm("确定要删除该虚拟机？")) {
             $.ajax({
@@ -354,18 +352,18 @@ $(document).ready(function () {
         }
 
     });
-
-
     $('#kvm_clone').click(function () {
         $('#static01').modal('show');
         $('#loading1').hide();
         $('#kvm_clone_div').show();
-
         $('#kvm_name_old').val($('#kvm_name').val());
         $('#kvm_name_new').val('')
     });
-
-
+    $('#create_kvm_machine').click(function () {
+        $('#static02').modal('show');
+        $('#loading3').hide();
+        $('#create_kvm_machine').show();
+    });
     $('#kvm_clone_save').click(function () {
         $('#kvm_clone_div').hide();
         $('#loading1').show();
@@ -398,8 +396,6 @@ $(document).ready(function () {
             }
         });
     });
-
-
     $('#kvm_destroy').click(function () {
         if (confirm("确定要断电该虚拟机？")) {
             $.ajax({
@@ -425,8 +421,6 @@ $(document).ready(function () {
             });
         }
     });
-
-
     $('#kvm_start').click(function () {
         $.ajax({
             type: "POST",

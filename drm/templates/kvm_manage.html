@@ -24,6 +24,13 @@
         background-repeat: no-repeat;
         background-position: center;
     }
+    #loading3 {
+        height: 83px;
+        width: 100%;
+        background-image: url(../static/upload/loading.gif);
+        background-repeat: no-repeat;
+        background-position: center;
+    }
 </style>
 
 <div style="height:10px"></div>
@@ -362,6 +369,39 @@
     </div>
 </div>
 
+<div id="static02" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
+                <h4 class="modal-title">新建虚拟机</h4>
+            </div>
+            <div class="panel-body">
+
+                <form class="bs-example form-horizontal activate-form">{% csrf_token %}
+                    <div id="loading3" class="portlet-body"></div>
+                    <div class="form-body" id="create_kvm_machine">
+                        <div class="form-group">
+                             <label class="col-md-4 control-label"><span style="color:red; ">*</span>从模板中新建虚拟机</label>
+                            <div class="col-md-8">
+                                <input readonly id="kvm_template" type="text" name="kvm_template" class="form-control"
+                                       placeholder="">
+                                <div class="form-control-focus"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions ">
+                        <div class="modal-footer">
+                            <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
+                            </button>
+                            <button type="button" id="kvm_clone_save" name="kvm_clone_save" class="btn green">新建</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div id="loading"  class="portlet-body"></div>
 
