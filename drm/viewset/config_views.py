@@ -2452,7 +2452,7 @@ def get_kvm_tree(request):
         kvm_credit = get_credit_info(content, util_type.upper())
 
         root = dict()
-        root["text"] = "<img src = '/static/pages/images/ts.png' height='24px'>"  + utils.code,
+        root["text"] = "<img src = '/static/pages/images/ts.png' height='24px' width:20px>" + utils.code,
         root['id'] = utils.id
         root['state'] = {'opened': 'True'}
         root['data'] = {
@@ -2479,6 +2479,7 @@ def get_kvm_detail(request):
     kvm_id = request.POST.get("kvm_id", "")
     kvm_name = request.POST.get("kvm_name", "")
     ret = 1
+    data = ''
     try:
         utils_id = int(utils_id)
     except:
@@ -2488,38 +2489,47 @@ def get_kvm_detail(request):
     util_type = utils_kvm_info[0].util_type
     kvm_credit = get_credit_info(content, util_type.upper())
     try:
-        memory_disk_cpu_data = ''
-        kvm_info_data = ''
-        kvm_cpu_mem_data = ''
-        kvm_disk_data = ''
         # 宿主机信息：cpu、内存、磁盘
 
         if kvm_name == '' and kvm_id == '':
             memory_disk_cpu_data = KVMApi(kvm_credit).memory_disk_cpu_data()
+            data = {
+                'memory_disk_cpu_data': memory_disk_cpu_data,
+            }
 
         # kvm虚拟机磁盘文件信息：cpu、内存、磁盘
         # 已开启的虚拟机有id，未开启的虚拟机id为-
         if kvm_name and kvm_id != '-':
             kvm_info_data = KVMApi(kvm_credit).kvm_info_data(kvm_name)
             # kvm虚拟机cpu、内存、磁盘使用率
-            kvm_cpu_mem_data = KVMApi(kvm_credit).kvm_cpu_mem_usage(int(kvm_id))
             kvm_disk_data = KVMApi(kvm_credit).kvm_disk_usage(kvm_name)
+
+            libvirt_api_path = os.path.join(os.path.join(os.path.join(settings.BASE_DIR, "drm"), "api"),
+                                            "commvault") + os.sep + "libvirtApi.py"
+            interface_existed = os.path.exists(libvirt_api_path)
+            if not interface_existed:
+                ret = 0
+                data = "libvirtApi接口文件不存在。"
+            else:
+                result = subprocess.getstatusoutput(libvirt_api_path + ' ' + kvm_id)
+                exec_status, kvm_cpu_mem_data = result
+                data = {
+                    'kvm_info_data': kvm_info_data,
+                    'kvm_cpu_mem_data': json.loads(kvm_cpu_mem_data) if kvm_cpu_mem_data else '',
+                    'kvm_disk_data': kvm_disk_data
+                }
         if kvm_name and kvm_id == '-':
             kvm_info_data = KVMApi(kvm_credit).kvm_info_data(kvm_name)
             kvm_disk_data = KVMApi(kvm_credit).kvm_disk_usage(kvm_name)
-        data = {
-            'memory_disk_cpu_data': memory_disk_cpu_data,
-            'kvm_info_data': kvm_info_data,
-            'kvm_cpu_mem_data': kvm_cpu_mem_data,
-            'kvm_disk_data': kvm_disk_data
-
-        }
+            data = {
+                'kvm_info_data': kvm_info_data,
+                'kvm_disk_data': kvm_disk_data
+            }
 
     except Exception as e:
         print(e)
         ret = 0
         data = '获取信息失败。'
-
     return JsonResponse({
         'ret': ret,
         'data': data})

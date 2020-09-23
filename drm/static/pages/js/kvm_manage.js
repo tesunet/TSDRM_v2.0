@@ -122,6 +122,7 @@ function getkvmtree() {
                                     kvm_name: kvm_name
                                 },
                                 success: function (data) {
+                                    console.log(data, 'zzzzzz')
                                     if (data.ret == 1) {
                                         if (type == 'KVM') {
                                             $("#kvm_undefine").hide();
@@ -139,18 +140,17 @@ function getkvmtree() {
                                         $("#kvm_memory").val(kvm_info.kvm_memory + ' MB');
                                         $("#kvm_disk").val(kvm_info.kvm_disk);
                                         $("#kvm_os").val(kvm_info.kvm_os);
-                                        var cpu_data = data.data.kvm_cpu_mem_data["kvm_cpu_usage"];
-                                        var mem_data = data.data.kvm_cpu_mem_data["kvm_mem_usage"];
+                                        var mem_cpu_data = data.data.kvm_cpu_mem_data;
                                         var disk_data = data.data.kvm_disk_data["kvm_disk_usage"];
                                         if ($("#kvm_state").val() == '运行中'){
-                                            $('#kvm_memory_space input').eq(0).val(mem_data["mem_usage"].toFixed(0)).trigger('change');
-                                            $('#kvm_memory_space h4').eq(1).text(mem_data["mem_used"] + " GB/" + mem_data["mem_total"] + " GB");
-                                            if (cpu_data["cpu_usage"] < 0.5) {
+                                            $('#kvm_memory_space input').eq(0).val(mem_cpu_data["mem_usage"].toFixed(0)).trigger('change');
+                                            $('#kvm_memory_space h4').eq(1).text(mem_cpu_data["mem_used"] + " GB/" + mem_cpu_data["mem_total"] + " GB");
+                                            if (mem_cpu_data["cpu_usage"] < 0.5) {
                                                 $('#kvm_cpu_space input').eq(0).val(1).trigger('change');
                                             }else{
-                                                $('#kvm_cpu_space input').eq(0).val(cpu_data["cpu_usage"].toFixed(0)).trigger('change');
+                                                $('#kvm_cpu_space input').eq(0).val(mem_cpu_data["cpu_usage"].toFixed(0)).trigger('change');
                                             }
-                                            $('#kvm_cpu_space h4').eq(1).text(cpu_data["cpu_usage"] + " %/" + '100' + " %")
+                                            $('#kvm_cpu_space h4').eq(1).text(mem_cpu_data["cpu_usage"] + " %/" + '100' + " %")
                                         }
 
                                         if ($("#kvm_state").val() == '关闭'){
