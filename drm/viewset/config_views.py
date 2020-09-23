@@ -2406,9 +2406,9 @@ def get_kvm_copy_node(utils_id, parent, kvm_credit):
             'pname': parent,
         }
         if child['state'] == '运行中':
-            data['text'] = "<span class='fa fa-plug' style='color:green; height:24px;width:20px;'></span>" + child['name']
+            data['text'] = "<span class='fa fa-desktop' style='color:green; height:24px;'></span> " + child['name']
         else:
-            data['text'] = "<span class='fa fa-plug' style='color:red; height:24px;width:20px;'></span>" + child['name']
+            data['text'] = "<span class='fa fa-desktop' style='color:red; height:24px;'></span> " + child['name']
         data['type'] = 'COPY'
         datas.append(data)
     return datas
@@ -2428,9 +2428,9 @@ def get_kvm_node(utils_id, parent, kvm_credit):
             'pname': parent,
         }
         if child['state'] == '运行中':
-            node['text'] = "<span class='fa fa-plug' style='color:green; height:24px;width:20px;'></span>" + child['name']
+            node['text'] = "<span class='fa fa-desktop' style='color:green; height:24px;'></span> " + child['name']
         else:
-            node['text'] = "<span class='fa fa-plug' style='color:red; height:24px;width:20px;'></span>" + child['name']
+            node['text'] = "<span class='fa fa-desktop' style='color:red; height:24px;'></span> " + child['name']
 
         node['type'] = 'KVM'
 
@@ -2452,7 +2452,7 @@ def get_kvm_tree(request):
         kvm_credit = get_credit_info(content, util_type.upper())
 
         root = dict()
-        root["text"] = "<img src = '/static/pages/images/ts.png' height='24px' width:20px>" + utils.code,
+        root["text"] = "<img src = '/static/pages/images/ts.png' height='24px'> " + utils.code,
         root['id'] = utils.id
         root['state'] = {'opened': 'True'}
         root['data'] = {
