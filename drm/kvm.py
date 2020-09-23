@@ -52,7 +52,7 @@ class KVMApi():
             if i == 'paused':
                 i = '暂停'
             kvm_list_filter.append(i)
-        end_list = self.list_of_groups(kvm_list_filter, 4)
+        end_list = self.list_of_groups(kvm_list_filter, 3)
         kvm_all_list_dict = []
         for item in end_list:
             data = {}
