@@ -173,14 +173,14 @@ function getkvmtree() {
                                         $('#kvm_disk_space h4').eq(1).text(disk_data["disk_used"] + " GB/" + disk_data["disk_total"] + " GB");
                                     }
                                     else {
-                                        alert(data.info);
-                                        $("#loading2").show();
+                                        alert(data.data);
+                                        $("#loading2").hide();
                                         $("#form_div").hide();
                                     }
                                 },
                                 error: function (e) {
                                     alert("页面出现错误，请于管理员联系。");
-                                    $("#loading2").show();
+                                    $("#loading2").hide();
                                     $("#form_div").hide();
                                 }
                             });
@@ -244,7 +244,7 @@ $(document).ready(function () {
                 success: function (data) {
                     var myres = data["res"];
                     if (myres == "暂停成功。") {
-                        getkvmtree();
+                        location.reload()
                     }
                     alert(myres);
                 },
@@ -268,7 +268,7 @@ $(document).ready(function () {
             success: function (data) {
                 var myres = data["res"];
                 if (myres == "运行成功。") {
-                    getkvmtree();
+                    location.reload()
                 }
                 alert(myres);
             },
@@ -293,7 +293,7 @@ $(document).ready(function () {
                 success: function (data) {
                     var myres = data["res"];
                     if (myres == "关闭成功。") {
-                        getkvmtree();
+                        location.reload()
                     }
                     alert(myres);
                 },
@@ -317,7 +317,7 @@ $(document).ready(function () {
             success: function (data) {
                 var myres = data["res"];
                 if (myres == "重启成功。") {
-                    getkvmtree();
+                    location.reload()
                 }
                 alert(myres);
             },
@@ -341,7 +341,7 @@ $(document).ready(function () {
                 success: function (data) {
                     var myres = data["res"];
                     if (myres == "删除成功。") {
-                        getkvmtree();
+                        location.reload()
                     }
                     alert(myres);
                 },
@@ -383,7 +383,7 @@ $(document).ready(function () {
                 if (myres == "克隆成功。") {
                     $('#loading1').hide();
                     $('#static01').modal('hide');
-                    getkvmtree();
+                    location.reload()
                 }
                 alert(myres);
                 $('#loading1').hide();
@@ -411,7 +411,7 @@ $(document).ready(function () {
                 success: function (data) {
                     var myres = data["res"];
                     if (myres == "断电成功。") {
-                        getkvmtree();
+                        location.reload()
                     }
                     alert(myres);
                 },
@@ -436,7 +436,7 @@ $(document).ready(function () {
             success: function (data) {
                 var myres = data["res"];
                 if (myres == "开机成功。") {
-                    getkvmtree();
+                    location.reload()
                 }
                 alert(myres);
             },

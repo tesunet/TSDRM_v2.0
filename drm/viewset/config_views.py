@@ -2511,13 +2511,17 @@ def get_kvm_detail(request):
                 ret = 0
                 data = "libvirtApi接口文件不存在。"
             else:
-                result = subprocess.getstatusoutput(libvirt_api_path + ' ' + kvm_id)
-                exec_status, kvm_cpu_mem_data = result
-                data = {
-                    'kvm_info_data': kvm_info_data,
-                    'kvm_cpu_mem_data': json.loads(kvm_cpu_mem_data) if kvm_cpu_mem_data else '',
-                    'kvm_disk_data': kvm_disk_data
-                }
+                try:
+                    result = subprocess.getstatusoutput(libvirt_api_path + ' ' + kvm_id)
+                    exec_status, kvm_cpu_mem_data = result
+                    data = {
+                        'kvm_info_data': kvm_info_data,
+                        'kvm_cpu_mem_data': json.loads(kvm_cpu_mem_data) if kvm_cpu_mem_data else '',
+                        'kvm_disk_data': kvm_disk_data
+                    }
+                except Exception as e:
+                    ret = 0
+                    data = "执行libvirtApi接口出现异常{0}。".format(e)
         if kvm_name and kvm_id == '-':
             kvm_info_data = KVMApi(kvm_credit).kvm_info_data(kvm_name)
             kvm_disk_data = KVMApi(kvm_credit).kvm_disk_usage(kvm_name)
