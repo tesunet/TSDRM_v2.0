@@ -2173,7 +2173,7 @@ def kvm_copy_data(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     result = []
-    all_kvmcopy = KvmCopy.objects.filter(kvmmachine_id=kvmmachine_id).order_by('-create_time').exclude(state='9')
+    all_kvmcopy = KvmCopy.objects.filter(kvmmachine_id=kvmmachine_id).filter(utils_id=utils_id).order_by('-create_time').exclude(state='9')
     if len(all_kvmcopy) > 0:
         for kvmcopy in all_kvmcopy:
 
@@ -2266,6 +2266,7 @@ def kvm_power_on(request):
     copy_ip = request.POST.get("copy_ip", "")
     copy_hostname = request.POST.get("copy_hostname", "")
 
+    compile_ip = re.compile('^(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|[1-9])\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)$')
 
     try:
         utils_id = int(utils_id)
@@ -2276,14 +2277,16 @@ def kvm_power_on(request):
         result['res'] = '实例IP未填写。'
     elif not copy_hostname.strip():
         result['res'] = '实例主机名未填写。'
+    elif not compile_ip.match(copy_ip):
+        result['res'] = '实例IP不合法。'
     else:
         utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
         content = utils_kvm_info[0].content
         util_type = utils_kvm_info[0].util_type
         kvm_credit = get_credit_info(content, util_type.upper())
 
-        filesystem = 'data/vmdata/' + copy_name  # data/vmdata/CentOS-7@2020-09-14
-        filesystem = filesystem.replace('@', '-')  # data/vmdata/CentOS-7-2020-09-14
+        filesystem = 'data/vmdata/' + copy_name     # data/vmdata/CentOS-7@2020-09-14
+        filesystem = filesystem.replace('@', '-')   # data/vmdata/CentOS-7-2020-09-14
         try:
             result_info = KVMApi(kvm_credit).guestmount(kvm_machine, filesystem)
             # ⑥挂载成功，修改ip和主机名
@@ -2504,13 +2507,13 @@ def get_kvm_detail(request):
         # 已开启的虚拟机有id，未开启的虚拟机id为-
         if kvm_name and kvm_id:
             if kvm_id != '-':
-                kvm_data = KvmCopy.objects.exclude(state='9').filter(name=kvm_name)
+                ip = ''
+                hostname = ''
+                kvm_data = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
                 if kvm_data.exists():
                     ip = kvm_data[0].ip
                     hostname = kvm_data[0].hostname
-                else:
-                    ip = ''
-                    hostname = ''
+
                 kvm_info_data = KVMApi(kvm_credit).kvm_info_data(kvm_name)
                 # kvm虚拟机cpu、内存、磁盘使用率
                 kvm_disk_data = KVMApi(kvm_credit).kvm_disk_usage(kvm_name)
@@ -2536,13 +2539,12 @@ def get_kvm_detail(request):
                         ret = 0
                         data = "执行libvirtApi接口出现异常{0}。".format(e)
             elif kvm_id == '-':
-                kvm_data = KvmCopy.objects.exclude(state='9').filter(name=kvm_name)
+                ip = ''
+                hostname = ''
+                kvm_data = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
                 if kvm_data.exists():
                     ip = kvm_data[0].ip
                     hostname = kvm_data[0].hostname
-                else:
-                    ip = ''
-                    hostname = ''
 
                 kvm_info_data = KVMApi(kvm_credit).kvm_info_data(kvm_name)
                 kvm_disk_data = KVMApi(kvm_credit).kvm_disk_usage(kvm_name)
@@ -2669,7 +2671,7 @@ def kvm_delete(request):
                 result_info = KVMApi(kvm_credit).zfs_snapshot_del(filesystem_snapshot)
                 if result_info == '删除快照成功。':
                     # ④删除数据库数据:name为虚拟机的名称是唯一的
-                    kvmcopy = KvmCopy.objects.exclude(state='9').filter(name=name)
+                    kvmcopy = KvmCopy.objects.exclude(state='9').filter(name=name).filter(utils_id=utils_id)
                     if kvmcopy.exists():
                         kvm = kvmcopy[0]
                         kvm.state = '9'
@@ -2831,18 +2833,20 @@ def kvm_power(request):
     kvm_ip = request.POST.get("kvm_ip", "")
     kvm_hostname = request.POST.get("kvm_hostname", "")
 
-    user_id = request.user.id
+    compile_ip = re.compile('^(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|[1-9])\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)$')
 
+    user_id = request.user.id
     try:
         user_id = int(user_id)
         utils_id = int(utils_id)
     except:
         pass
-
     if not kvm_ip.strip():
         result['res'] = 'IP未填写。'
     elif not kvm_hostname.strip():
         result['res'] = '主机名未填写。'
+    elif not compile_ip.match(kvm_ip):
+        result['res'] = 'IP不合法。'
     else:
         utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
         content = utils_kvm_info[0].content
