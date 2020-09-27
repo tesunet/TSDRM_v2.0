@@ -13,7 +13,7 @@ class KVMApi():
 
     def remote_linux(self, exe_cmd):
         rm_obj = remote.ServerByPara(exe_cmd, self.ip, self.username, self.password, self.system_tag)
-        result = rm_obj.run(succeedtext='')
+        result = rm_obj.run(succeedtext='', linux_timeout=12 * 60)
         return result
 
     def list_of_groups(self, list_info, per_list_len):
@@ -122,7 +122,6 @@ class KVMApi():
                 kvm_all_list_dict.append(data)
 
         return kvm_all_list_dict
-
 
     def kvm_run_list(self):
         # 获取正在运行的虚拟机
@@ -390,7 +389,7 @@ class KVMApi():
         return result
 
     def zfs_kvm_filesystem(self):
-        exe_cmd = r'ls /tank'.format()
+        exe_cmd = r'ls /data/vmdata'.format()
         result = self.remote_linux(exe_cmd)
 
         kvm_filesystem = [x.replace('\t', '') for x in result['data'].split(' ') if x]
@@ -494,10 +493,9 @@ class KVMApi():
         kvm_disk_path = '/tank/kvm_1@kvm_1/Test-1.qcow2'   新虚拟机磁盘
         """
         try:
+            exe_cmd = r'cat /etc/libvirt/qemu/{0}.xml'.format(kvm_machine)
             snapshot_clone_name = snapshotname.replace('@', '-')
             kvm_disk_path = '/' + snapshot_clone_name + '/' + kvm_machine + '.qcow2'
-            exe_cmd = r'cat /etc/libvirt/qemu/{0}.xml'.format(kvm_machine)
-
             result = self.remote_linux(exe_cmd)
             # 解析xml文件找出要修改的name、uuid、disk_path、mac、cpu、memory
             config = etree.XML(result['data'])
@@ -762,6 +760,56 @@ class KVMApi():
         data = {"kvm_disk_usage": kvm_disk_usage}
         return data
 
+    def kvm_template(self):
+        # kvm虚拟机模板文件： cd /home/images
+        try:
+            exe_cmd = r'ls /home/images'
+            result = self.remote_linux(exe_cmd)
+            result = [x.replace('\t', ' ').split(' ') for x in result['data'].split(' ') if x][0]
+        except Exception as e:
+            print(e)
+            result = '查找kvm模板文件失败。'
+        return result
+
+    def copy_disk(self, kvm_template_path, filesystem):
+        try:
+            exe_cmd = r'cp {0} {1}'.format(kvm_template_path, filesystem)
+            result = self.remote_linux(exe_cmd)
+            if result['data'] == '':
+                result = '拷贝磁盘文件成功。'
+            else:
+                result = '拷贝磁盘文件失败。'
+        except Exception as e:
+            print(e)
+            result = '拷贝磁盘文件失败。'
+        return result
+
+    def create_new_xml(self, kvm_xml, kvm_disk_path, kvmname):
+        try:
+            exe_cmd = r'cat /home/xml/{0}'.format(kvm_xml)
+            result = self.remote_linux(exe_cmd)
+            # 解析xml文件找出要修改的name、uuid、disk_path、mac、
+            config = etree.XML(result['data'])
+            kvm_name = config.xpath("//name")[0]
+            kvm_diskpath = config.xpath("//disk/source")[0]
+            kvm_uuid = config.xpath("//uuid")[0]
+            kvm_interface = config.xpath("//interface")[0]
+            kvm_mac = config.xpath("//mac")[0]
+
+            # 修改名字、修改磁盘路径、删除uuid、删除mac
+            kvm_name.text = kvmname
+            kvm_diskpath.attrib['file'] = kvm_disk_path
+            config.remove(kvm_uuid)
+            kvm_interface.remove(kvm_mac)
+            xml_content = etree.tounicode(config)
+            xml_path = '/etc/libvirt/qemu/{0}.xml'.format(kvmname)
+            exe_cmd = r'cat > {0} << \EOH'.format(xml_path) + '\n' + xml_content + '\nEOH'
+            self.remote_linux(exe_cmd)
+            info = '生成成功。'
+        except:
+            info = '生成失败。'
+        return info
+
 
 linuxserver_credit = {
     'KvmHost': '192.168.1.61',
@@ -795,6 +843,6 @@ linuxserver_credit = {
 # result = KVMApi(linuxserver_credit).kvm_disk_space()
 # result = KVMApi(linuxserver_credit).kvm_info_data('Test-1')
 # result = KVMApi(linuxserver_credit).kvm_include_copy_list('CentOS-7')
-# result = KVMApi(linuxserver_credit).kvm_exclude_copy_list()
-# result = KVMApi(linuxserver_credit).kvm_cpu_mem_usage(1,'CentOS-7@test1')
+# result = KVMApi(linuxserver_credit).zfs_kvm_filesystem()
+# result = KVMApi(linuxserver_credit).kvm_template()
 # print(result)

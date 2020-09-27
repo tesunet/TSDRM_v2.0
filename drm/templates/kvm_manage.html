@@ -9,7 +9,7 @@
         background-position: center;
     }
 
-    #loading1 {
+    #loading1, #loading3, #loading4 {
         height: 83px;
         width: 100%;
         background-image: url(../static/upload/loading.gif);
@@ -24,13 +24,7 @@
         background-repeat: no-repeat;
         background-position: center;
     }
-    #loading3 {
-        height: 83px;
-        width: 100%;
-        background-image: url(../static/upload/loading.gif);
-        background-repeat: no-repeat;
-        background-position: center;
-    }
+
 </style>
 
 <div style="height:10px"></div>
@@ -40,7 +34,7 @@
         <div id="tree_kvm_manage" class="col-md-4 tree-demo"></div>
 
         <div class="col-md-8">
-            <div id="loading2" class="portlet-body"></div>
+            <div id="loading2" class="portlet-body" hidden></div>
             <div id="form_div" class="portlet light bordered" hidden>
                 <div class="portlet-title">
                     <div class="caption font-green-sharp">
@@ -153,7 +147,7 @@
                             <div class="form-group " style="text-align:center">
                                 <label class="col-md-2 control-label"></label>
                                 <div class="col-md-9">
-                                    <button type="button" id="create_kvm_machine" name="create_kvm_machine" class="btn green">
+                                    <button type="button" id="create_kvm_div" name="create_kvm_div" class="btn green">
                                         新建虚拟机
                                     </button>
                                 </div>
@@ -241,22 +235,22 @@
                                 </div>
                                 <div class="col-md-1"></div>
                             </div>
-{#                            <div class="form-group ">#}
-{#                                <label class="col-md-2 control-label" for="form_control_1">主机名</label>#}
-{#                                <div class="col-md-9">#}
-{#                                    <input readonly type="text" class="form-control" id="kvm_hostname" name="kvm_hostname"  value="">#}
-{#                                    <div class="form-control-focus"></div>#}
-{#                                </div>#}
-{#                                <div class="col-md-1"></div>#}
-{#                            </div>#}
-{#                            <div class="form-group ">#}
-{#                                <label class="col-md-2 control-label" for="form_control_1">IP</label>#}
-{#                                <div class="col-md-9">#}
-{#                                    <input readonly type="text" class="form-control" id="kvm_ip" name="kvm_ip"  value="">#}
-{#                                    <div class="form-control-focus"></div>#}
-{#                                </div>#}
-{#                                <div class="col-md-1"></div>#}
-{#                            </div>#}
+                            <div class="form-group ">
+                                <label class="col-md-2 control-label" for="form_control_1">主机名</label>
+                                <div class="col-md-9">
+                                    <input readonly type="text" class="form-control" id="kvm_hostname" name="kvm_hostname"  value="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                                <div class="col-md-1"></div>
+                            </div>
+                            <div class="form-group ">
+                                <label class="col-md-2 control-label" for="form_control_1">IP</label>
+                                <div class="col-md-9">
+                                    <input readonly type="text" class="form-control" id="kvm_ip" name="kvm_ip"  value="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                                <div class="col-md-1"></div>
+                            </div>
                             <div class="form-group">
                                     <label class="col-md-2 control-label">CPU</label>
                                     <div class="col-md-9">
@@ -292,30 +286,38 @@
                             <div class="form-group " style="text-align:center">
                                     <label class="col-md-2 control-label"></label>
                                     <div class="col-md-9">
-                                        <button type="button" id="kvm_suspend" name="kvm_suspend" class="btn green">
-                                                暂停
-                                        </button>
-                                        <button type="button" id="kvm_resume" name="kvm_resume" class="btn green">
-                                                运行
-                                        </button>
-                                        <button type="button" id="kvm_shutdown" name="kvm_shutdown" class="btn green">
-                                                关闭
-                                        </button>
-                                        <button type="button" id="kvm_reboot" name="kvm_reboot" class="btn green">
-                                                重启
-                                        </button>
-                                        <button type="button" id="kvm_undefine" name="kvm_undefine" class="btn green">
-                                                删除
-                                        </button>
-                                        <button type="button" id="kvm_clone" name="kvm_clone" class="btn green">
-                                                克隆
-                                        </button>
-                                        <button type="button" id="kvm_destroy" name="kvm_destroy" class="btn green">
-                                                断电
-                                        </button>
-                                        <button type="button" id="kvm_start" name="kvm_start" class="btn green">
-                                                开机
-                                        </button>
+                                        <div id="kvm_task_div">
+                                            <button type="button" id="kvm_suspend" name="kvm_suspend" class="btn green">
+                                                    暂停
+                                            </button>
+                                            <button type="button" id="kvm_resume" name="kvm_resume" class="btn green">
+                                                    运行
+                                            </button>
+                                            <button type="button" id="kvm_shutdown" name="kvm_shutdown" class="btn green">
+                                                    关闭
+                                            </button>
+                                            <button type="button" id="kvm_reboot" name="kvm_reboot" class="btn green">
+                                                    重启
+                                            </button>
+                                            <button type="button" id="kvm_undefine" name="kvm_undefine" class="btn green">
+                                                    删除
+                                            </button>
+                                            <button type="button" id="kvm_clone" name="kvm_clone" class="btn green">
+                                                    克隆
+                                            </button>
+                                            <button type="button" id="kvm_destroy" name="kvm_destroy" class="btn green">
+                                                    断电
+                                            </button>
+                                            <button type="button" id="kvm_start" name="kvm_start" class="btn green">
+                                                    开机
+                                            </button>
+                                        </div>
+                                        <div id = "kvm_power_div">
+                                            <button type="button" id="kvm_power" name="kvm_power" class="btn green">
+                                                给电
+                                            </button>
+                                        </div>
+
                                     </div>
                                     <div class="col-md-1"></div>
                                 </div>
@@ -382,9 +384,18 @@
                     <div id="loading3" class="portlet-body"></div>
                     <div class="form-body" id="create_kvm_machine">
                         <div class="form-group">
-                             <label class="col-md-4 control-label"><span style="color:red; ">*</span>从模板中新建虚拟机</label>
-                            <div class="col-md-8">
-                                <input readonly id="kvm_template" type="text" name="kvm_template" class="form-control"
+                             <label class="col-md-3 control-label"><span style="color:red; ">*</span>模板</label>
+                            <div class="col-md-9">
+                                <select name="kvm_template" id="kvm_template" class="form-control">
+
+                                </select>
+                                <div class="form-control-focus"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                             <label class="col-md-3 control-label"><span style="color:red; ">*</span>虚拟机名称</label>
+                            <div class="col-md-9">
+                                <input id="kvm_template_name" type="text" name="kvm_template_name" class="form-control"
                                        placeholder="">
                                 <div class="form-control-focus"></div>
                             </div>
@@ -394,7 +405,7 @@
                         <div class="modal-footer">
                             <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
                             </button>
-                            <button type="button" id="kvm_clone_save" name="kvm_clone_save" class="btn green">新建</button>
+                            <button type="button" id="kvm_machine_create" name="kvm_machine_create" class="btn green">新建</button>
                         </div>
                     </div>
                 </form>
@@ -402,6 +413,49 @@
         </div>
     </div>
 </div>
+
+<div id="static03" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
+                <h4 class="modal-title">给电</h4>
+            </div>
+            <div class="panel-body">
+
+                <form class="bs-example form-horizontal activate-form">{% csrf_token %}
+                    <div id="loading4" class="portlet-body"></div>
+                    <div class="form-body" id="ip_hostname_div">
+                        <div class="form-group">
+                            <label class="col-md-2 control-label"><span style="color:red; ">*</span>IP</label>
+                            <div class="col-md-10">
+                                <input id="alter_ip" type="text" name="alter_ip" class="form-control"
+                                       placeholder="">
+                                <div class="form-control-focus"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                             <label class="col-md-2 control-label"><span style="color:red; ">*</span>主机名</label>
+                            <div class="col-md-10">
+                                <input id="alter_hostname" type="text" name="alter_hostname" class="form-control"
+                                       placeholder="">
+                                <div class="form-control-focus"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions ">
+                        <div class="modal-footer">
+                            <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
+                            </button>
+                            <button type="button" id="kvm_power_save" name="kvm_power_save" class="btn green">给电</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <div id="loading"  class="portlet-body"></div>
 

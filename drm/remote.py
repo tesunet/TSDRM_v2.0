@@ -94,7 +94,7 @@ class ServerByPara(object):
                 raise Exception("编码错误")
         return content
 
-    def exec_linux_cmd(self, succeedtext, port=22):
+    def exec_linux_cmd(self, succeedtext, linux_timeout, port=22):
         data_init = ''
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
@@ -107,7 +107,7 @@ class ServerByPara(object):
                 "log": "连接服务器失败",
             }
         try:
-            stdin, stdout, stderr = self.client.exec_command(self.cmd, get_pty=True, timeout=6 * 60)
+            stdin, stdout, stderr = self.client.exec_command(self.cmd, get_pty=True, timeout=linux_timeout)
             if stderr.read():
                 exec_tag = 1
                 data_init = ServerByPara.handle_codec(stderr.read())
@@ -214,13 +214,13 @@ class ServerByPara(object):
                 "log": log,
             }
 
-    def run(self, succeedtext):
+    def run(self, succeedtext, linux_timeout=6 * 60):
         if self.system_choice == "Linux":
-            result = self.exec_linux_cmd(succeedtext)
+            result = self.exec_linux_cmd(succeedtext, linux_timeout)
             if self.client:
                 self.client.close()
         elif self.system_choice == "AIX":
-            result = self.exec_linux_cmd(succeedtext, port=22)
+            result = self.exec_linux_cmd(succeedtext, linux_timeout, port=22)
             if self.client:
                 self.client.close()
         else:

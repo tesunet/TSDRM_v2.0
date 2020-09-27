@@ -101,6 +101,11 @@ function getkvmtree() {
                                     $("#form_div").hide();
                                 }
                             });
+
+                            var kvm_template = data.node.original.kvm_template;
+                            for (i = 0; i < kvm_template.length; i++) {
+                                $('#kvm_template').append('<option value="' + kvm_template[i] + '">' + kvm_template[i] + '</option>')
+                            }
                         }
                         // 虚拟机
                         else{
@@ -141,6 +146,16 @@ function getkvmtree() {
                                         $("#kvm_memory").val(kvm_info.kvm_memory + ' MB');
                                         $("#kvm_disk").val(kvm_info.kvm_disk);
                                         $("#kvm_os").val(kvm_info.kvm_os);
+                                        $("#kvm_ip").val(data.data.ip);
+                                        $("#kvm_hostname").val(data.data.hostname);
+                                        if ($("#kvm_ip").val() == '' || $("#kvm_hostname").val() == ''){
+                                            $("#kvm_power_div").show();
+                                            $("#kvm_task_div").hide()
+                                        }else if ($("#kvm_ip").val() != '' || $("#kvm_hostname").val() != ''){
+                                            $("#kvm_power_div").hide();
+                                            $("#kvm_task_div").show()
+                                        }
+
                                         var mem_cpu_data = data.data.kvm_cpu_mem_data;
                                         var disk_data = data.data.kvm_disk_data["kvm_disk_usage"];
                                         if ($("#kvm_state").val() == '运行中'){
@@ -195,7 +210,6 @@ function getkvmtree() {
 
 
 $(document).ready(function () {
-    $('#loading2').hide();
     $('#loading').show();
     $('#showdata').hide();
     getkvmtree();
@@ -359,11 +373,6 @@ $(document).ready(function () {
         $('#kvm_name_old').val($('#kvm_name').val());
         $('#kvm_name_new').val('')
     });
-    $('#create_kvm_machine').click(function () {
-        $('#static02').modal('show');
-        $('#loading3').hide();
-        $('#create_kvm_machine').show();
-    });
     $('#kvm_clone_save').click(function () {
         $('#kvm_clone_div').hide();
         $('#loading1').show();
@@ -396,6 +405,46 @@ $(document).ready(function () {
             }
         });
     });
+
+    $('#create_kvm_div').click(function () {
+        $('#static02').modal('show');
+        $('#loading3').hide();
+        $('#create_kvm_machine').show();
+    });
+
+    $('#kvm_machine_create').click(function () {
+        $('#create_kvm_machine').hide();
+        $('#loading3').show();
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../kvm_machine_create/",
+            data:
+                {
+                    utils_id: $("#utils_id").val(),
+                    kvm_template: $("#kvm_template").val(),
+                    kvm_template_name: $("#kvm_template_name").val(),
+                },
+            success: function (data) {
+                var myres = data["res"];
+                if (myres == "新建成功。") {
+                    $('#loading3').hide();
+                    $('#create_kvm_machine').hide();
+                    $('#static02').modal('hide');
+                    location.reload()
+                }
+                alert(myres);
+                $('#loading3').hide();
+                $('#create_kvm_machine').show();
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+                $('#loading3').hide();
+                $('#create_kvm_machine').show();
+            }
+        });
+    });
+
     $('#kvm_destroy').click(function () {
         if (confirm("确定要断电该虚拟机？")) {
             $.ajax({
@@ -442,6 +491,46 @@ $(document).ready(function () {
             },
             error: function (e) {
                 alert("页面出现错误，请于管理员联系。");
+            }
+        });
+    });
+    $('#kvm_power').click(function () {
+        $('#static03').modal('show');
+        $('#loading4').hide();
+        $('#ip_hostname_div').show();
+    });
+    $('#kvm_power_save').click(function () {
+        $('#loading4').show();
+        $('#ip_hostname_div').hide();
+
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../kvm_power/",
+            data:
+                {
+                    utils_id: $("#utils_id").val(),
+                    kvm_name: $("#kvm_name").val(),
+                    kvm_state: $("#kvm_state").val(),
+                    kvm_ip: $("#alter_ip").val(),
+                    kvm_hostname: $("#alter_hostname").val(),
+
+                },
+            success: function (data) {
+                var myres = data["res"];
+                if (myres == "给电成功。") {
+                    $('#loading4').hide();
+                    $('#ip_hostname_div').hide();
+                    location.reload()
+                }
+                alert(myres);
+                 $('#loading4').hide();
+                 $('#ip_hostname_div').show();
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+                $('#loading4').hide();
+                $('#ip_hostname_div').show();
             }
         });
     });

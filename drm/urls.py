@@ -268,4 +268,6 @@ urlpatterns = [
     url(r'^kvm_reboot/$', kvm_reboot),
     url(r'^kvm_clone_save/$', kvm_clone_save),
     url(r'^kvm_destroy/$', kvm_destroy),
+    url(r'^kvm_machine_create/$', kvm_machine_create),
+    url(r'^kvm_power/$', kvm_power),
 ]
