@@ -62,7 +62,6 @@ function getkvmtree() {
                             $("#loading2").show();
                             $("#form_div").hide();
                             $("#host_ip").val(data.node.original.kvm_credit.KvmHost);
-                            $("#node_pname").val(data.node.data.pname);
 
                             $.ajax({
                                 type: "POST",
@@ -114,7 +113,6 @@ function getkvmtree() {
                             var kvm_info = data.node.data;
                             $("#kvm_name").val(kvm_info.name);
                             $("#kvm_state").val(kvm_info.state);
-                            $("#kvm_node_pname").val(data.node.data.pname);
 
 
                             $.ajax({

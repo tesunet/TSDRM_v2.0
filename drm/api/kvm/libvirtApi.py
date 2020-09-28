@@ -1,18 +1,16 @@
 #! /usr/bin/python
 import libvirt
 conn = libvirt.open("qemu+tcp://192.168.1.61/system")
-
-import json
-import sys
 import time
 
-# CPU memory data
-def memory_cpu_usage():
+
+def memory_cpu_usage(kvm_id):
+    # kvm虚拟机内存、cpu使用情况
     info = {}
-    id = int(sys.argv[1])
+    id = int(kvm_id)
     dom = conn.lookupByID(id)
     dom.setMemoryStatsPeriod(10)
-    # memory usage
+
     meminfo = dom.memoryStats()
     free_mem = float(meminfo['unused'])
     total_mem = float(meminfo['available'])
@@ -23,14 +21,12 @@ def memory_cpu_usage():
     info['mem_total'] = round(total_mem/1024/1024,  2)
     info['mem_free'] = round(free_mem/1024/1024, 2)
 
-    # cpu usage
     t1 = time.time()
     c1 = int(dom.info()[4])
-    time.sleep(3)
+    time.sleep(1)
     t2 = time.time()
     c2 = int(dom.info()[4])
     c_nums = int(dom.info()[3])
     cpu_usage = round((c2 - c1) * 100 / ((t2 - t1) * c_nums * 1e9), 2)
     info['cpu_usage'] = cpu_usage
-    return json.dumps(info)
-print(memory_cpu_usage())
+    return info

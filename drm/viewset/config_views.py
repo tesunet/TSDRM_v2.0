@@ -18,7 +18,7 @@ import cx_Oracle
 import pymysql
 from ..remote import ServerByPara
 from ..kvm import KVMApi
-
+from ..api.kvm import libvirtApi
 
 ######################
 # 脚本配置
@@ -2517,27 +2517,14 @@ def get_kvm_detail(request):
                 kvm_info_data = KVMApi(kvm_credit).kvm_info_data(kvm_name)
                 # kvm虚拟机cpu、内存、磁盘使用率
                 kvm_disk_data = KVMApi(kvm_credit).kvm_disk_usage(kvm_name)
+                kvm_cpu_mem_data = libvirtApi.memory_cpu_usage(kvm_id)
+                data = {
+                    'kvm_info_data': kvm_info_data,
+                    'kvm_cpu_mem_data': kvm_cpu_mem_data,
+                    'kvm_disk_data': kvm_disk_data,
+                    'ip': ip,
+                    'hostname': hostname}
 
-                libvirt_api_path = os.path.join(os.path.join(os.path.join(settings.BASE_DIR, "drm"), "api"),
-                                                "commvault") + os.sep + "libvirtApi.py"
-                interface_existed = os.path.exists(libvirt_api_path)
-                if not interface_existed:
-                    ret = 0
-                    data = "libvirtApi接口文件不存在。"
-                else:
-                    try:
-                        result = subprocess.getstatusoutput(libvirt_api_path + ' ' + kvm_id)
-                        exec_status, kvm_cpu_mem_data = result
-                        data = {
-                            'kvm_info_data': kvm_info_data,
-                            'kvm_cpu_mem_data': json.loads(kvm_cpu_mem_data) if kvm_cpu_mem_data else '',
-                            'kvm_disk_data': kvm_disk_data,
-                            'ip': ip,
-                            'hostname': hostname
-                        }
-                    except Exception as e:
-                        ret = 0
-                        data = "执行libvirtApi接口出现异常{0}。".format(e)
             elif kvm_id == '-':
                 ip = ''
                 hostname = ''
@@ -2866,14 +2853,25 @@ def kvm_power(request):
                         if result_info == '开机成功。':
                             # 保存数据库
                             try:
-                                KvmCopy.objects.create(**{
-                                    'name': kvm_name,
-                                    'create_time': datetime.datetime.now(),
-                                    'create_user_id': user_id,
-                                    'utils_id': utils_id,
-                                    'ip': kvm_ip,
-                                    'hostname': kvm_hostname
-                                })
+                                kvm = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
+                                if kvm.exists():
+                                    kvm.update(**{
+                                        'name': kvm_name,
+                                        'create_time': datetime.datetime.now(),
+                                        'create_user_id': user_id,
+                                        'utils_id': utils_id,
+                                        'ip': kvm_ip,
+                                        'hostname': kvm_hostname
+                                    })
+                                else:
+                                    kvm.create(**{
+                                        'name': kvm_name,
+                                        'create_time': datetime.datetime.now(),
+                                        'create_user_id': user_id,
+                                        'utils_id': utils_id,
+                                        'ip': kvm_ip,
+                                        'hostname': kvm_hostname
+                                    })
                                 result['res'] = '给电成功。'
                             except Exception as e:
                                 print(e)
