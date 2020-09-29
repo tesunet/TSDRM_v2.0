@@ -17,7 +17,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import cx_Oracle
 import pymysql
 from ..remote import ServerByPara
-from ..kvm import KVMApi
 from ..api.kvm import libvirtApi
 
 ######################
@@ -1964,7 +1963,7 @@ def kvm_data(request):
         util_type = utils_kvm_info[0].util_type
         kvm_credit = get_credit_info(content, util_type.upper())
         try:
-            kvm_list = KVMApi(kvm_credit).kvm_exclude_copy_list()
+            kvm_list = libvirtApi.KVMApi(kvm_credit).kvm_exclude_copy_list()
             all_kvm_dict[utils_id] = kvm_list
         except Exception as e:
             print(e)
@@ -2109,23 +2108,23 @@ def kvm_copy_create(request):
         copyname = kvm_machine + '@' + copy_name  # CentOS-7@2020-07-28
         try:
             kvm_exist = []
-            kvm_list = KVMApi(kvm_credit).kvm_all_list()
+            kvm_list = libvirtApi.KVMApi(kvm_credit).kvm_all_list()
             for i in kvm_list:
                 kvm_exist.append(i['name'])
             if copyname in kvm_exist:
                 result['res'] = '实例' + copy_name + '已存在。'
             else:
                 # ①创建快照
-                result_info = KVMApi(kvm_credit).zfs_create_snapshot(snapshotname)
+                result_info = libvirtApi.KVMApi(kvm_credit).zfs_create_snapshot(snapshotname)
                 if result_info == '创建成功。':
                     # ②克隆快照，生成新的文件系统
-                    result_info = KVMApi(kvm_credit).zfs_clone_snapshot(snapshotname, filesystemname)
+                    result_info = libvirtApi.KVMApi(kvm_credit).zfs_clone_snapshot(snapshotname, filesystemname)
                     if result_info == '克隆成功。':
                         # ③克隆成功，生成新的xml文件
-                        result_info = KVMApi(kvm_credit).create_kvm_xml(kvm_machine, snapshotname, copyname, copy_cpu, copy_memory)
+                        result_info = libvirtApi.KVMApi(kvm_credit).create_kvm_xml(kvm_machine, snapshotname, copyname, copy_cpu, copy_memory)
                         if result_info == '生成成功。':
                             # ④新的xml文件生成，开始定义虚拟机
-                            result_info = KVMApi(kvm_credit).define_kvm(copyname)
+                            result_info = libvirtApi.KVMApi(kvm_credit).define_kvm(copyname)
                             if result_info == '定义成功。':
                                 # ④定义成功，保存数据库
                                 try:
@@ -2179,7 +2178,7 @@ def kvm_copy_data(request):
 
             copy_state = ''
             try:
-                copy_state = KVMApi(kvm_credit).domstate(kvmcopy.name)
+                copy_state = libvirtApi.KVMApi(kvm_credit).domstate(kvmcopy.name)
             except:
                 pass
 
@@ -2228,13 +2227,13 @@ def kvm_copy_del(request):
 
     try:
         # ①删除虚拟机
-        result_info = KVMApi(kvm_credit).undefine(name, state)
+        result_info = libvirtApi.KVMApi(kvm_credit).undefine(name, state)
         if result_info == '取消定义成功。':
             # ②删除文件系统
-            result_info = KVMApi(kvm_credit).filesystem_del(filesystem)
+            result_info = libvirtApi.KVMApi(kvm_credit).filesystem_del(filesystem)
             if result_info == '删除文件系统成功。':
                 # ③删除快照
-                result_info = KVMApi(kvm_credit).zfs_snapshot_del(filesystem_snapshot)
+                result_info = libvirtApi.KVMApi(kvm_credit).zfs_snapshot_del(filesystem_snapshot)
                 if result_info == '删除快照成功。':
                     # ④删除数据库数据
                     kvmcopy = KvmCopy.objects.get(id=id)
@@ -2288,14 +2287,14 @@ def kvm_power_on(request):
         filesystem = 'data/vmdata/' + copy_name     # data/vmdata/CentOS-7@2020-09-14
         filesystem = filesystem.replace('@', '-')   # data/vmdata/CentOS-7-2020-09-14
         try:
-            result_info = KVMApi(kvm_credit).guestmount(kvm_machine, filesystem)
+            result_info = libvirtApi.KVMApi(kvm_credit).guestmount(kvm_machine, filesystem)
             # ⑥挂载成功，修改ip和主机名
             if result_info == '挂载成功。':
-                result_info = KVMApi(kvm_credit).alert_ip_hostname(copy_ip, copy_hostname)
+                result_info = libvirtApi.KVMApi(kvm_credit).alert_ip_hostname(copy_ip, copy_hostname)
                 if result_info == '修改成功。':
-                    result_info = KVMApi(kvm_credit).umount()
+                    result_info = libvirtApi.KVMApi(kvm_credit).umount()
                     if result_info == '取消挂载成功。':
-                        result_info = KVMApi(kvm_credit).kvm_start(copy_state, copy_name)
+                        result_info = libvirtApi.KVMApi(kvm_credit).kvm_start(copy_state, copy_name)
                         if result_info == '开机成功。':
                             try:
                                 kvm_copy = KvmCopy.objects.get(id=copy_id)
@@ -2338,7 +2337,7 @@ def kvm_start(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     try:
-        result_info = KVMApi(kvm_credit).kvm_start(kvm_state, kvm_name)
+        result_info = libvirtApi.KVMApi(kvm_credit).kvm_start(kvm_state, kvm_name)
         result['res'] = result_info
     except Exception as e:
         print(e)
@@ -2363,7 +2362,7 @@ def kvm_destroy(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     try:
-        result_info = KVMApi(kvm_credit).kvm_destroy(kvm_state, kvm_name)
+        result_info = libvirtApi.KVMApi(kvm_credit).kvm_destroy(kvm_state, kvm_name)
         result['res'] = result_info
     except Exception as e:
         print(e)
@@ -2395,7 +2394,7 @@ def kvm_manage(request, funid):
 
 def get_kvm_copy_node(utils_id, parent, kvm_credit):
     datas = []
-    children = KVMApi(kvm_credit).kvm_include_copy_list(parent)  # 副本虚拟机
+    children = libvirtApi.KVMApi(kvm_credit).kvm_include_copy_list(parent)  # 副本虚拟机
     for child in children:
         data = dict()
         data['state'] = {'opened': 'True'}
@@ -2411,13 +2410,13 @@ def get_kvm_copy_node(utils_id, parent, kvm_credit):
         else:
             data['text'] = "<span class='fa fa-desktop' style='color:red; height:24px;'></span> " + child['name']
         data['type'] = 'COPY'
+        data['ip'] = kvm_credit['KvmHost']
         datas.append(data)
     return datas
 
 
-def get_kvm_node(utils_id, parent, kvm_credit):
+def get_kvm_node(utils_id, parent, kvm_credit, children):
     nodes = []
-    children = KVMApi(kvm_credit).kvm_exclude_copy_list()
     for child in children:
         node = dict()
         node['state'] = {'opened': 'True'}
@@ -2433,6 +2432,7 @@ def get_kvm_node(utils_id, parent, kvm_credit):
         else:
             node['text'] = "<span class='fa fa-desktop' style='color:red; height:24px;'></span> " + child['name']
         node['type'] = 'KVM'
+        node['ip'] = kvm_credit['KvmHost']
 
         # 获取三级菜单：实例虚拟机
         node["children"] = get_kvm_copy_node(utils_id, child['name'], kvm_credit)
@@ -2461,12 +2461,13 @@ def get_kvm_tree(request):
         }
         root['kvm_credit'] = kvm_credit
         # 获取kvm模板文件
-        kvm_template = KVMApi(kvm_credit).kvm_template()
+        kvm_template = libvirtApi.KVMApi(kvm_credit).kvm_template()
         root['kvm_template'] = kvm_template
         root['type'] = 'ROOT'
 
         # 循环二级菜单：虚拟机
-        root["children"] = get_kvm_node(utils.id, utils.code, kvm_credit)
+        children = libvirtApi.KVMApi(kvm_credit).kvm_exclude_copy_list()
+        root["children"] = get_kvm_node(utils.id, utils.code, kvm_credit, children)
         tree_data.append(root)
     return JsonResponse({
         "ret": 1,
@@ -2480,6 +2481,7 @@ def get_kvm_detail(request):
     utils_id = request.POST.get("utils_id", "")
     kvm_id = request.POST.get("kvm_id", "")
     kvm_name = request.POST.get("kvm_name", "")
+    utils_ip = request.POST.get("utils_ip", "")
     ret = 1
     data = ''
     try:
@@ -2493,21 +2495,16 @@ def get_kvm_detail(request):
     try:
         # 宿主机信息：cpu、内存、磁盘
         if kvm_name == '' and kvm_id == '':
-            try:
-                memory_disk_cpu_data = KVMApi(kvm_credit).disk_cpu_data()
-                memory_info = libvirtApi.mem_cpu_hostname_info()
-                memory_disk_cpu_data['cpu_count'] = memory_info['cpu_count']
-                memory_disk_cpu_data['hostname'] = memory_info['hostname']
-                memory_disk_cpu_data['mem_total'] = memory_info['mem_total']
-                memory_disk_cpu_data['mem_used'] = memory_info['mem_used']
-                memory_disk_cpu_data['memory_usage'] = memory_info['memory_usage']
-                data = {
-                    'memory_disk_cpu_data': memory_disk_cpu_data
-                }
-            except Exception as e:
-                print(e)
-                ret = 0
-                data = '获取信息失败。'
+            memory_disk_cpu_data = libvirtApi.KVMApi(kvm_credit).disk_cpu_data()
+            memory_info = libvirtApi.LibvirtApi(utils_ip).mem_cpu_hostname_info()
+            memory_disk_cpu_data['cpu_count'] = memory_info['cpu_count']
+            memory_disk_cpu_data['hostname'] = memory_info['hostname']
+            memory_disk_cpu_data['mem_total'] = memory_info['mem_total']
+            memory_disk_cpu_data['mem_used'] = memory_info['mem_used']
+            memory_disk_cpu_data['memory_usage'] = memory_info['memory_usage']
+            data = {
+                'memory_disk_cpu_data': memory_disk_cpu_data
+            }
 
         # kvm虚拟机磁盘文件信息：cpu、内存、磁盘
         # 已开启的虚拟机有id，未开启的虚拟机id为-
@@ -2519,21 +2516,15 @@ def get_kvm_detail(request):
                 if kvm_data.exists():
                     ip = kvm_data[0].ip
                     hostname = kvm_data[0].hostname
-                try:
-                    kvm_info_data = KVMApi(kvm_credit).kvm_info_data(kvm_name)
-                    # kvm虚拟机cpu、内存、磁盘使用率
-                    kvm_disk_data = libvirtApi.kvm_disk_usage(kvm_name)
-                    kvm_cpu_mem_data = libvirtApi.kvm_memory_cpu_usage(kvm_id)
-                    data = {
-                        'kvm_info_data': kvm_info_data,
-                        'kvm_cpu_mem_data': kvm_cpu_mem_data,
-                        'kvm_disk_data': kvm_disk_data,
-                        'ip': ip,
-                        'hostname': hostname}
-                except Exception as e:
-                    print(e)
-                    ret = 0
-                    data = '获取信息失败。'
+                kvm_info_data = libvirtApi.KVMApi(kvm_credit).kvm_info_data(kvm_name)
+                kvm_disk_data = libvirtApi.LibvirtApi(utils_ip).kvm_disk_usage(kvm_name)
+                kvm_cpu_mem_data = libvirtApi.LibvirtApi(utils_ip).kvm_memory_cpu_usage(kvm_id)
+                data = {
+                    'kvm_info_data': kvm_info_data,
+                    'kvm_cpu_mem_data': kvm_cpu_mem_data,
+                    'kvm_disk_data': kvm_disk_data,
+                    'ip': ip,
+                    'hostname': hostname}
 
             elif kvm_id == '-':
                 ip = ''
@@ -2542,20 +2533,15 @@ def get_kvm_detail(request):
                 if kvm_data.exists():
                     ip = kvm_data[0].ip
                     hostname = kvm_data[0].hostname
-                try:
-                    kvm_info_data = KVMApi(kvm_credit).kvm_info_data(kvm_name)
-                    kvm_disk_data = libvirtApi.kvm_disk_usage(kvm_name)
-                    data = {
-                        'kvm_info_data': kvm_info_data,
-                        'kvm_disk_data': kvm_disk_data,
-                        'ip': ip,
-                        'hostname': hostname
-                    }
-                except Exception as e:
-                    print(e)
-                    ret = 0
-                    data = '获取信息失败。'
 
+                kvm_info_data = libvirtApi.KVMApi(kvm_credit).kvm_info_data(kvm_name)
+                kvm_disk_data = libvirtApi.LibvirtApi(utils_ip).kvm_disk_usage(kvm_name)
+                data = {
+                    'kvm_info_data': kvm_info_data,
+                    'kvm_disk_data': kvm_disk_data,
+                    'ip': ip,
+                    'hostname': hostname
+                }
     except Exception as e:
         print(e)
         ret = 0
@@ -2582,7 +2568,7 @@ def kvm_suspend(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     try:
-        result_info = KVMApi(kvm_credit).kvm_suspend(kvm_state, kvm_name)
+        result_info = libvirtApi.KVMApi(kvm_credit).kvm_suspend(kvm_state, kvm_name)
         result["res"] = result_info
 
     except Exception as e:
@@ -2608,7 +2594,7 @@ def kvm_resume(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     try:
-        result_info = KVMApi(kvm_credit).kvm_resume(kvm_state, kvm_name)
+        result_info = libvirtApi.KVMApi(kvm_credit).kvm_resume(kvm_state, kvm_name)
         result["res"] = result_info
 
     except Exception as e:
@@ -2634,7 +2620,7 @@ def kvm_reboot(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     try:
-        result_info = KVMApi(kvm_credit).kvm_reboot(kvm_state, kvm_name)
+        result_info = libvirtApi.KVMApi(kvm_credit).kvm_reboot(kvm_state, kvm_name)
         result["res"] = result_info
     except Exception as e:
         print(e)
@@ -2663,13 +2649,13 @@ def kvm_delete(request):
 
     try:
         # ①删除虚拟机
-        result_info = KVMApi(kvm_credit).undefine(name, state)
+        result_info = libvirtApi.KVMApi(kvm_credit).undefine(name, state)
         if result_info == '取消定义成功。':
             # ②删除文件系统
-            result_info = KVMApi(kvm_credit).filesystem_del(filesystem)
+            result_info = libvirtApi.KVMApi(kvm_credit).filesystem_del(filesystem)
             if result_info == '删除文件系统成功。':
                 # ③删除快照
-                result_info = KVMApi(kvm_credit).zfs_snapshot_del(filesystem_snapshot)
+                result_info = libvirtApi.KVMApi(kvm_credit).zfs_snapshot_del(filesystem_snapshot)
                 if result_info == '删除快照成功。':
                     # ④删除数据库数据:name为虚拟机的名称是唯一的
                     kvmcopy = KvmCopy.objects.exclude(state='9').filter(name=name).filter(utils_id=utils_id)
@@ -2716,15 +2702,15 @@ def kvm_clone_save(request):
         filesystem = 'data/vmdata/' + kvm_name_clone  # 文件系统
         try:
             kvm_exist = []
-            kvm_list = KVMApi(kvm_credit).kvm_all_list()
+            kvm_list = libvirtApi.KVMApi(kvm_credit).kvm_all_list()
             for i in kvm_list:
                 kvm_exist.append(i['name'])
             if kvm_name_clone in kvm_exist:
                 result['res'] = '虚拟机' + kvm_name_clone + '已存在。'
             else:
-                result_info = KVMApi(kvm_credit).create_filesystem(filesystem)
+                result_info = libvirtApi.KVMApi(kvm_credit).create_filesystem(filesystem)
                 if result_info == '文件系统创建成功。':
-                    result_info = KVMApi(kvm_credit).kvm_clone(kvm_state, kvm_name, kvm_name_clone, filesystem)
+                    result_info = libvirtApi.KVMApi(kvm_credit).kvm_clone(kvm_state, kvm_name, kvm_name_clone, filesystem)
                     result["res"] = result_info
                 else:
                     result["res"] = '文件系统创建失败。'
@@ -2752,7 +2738,7 @@ def kvm_shutdown(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     try:
-        result_info = KVMApi(kvm_credit).kvm_shutdown(kvm_state, kvm_name)
+        result_info = libvirtApi.KVMApi(kvm_credit).kvm_shutdown(kvm_state, kvm_name)
         result["res"] = result_info
     except Exception as e:
         print(e)
@@ -2791,23 +2777,23 @@ def kvm_machine_create(request):
 
         try:
             kvm_exist = []
-            kvm_list = KVMApi(kvm_credit).kvm_all_list()
+            kvm_list = libvirtApi.KVMApi(kvm_credit).kvm_all_list()
             for i in kvm_list:
                 kvm_exist.append(i['name'])
             if kvm_template_name in kvm_exist:
                 result['res'] = '虚拟机' + kvm_template_name + '已存在。'
             else:
                 # ①创建文件系统
-                result_info = KVMApi(kvm_credit).create_filesystem(filesystem)
+                result_info = libvirtApi.KVMApi(kvm_credit).create_filesystem(filesystem)
                 if result_info == '文件系统创建成功。':
                     # ②拷贝模板文件到文件系统
-                    result_info = KVMApi(kvm_credit).copy_disk(kvm_template_path, kvm_disk_path)
+                    result_info = libvirtApi.KVMApi(kvm_credit).copy_disk(kvm_template_path, kvm_disk_path)
                     if result_info == '拷贝磁盘文件成功。':
                         # ③生成新的xml文件
-                        result_info = KVMApi(kvm_credit).create_new_xml(kvm_xml, kvm_disk_path, kvm_template_name)
+                        result_info = libvirtApi.KVMApi(kvm_credit).create_new_xml(kvm_xml, kvm_disk_path, kvm_template_name)
                         if result_info == '生成成功。':
                             # ④新的xml文件生成，开始定义虚拟机
-                            result_info = KVMApi(kvm_credit).define_kvm(kvm_template_name)
+                            result_info = libvirtApi.KVMApi(kvm_credit).define_kvm(kvm_template_name)
                             if result_info == '定义成功。':
                                 result['res'] = '新建成功。'
                             else:
@@ -2857,13 +2843,13 @@ def kvm_power(request):
         filesystem = 'data/vmdata/' + kvm_name     # data/vmdata/Test-10
 
         try:
-            result_info = KVMApi(kvm_credit).guestmount(kvm_name, filesystem)
+            result_info = libvirtApi.KVMApi(kvm_credit).guestmount(kvm_name, filesystem)
             if result_info == '挂载成功。':
-                result_info = KVMApi(kvm_credit).alert_ip_hostname(kvm_ip, kvm_hostname)
+                result_info = libvirtApi.KVMApi(kvm_credit).alert_ip_hostname(kvm_ip, kvm_hostname)
                 if result_info == '修改成功。':
-                    result_info = KVMApi(kvm_credit).umount()
+                    result_info = libvirtApi.KVMApi(kvm_credit).umount()
                     if result_info == '取消挂载成功。':
-                        result_info = KVMApi(kvm_credit).kvm_start(kvm_state, kvm_name)
+                        result_info = libvirtApi.KVMApi(kvm_credit).kvm_start(kvm_state, kvm_name)
                         if result_info == '开机成功。':
                             # 保存数据库
                             try:

@@ -13,7 +13,7 @@ import datetime
 from ping3 import ping
 import cx_Oracle
 import pymysql
-from ..kvm import KVMApi
+from ..api.kvm import libvirtApi
 
 import sys
 if sys.platform.startswith('win'):
@@ -857,7 +857,7 @@ def get_kvm_disk_space(request):
 
     kvm_credit = get_credit_info(content, util_type.upper())
     try:
-        kvm_space = KVMApi(kvm_credit).kvm_disk_space()
+        kvm_space = libvirtApi.KVMApi(kvm_credit).kvm_disk_space()
     except:
         pass
     return JsonResponse({

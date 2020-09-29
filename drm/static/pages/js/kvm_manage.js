@@ -61,7 +61,8 @@ function getkvmtree() {
                         if (data.node.parent == "#") {
                             $("#loading2").show();
                             $("#form_div").hide();
-                            $("#host_ip").val(data.node.original.kvm_credit.KvmHost);
+                            var utils_ip = data.node.original.kvm_credit.KvmHost;
+                            $("#host_ip").val(utils_ip);
 
                             $.ajax({
                                 type: "POST",
@@ -69,6 +70,7 @@ function getkvmtree() {
                                 url: "../get_kvm_detail/",
                                 data: {
                                     utils_id: utils_id,
+                                    utils_ip: utils_ip
                                 },
                                 success: function (data) {
                                     if (data.ret == 1) {
@@ -90,13 +92,13 @@ function getkvmtree() {
                                     }
                                     else {
                                         alert(data.data);
-                                        $("#loading2").show();
+                                        $("#loading2").hide();
                                         $("#form_div").hide();
                                     }
                                 },
                                 error: function (e) {
                                     alert("页面出现错误，请于管理员联系。");
-                                    $("#loading2").show();
+                                    $("#loading2").hide();
                                     $("#form_div").hide();
                                 }
                             });
@@ -114,8 +116,7 @@ function getkvmtree() {
                             var kvm_info = data.node.data;
                             $("#kvm_name").val(kvm_info.name);
                             $("#kvm_state").val(kvm_info.state);
-
-
+                            var utils_ip = data.node.original.ip;
                             $.ajax({
                                 type: "POST",
                                 dataType: 'json',
@@ -123,7 +124,8 @@ function getkvmtree() {
                                 data: {
                                     kvm_id: kvm_id,
                                     utils_id: utils_id,
-                                    kvm_name: kvm_name
+                                    kvm_name: kvm_name,
+                                    utils_ip: utils_ip
                                 },
                                 success: function (data) {
                                     if (data.ret == 1) {
