@@ -260,6 +260,7 @@ urlpatterns = [
     url(r'^kvm_manage/$', kvm_manage, {'funid': '118'}),
     url(r'^get_kvm_tree/$', get_kvm_tree),
     url(r'^get_kvm_detail/$', get_kvm_detail),
+    url(r'^get_kvm_task_data/$', get_kvm_task_data),
     url(r'^kvm_suspend/$', kvm_suspend),
     url(r'^kvm_resume/$', kvm_resume),
     url(r'^kvm_shutdown/$', kvm_shutdown),

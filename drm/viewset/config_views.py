@@ -2322,11 +2322,10 @@ def kvm_power_on(request):
 
 @login_required
 def kvm_start(request):
-    result = {}
     utils_id = request.POST.get("utils_id", "")
     kvm_name = request.POST.get("kvm_name", "")
     kvm_state = request.POST.get("kvm_state", "")
-
+    kvm_id = ""
     try:
         utils_id = int(utils_id)
     except:
@@ -2335,23 +2334,24 @@ def kvm_start(request):
     content = utils_kvm_info[0].content
     util_type = utils_kvm_info[0].util_type
     kvm_credit = get_credit_info(content, util_type.upper())
-
     try:
-        result_info = libvirtApi.KVMApi(kvm_credit).kvm_start(kvm_state, kvm_name)
-        result['res'] = result_info
+        result = libvirtApi.KVMApi(kvm_credit).kvm_start(kvm_state, kvm_name)
+        kvm_id = libvirtApi.KVMApi(kvm_credit).domid(kvm_name)
     except Exception as e:
         print(e)
-        result["res"] = '开机失败。'
-    return JsonResponse(result)
+        result = '开机失败。'
+    return JsonResponse({
+        'res': result,
+        'kvm_id': kvm_id
+    })
 
 
 @login_required
 def kvm_destroy(request):
-    result = {}
     utils_id = request.POST.get("utils_id", "")
     kvm_name = request.POST.get("kvm_name", "")
     kvm_state = request.POST.get("kvm_state", "")
-
+    kvm_id = ""
     try:
         utils_id = int(utils_id)
     except:
@@ -2362,12 +2362,15 @@ def kvm_destroy(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     try:
-        result_info = libvirtApi.KVMApi(kvm_credit).kvm_destroy(kvm_state, kvm_name)
-        result['res'] = result_info
+        result = libvirtApi.KVMApi(kvm_credit).kvm_destroy(kvm_state, kvm_name)
+        kvm_id = libvirtApi.KVMApi(kvm_credit).domid(kvm_name)
     except Exception as e:
         print(e)
-        result["res"] = '断电失败。'
-    return JsonResponse(result)
+        result = '断电失败。'
+    return JsonResponse({
+        'res': result,
+        'kvm_id': kvm_id
+    })
 
 
 ######################
@@ -2509,6 +2512,8 @@ def get_kvm_detail(request):
         # kvm虚拟机磁盘文件信息：cpu、内存、磁盘
         # 已开启的虚拟机有id，未开启的虚拟机id为-
         if kvm_name and kvm_id:
+            kvm_id = kvm_id.strip()
+            print(kvm_id)
             if kvm_id != '-':
                 ip = ''
                 hostname = ''
@@ -2525,7 +2530,6 @@ def get_kvm_detail(request):
                     'kvm_disk_data': kvm_disk_data,
                     'ip': ip,
                     'hostname': hostname}
-
             elif kvm_id == '-':
                 ip = ''
                 hostname = ''
@@ -2552,12 +2556,35 @@ def get_kvm_detail(request):
 
 
 @login_required
+def get_kvm_task_data(request):
+    kvm_id = request.POST.get("kvm_id", "")
+    utils_ip = request.POST.get("utils_ip", "")
+    ret = 1
+    data = ''
+    kvm_id = kvm_id.strip()
+    try:
+        # kvm虚拟机磁盘文件信息：cpu、内存、磁盘
+        # 已开启的虚拟机有id，未开启的虚拟机id为-
+        if kvm_id != '-':
+            kvm_cpu_mem_data = libvirtApi.LibvirtApi(utils_ip).kvm_memory_cpu_usage(kvm_id)
+            data = {
+                'kvm_cpu_mem_data': kvm_cpu_mem_data,
+            }
+    except Exception as e:
+        print(e)
+        ret = 0
+        data = '获取信息失败。'
+    return JsonResponse({
+        'ret': ret,
+        'data': data})
+
+
+@login_required
 def kvm_suspend(request):
-    result = {}
     utils_id = request.POST.get("utils_id", "")
     kvm_name = request.POST.get("kvm_name", "")
     kvm_state = request.POST.get("kvm_state", "")
-
+    kvm_id = ""
     try:
         utils_id = int(utils_id)
     except:
@@ -2568,22 +2595,24 @@ def kvm_suspend(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     try:
-        result_info = libvirtApi.KVMApi(kvm_credit).kvm_suspend(kvm_state, kvm_name)
-        result["res"] = result_info
+        result = libvirtApi.KVMApi(kvm_credit).kvm_suspend(kvm_state, kvm_name)
+        kvm_id = libvirtApi.KVMApi(kvm_credit).domid(kvm_name)
 
     except Exception as e:
         print(e)
-        result["res"] = '暂停失败。'
-    return JsonResponse(result)
+        result = '暂停失败。'
+    return JsonResponse({
+        'res': result,
+        'kvm_id': kvm_id
+    })
 
 
 @login_required
 def kvm_resume(request):
-    result = {}
     utils_id = request.POST.get("utils_id", "")
     kvm_name = request.POST.get("kvm_name", "")
     kvm_state = request.POST.get("kvm_state", "")
-
+    kvm_id = ""
     try:
         utils_id = int(utils_id)
     except:
@@ -2594,22 +2623,24 @@ def kvm_resume(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     try:
-        result_info = libvirtApi.KVMApi(kvm_credit).kvm_resume(kvm_state, kvm_name)
-        result["res"] = result_info
+        result = libvirtApi.KVMApi(kvm_credit).kvm_resume(kvm_state, kvm_name)
+        kvm_id = libvirtApi.KVMApi(kvm_credit).domid(kvm_name)
 
     except Exception as e:
         print(e)
-        result["res"] = '运行失败。'
-    return JsonResponse(result)
+        result = '运行失败。'
+    return JsonResponse({
+        'res': result,
+        'kvm_id': kvm_id
+    })
 
 
 @login_required
 def kvm_reboot(request):
-    result = {}
     utils_id = request.POST.get("utils_id", "")
     kvm_name = request.POST.get("kvm_name", "")
     kvm_state = request.POST.get("kvm_state", "")
-
+    kvm_id = ""
     try:
         utils_id = int(utils_id)
     except:
@@ -2620,13 +2651,43 @@ def kvm_reboot(request):
     kvm_credit = get_credit_info(content, util_type.upper())
 
     try:
-        result_info = libvirtApi.KVMApi(kvm_credit).kvm_reboot(kvm_state, kvm_name)
-        result["res"] = result_info
+        result = libvirtApi.KVMApi(kvm_credit).kvm_reboot(kvm_state, kvm_name)
+        kvm_id = libvirtApi.KVMApi(kvm_credit).domid(kvm_name)
     except Exception as e:
         print(e)
-        result["res"] = '重启失败。'
-    return JsonResponse(result)
+        result = '重启失败。'
+    return JsonResponse({
+        'res': result,
+        'kvm_id': kvm_id
+    })
 
+
+@login_required
+def kvm_shutdown(request):
+    # 关闭虚拟机
+    utils_id = request.POST.get("utils_id", "")
+    kvm_name = request.POST.get("kvm_name", "")
+    kvm_state = request.POST.get("kvm_state", "")
+    kvm_id = ""
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+
+    try:
+        result = libvirtApi.KVMApi(kvm_credit).kvm_shutdown(kvm_state, kvm_name)
+        kvm_id = libvirtApi.KVMApi(kvm_credit).domid(kvm_name)
+    except Exception as e:
+        print(e)
+        result = '关闭失败。'
+    return JsonResponse({
+        'res': result,
+        'kvm_id': kvm_id
+    })
 
 @login_required
 def kvm_delete(request):
@@ -2717,32 +2778,6 @@ def kvm_clone_save(request):
         except Exception as e:
             print(e)
             result["res"] = '克隆失败。'
-    return JsonResponse(result)
-
-
-@login_required
-def kvm_shutdown(request):
-    # 关闭虚拟机
-    result = {}
-    utils_id = request.POST.get("utils_id", "")
-    kvm_name = request.POST.get("kvm_name", "")
-    kvm_state = request.POST.get("kvm_state", "")
-
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
-    content = utils_kvm_info[0].content
-    util_type = utils_kvm_info[0].util_type
-    kvm_credit = get_credit_info(content, util_type.upper())
-
-    try:
-        result_info = libvirtApi.KVMApi(kvm_credit).kvm_shutdown(kvm_state, kvm_name)
-        result["res"] = result_info
-    except Exception as e:
-        print(e)
-        result["res"] = '关闭失败。'
     return JsonResponse(result)
 
 

@@ -27,23 +27,31 @@ class LibvirtApi():
         dom = self.conn().lookupByID(id)
         dom.setMemoryStatsPeriod(10)
         meminfo = dom.memoryStats()
-        free_mem = float(meminfo['unused'])
-        total_mem = float(meminfo['available'])
-        used_mem = total_mem-free_mem
-        mem_usage = round(((total_mem-free_mem) / total_mem)*100, 2)
-        data['mem_usage'] = mem_usage
-        data['mem_used'] = round(used_mem/1024/1024, 2)
-        data['mem_total'] = round(total_mem/1024/1024,  2)
-        data['mem_free'] = round(free_mem/1024/1024, 2)
+        if 'unnused' and 'available' in meminfo:
+            free_mem = float(meminfo['unused'])
+            total_mem = float(meminfo['available'])
+            used_mem = total_mem-free_mem
+            mem_usage = round(((total_mem-free_mem) / total_mem)*100, 2)
+            data['mem_usage'] = mem_usage
+            data['mem_used'] = round(used_mem/1024/1024, 2)
+            data['mem_total'] = round(total_mem/1024/1024,  2)
+            data['mem_free'] = round(free_mem/1024/1024, 2)
 
-        t1 = time.time()
-        c1 = int(dom.info()[4])
-        time.sleep(1)
-        t2 = time.time()
-        c2 = int(dom.info()[4])
-        c_nums = int(dom.info()[3])
-        cpu_usage = round((c2 - c1) * 100 / ((t2 - t1) * c_nums * 1e9), 2)
-        data['cpu_usage'] = cpu_usage
+            t1 = time.time()
+            c1 = int(dom.info()[4])
+            time.sleep(1)
+            t2 = time.time()
+            c2 = int(dom.info()[4])
+            c_nums = int(dom.info()[3])
+            cpu_usage = round((c2 - c1) * 100 / ((t2 - t1) * c_nums * 1e9), 2)
+            data['cpu_usage'] = cpu_usage
+        else:
+            data['mem_usage'] = 0
+            data['mem_used'] = 0
+            data['mem_total'] = 0
+            data['mem_free'] = 0
+            data['cpu_usage'] = 0
+
         return data
 
     def kvm_disk_usage(self, kvm_name):
@@ -125,6 +133,13 @@ class KVMApi():
         exe_cmd = r'virsh domstate {0}'.format(kvm_name)
         result = self.remote_linux(exe_cmd)
         result = result['data'].strip()
+        return result
+
+    def domid(self, kvm_name):
+        # 获取虚拟机的id
+        exe_cmd = r'virsh domid {0}'.format(kvm_name)
+        result = self.remote_linux(exe_cmd)
+        result = result['data']
         return result
 
     def kvm_all_list(self):
@@ -238,7 +253,7 @@ class KVMApi():
             result = self.remote_linux(exe_cmd)
             if result['data'].strip() == 'Domain {0} is being shutdown'.format(kvm_name) or \
                     result['data'].strip() == '域 {0} 被关闭'.format(kvm_name):
-                time.sleep(5)
+                time.sleep(3)
                 state = self.domstate(kvm_name)
                 if state == 'shut off' or state == '关闭':
                     result = '关闭成功。'
