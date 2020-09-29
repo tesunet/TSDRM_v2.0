@@ -2432,7 +2432,6 @@ def get_kvm_node(utils_id, parent, kvm_credit):
             node['text'] = "<span class='fa fa-desktop' style='color:green; height:24px;'></span> " + child['name']
         else:
             node['text'] = "<span class='fa fa-desktop' style='color:red; height:24px;'></span> " + child['name']
-
         node['type'] = 'KVM'
 
         # 获取三级菜单：实例虚拟机
@@ -2451,7 +2450,6 @@ def get_kvm_tree(request):
         content = utils_kvm_info[0].content
         util_type = utils_kvm_info[0].util_type
         kvm_credit = get_credit_info(content, util_type.upper())
-
         root = dict()
         root["text"] = "<img src = '/static/pages/images/ts.png' height='24px'> " + utils.code,
         root['id'] = utils.id
@@ -2462,11 +2460,9 @@ def get_kvm_tree(request):
             'pname': '无',
         }
         root['kvm_credit'] = kvm_credit
-
         # 获取kvm模板文件
         kvm_template = KVMApi(kvm_credit).kvm_template()
         root['kvm_template'] = kvm_template
-
         root['type'] = 'ROOT'
 
         # 循环二级菜单：虚拟机
@@ -2496,12 +2492,22 @@ def get_kvm_detail(request):
     kvm_credit = get_credit_info(content, util_type.upper())
     try:
         # 宿主机信息：cpu、内存、磁盘
-
         if kvm_name == '' and kvm_id == '':
-            memory_disk_cpu_data = KVMApi(kvm_credit).memory_disk_cpu_data()
-            data = {
-                'memory_disk_cpu_data': memory_disk_cpu_data,
-            }
+            try:
+                memory_disk_cpu_data = KVMApi(kvm_credit).disk_cpu_data()
+                memory_info = libvirtApi.mem_cpu_hostname_info()
+                memory_disk_cpu_data['cpu_count'] = memory_info['cpu_count']
+                memory_disk_cpu_data['hostname'] = memory_info['hostname']
+                memory_disk_cpu_data['mem_total'] = memory_info['mem_total']
+                memory_disk_cpu_data['mem_used'] = memory_info['mem_used']
+                memory_disk_cpu_data['memory_usage'] = memory_info['memory_usage']
+                data = {
+                    'memory_disk_cpu_data': memory_disk_cpu_data
+                }
+            except Exception as e:
+                print(e)
+                ret = 0
+                data = '获取信息失败。'
 
         # kvm虚拟机磁盘文件信息：cpu、内存、磁盘
         # 已开启的虚拟机有id，未开启的虚拟机id为-
@@ -2513,17 +2519,21 @@ def get_kvm_detail(request):
                 if kvm_data.exists():
                     ip = kvm_data[0].ip
                     hostname = kvm_data[0].hostname
-
-                kvm_info_data = KVMApi(kvm_credit).kvm_info_data(kvm_name)
-                # kvm虚拟机cpu、内存、磁盘使用率
-                kvm_disk_data = KVMApi(kvm_credit).kvm_disk_usage(kvm_name)
-                kvm_cpu_mem_data = libvirtApi.memory_cpu_usage(kvm_id)
-                data = {
-                    'kvm_info_data': kvm_info_data,
-                    'kvm_cpu_mem_data': kvm_cpu_mem_data,
-                    'kvm_disk_data': kvm_disk_data,
-                    'ip': ip,
-                    'hostname': hostname}
+                try:
+                    kvm_info_data = KVMApi(kvm_credit).kvm_info_data(kvm_name)
+                    # kvm虚拟机cpu、内存、磁盘使用率
+                    kvm_disk_data = libvirtApi.kvm_disk_usage(kvm_name)
+                    kvm_cpu_mem_data = libvirtApi.kvm_memory_cpu_usage(kvm_id)
+                    data = {
+                        'kvm_info_data': kvm_info_data,
+                        'kvm_cpu_mem_data': kvm_cpu_mem_data,
+                        'kvm_disk_data': kvm_disk_data,
+                        'ip': ip,
+                        'hostname': hostname}
+                except Exception as e:
+                    print(e)
+                    ret = 0
+                    data = '获取信息失败。'
 
             elif kvm_id == '-':
                 ip = ''
@@ -2532,15 +2542,19 @@ def get_kvm_detail(request):
                 if kvm_data.exists():
                     ip = kvm_data[0].ip
                     hostname = kvm_data[0].hostname
-
-                kvm_info_data = KVMApi(kvm_credit).kvm_info_data(kvm_name)
-                kvm_disk_data = KVMApi(kvm_credit).kvm_disk_usage(kvm_name)
-                data = {
-                    'kvm_info_data': kvm_info_data,
-                    'kvm_disk_data': kvm_disk_data,
-                    'ip': ip,
-                    'hostname': hostname
-                }
+                try:
+                    kvm_info_data = KVMApi(kvm_credit).kvm_info_data(kvm_name)
+                    kvm_disk_data = libvirtApi.kvm_disk_usage(kvm_name)
+                    data = {
+                        'kvm_info_data': kvm_info_data,
+                        'kvm_disk_data': kvm_disk_data,
+                        'ip': ip,
+                        'hostname': hostname
+                    }
+                except Exception as e:
+                    print(e)
+                    ret = 0
+                    data = '获取信息失败。'
 
     except Exception as e:
         print(e)

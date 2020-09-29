@@ -123,24 +123,6 @@ class KVMApi():
 
         return kvm_all_list_dict
 
-    def kvm_run_list(self):
-        # 获取正在运行的虚拟机
-        exe_cmd = r'virsh list'
-        result = self.remote_linux(exe_cmd)
-        kvm_list = [x for x in result['data'].split(' ') if x]
-
-        del kvm_list[0:3]
-
-        end_list = self.list_of_groups(kvm_list, 3)
-        kvm_all_list_dict = []
-        for item in end_list:
-            data = {}
-            data['id'] = item[0]
-            data['name'] = item[1]
-            data['state'] = item[2]
-            kvm_all_list_dict.append(data)
-        return kvm_all_list_dict
-
     def kvm_start(self, kvm_state, kvm_name):
         # 开启虚拟机:是关闭的状态（shut off/关闭）
         if kvm_state == 'shut off' or kvm_state == '关闭':
@@ -202,7 +184,6 @@ class KVMApi():
         except Exception as e:
             print(e)
             result = '删除文件系统失败。'
-
         return result
 
     def undefine(self, kvm_name, state):
@@ -233,7 +214,6 @@ class KVMApi():
                 result = '虚拟机已创建快照，无法删除。'
         else:
             result = '虚拟机未关闭。'
-
         return result
 
     def kvm_suspend(self, kvm_state, kvm_name):
@@ -250,7 +230,6 @@ class KVMApi():
                 result = '暂停失败。'
         else:
             result = '虚拟机未开启。'
-
         return result
 
     def kvm_resume(self, kvm_state, kvm_name):
@@ -313,97 +292,61 @@ class KVMApi():
 
     def kvm_info_data(self, kvm_name):
         # 获取虚拟机cpu、内存、系统类型、磁盘
-        exe_cmd = r'cat /etc/libvirt/qemu/{0}.xml'.format(kvm_name)
-        result = self.remote_linux(exe_cmd)
-        config = etree.XML(result['data'])
-        kvm_cpu = config.xpath("//vcpu")[0]
-        kvm_memory = config.xpath("//memory")[0]
-        kvm_os = config.xpath("//os/type")[0]
-        kvm_diskpath = config.xpath("//disk/source")[0]
-
-        kvm_os = kvm_os.text
-        kvm_cpu = int(kvm_cpu.text)
-        kvm_memory = int(int(kvm_memory.text)/1024)
-        kvm_disk = kvm_diskpath.attrib['file']
-
-        kvm_info = {
-            'kvm_os': kvm_os,
-            'kvm_disk': kvm_disk,
-            'kvm_cpu': kvm_cpu,
-            'kvm_memory': kvm_memory
-        }
-        return kvm_info
-
-    def snapshot_create(self, kvm_name):
-        # 创建快照
-        # 创建成功提示信息：Domain snapshot 1596685828 created
-        exe_cmd = r'virsh snapshot-create {0}'.format(kvm_name)
-        result = self.remote_linux(exe_cmd)
-
-        if 'created' in result['data'] or '已生成域快照' in result['data']:
-            result = '虚拟机{0}创建快照成功。'.format(kvm_name)
-        else:
-            result = '虚拟机{0}创建快照失败。'.format(kvm_name)
+        try:
+            exe_cmd = r'cat /etc/libvirt/qemu/{0}.xml'.format(kvm_name)
+            result = self.remote_linux(exe_cmd)
+            config = etree.XML(result['data'])
+            kvm_cpu = config.xpath("//vcpu")[0]
+            kvm_memory = config.xpath("//memory")[0]
+            kvm_os = config.xpath("//os/type")[0]
+            kvm_diskpath = config.xpath("//disk/source")[0]
+            kvm_os = kvm_os.text
+            kvm_cpu = int(kvm_cpu.text)
+            kvm_memory = int(int(kvm_memory.text)/1024)
+            kvm_disk = kvm_diskpath.attrib['file']
+            result = {
+                'kvm_os': kvm_os,
+                'kvm_disk': kvm_disk,
+                'kvm_cpu': kvm_cpu,
+                'kvm_memory': kvm_memory
+            }
+        except:
+            result = '获取信息失败。'
         return result
 
     def snapshot_list(self, kvm_name):
         # 查看快照列表
-        exe_cmd = r'virsh snapshot-list {0}'.format(kvm_name)
-        result = self.remote_linux(exe_cmd)
-        list = [x for x in result['data'].split(' ') if x]
-        del list[0:4]
-        end_list = self.list_of_groups(list, 5)
-        snapshot_list_dict = []
-        for item in end_list:
-            data = {}
-            data['name'] = item[0]
-            snapshot_list_dict.append(data)
-
-        """
-        [{'name': '1596684491'}, 
-        {'name': '1596685828'}]
-
-        """
-        return snapshot_list_dict
-
-    def snapshot_del(self, kvm_name, snapshotname):
-        # 删除快照
-        exe_cmd = r'virsh snapshot-delete {0} --snapshotname {1}'.format(kvm_name, snapshotname)
-        result = self.remote_linux(exe_cmd)
-        if result['data'] == 'Domain snapshot {0} deleted'.format(snapshotname) or result['data'] == '已删除域快照':
-            result = '快照{0}删除成功。'.format(snapshotname)
-        else:
-            result = '快照{0}删除失败。'.format(snapshotname)
-
-        return result
-
-    def snapshot_revert(self, kvm_name, snapshotname):
-        # 恢复快照：虚拟机是关机的状态
-        state = self.domstate(kvm_name)
-        if state == 'shut off':
-            exe_cmd = r'virsh snapshot-revert {0} --snapshotname {1}'.format(kvm_name, snapshotname)
-            self.remote_linux(exe_cmd)
-            result = '恢复到快照{0}成功。'.format(snapshotname)
-        else:
-            result = '请先关闭虚拟机，再执行恢复操作。'.format(kvm_name)
+        try:
+            exe_cmd = r'virsh snapshot-list {0}'.format(kvm_name)
+            result = self.remote_linux(exe_cmd)
+            list = [x for x in result['data'].split(' ') if x]
+            del list[0:4]
+            end_list = self.list_of_groups(list, 5)
+            result = []
+            for item in end_list:
+                data = {}
+                data['name'] = item[0]
+                result.append(data)
+                """
+                [{'name': '1596684491'}, 
+                {'name': '1596685828'}]
+                """
+        except:
+            result = '获取信息失败。'
         return result
 
     def zfs_kvm_filesystem(self):
-        exe_cmd = r'ls /data/vmdata'.format()
-        result = self.remote_linux(exe_cmd)
-
-        kvm_filesystem = [x.replace('\t', '') for x in result['data'].split(' ') if x]
-        return kvm_filesystem
+        try:
+            exe_cmd = r'ls /data/vmdata'.format()
+            result = self.remote_linux(exe_cmd)
+            result = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+        except:
+            result = '获取文件系统失败。'
+        return result
 
     def create_filesystem(self, filesystem):
         """
         为每一台虚拟机分别创建一个文件系统
-        tank/kvm_1
-        tank/kvm_2
-        tank/kvm_3
-
-        zfs创建文件系统:zfs create tank/kvm_1
-        zfs_pool_data:文件系统路径
         """
         try:
             exe_cmd = r'zfs create {0}'.format(filesystem)
@@ -426,30 +369,33 @@ class KVMApi():
             exe_cmd = r'zfs snapshot {0}'.format(snapshot_name)
             result = self.remote_linux(exe_cmd)
             if result['data'] == '':
-                info = '创建成功。'
+                result = '创建成功。'
             else:
-                info = '创建失败。'
+                result = '创建失败。'
         except:
-            info = '创建失败。'
-        return info
+            result = '创建失败。'
+        return result
 
     def zfs_snapshot_list(self, filesystem):
         """
         查看zfs快照：zfs list -t snapshot -r tank/kvm_1
         """
-        exe_cmd = r'zfs list -t snapshot -r {0}'.format(filesystem)
-        result = self.remote_linux(exe_cmd)
-        snapshot_list = [x for x in result['data'].split(' ') if x]
-        del snapshot_list[0:5]
+        try:
+            exe_cmd = r'zfs list -t snapshot -r {0}'.format(filesystem)
+            result = self.remote_linux(exe_cmd)
+            snapshot_list = [x for x in result['data'].split(' ') if x]
+            del snapshot_list[0:5]
 
-        end_list = self.list_of_groups(snapshot_list, 5)
-        zfs_snapshot_list_dict = []
-        for item in end_list:
-            data = {}
-            item = item[0].split('@')
-            data['name'] = item[1]
-            zfs_snapshot_list_dict.append(data)
-        return zfs_snapshot_list_dict
+            end_list = self.list_of_groups(snapshot_list, 5)
+            result = []
+            for item in end_list:
+                data = {}
+                item = item[0].split('@')
+                data['name'] = item[1]
+                result.append(data)
+        except:
+            result = '获取信息失败。'
+        return result
 
     def zfs_snapshot_del(self, snapshot_name):
         """
@@ -459,12 +405,12 @@ class KVMApi():
             exe_cmd = r'zfs destroy {0}'.format(snapshot_name)
             result = self.remote_linux(exe_cmd)
             if result['data'] == '':
-                info = '删除快照成功。'
+                result = '删除快照成功。'
             else:
-                info = '删除快照失败。'
+                result = '删除快照失败。'
         except:
-            info = '快照已挂载，删除失败。'
-        return info
+            result = '删除快照失败。'
+        return result
 
     def zfs_clone_snapshot(self, snapshot_name, filesystem_name):
         """
@@ -473,17 +419,16 @@ class KVMApi():
         kvm_snapshot_name
         kvm_snapshot_clone_name
         """
-
         try:
             exe_cmd = r'zfs clone {0} {1}'.format(snapshot_name, filesystem_name)
             result = self.remote_linux(exe_cmd)
             if result['data'] == '':
-                info = '克隆成功。'
+                result = '克隆成功。'
             else:
-                info = '克隆失败。'
+                result = '克隆失败。'
         except:
-            info = '克隆失败。'
-        return info
+            result = '克隆失败。'
+        return result
 
     def create_kvm_xml(self, kvm_machine, snapshotname, copyname, copycpu, copymemory):
         """
@@ -530,12 +475,14 @@ class KVMApi():
             xml_content = etree.tounicode(config)
             xml_path = '/etc/libvirt/qemu/{0}.xml'.format(copyname)
             exe_cmd = r'cat > {0} << \EOH'.format(xml_path) + '\n' + xml_content + '\nEOH'
-            self.remote_linux(exe_cmd)
-            info = '生成成功。'
+            result = self.remote_linux(exe_cmd)
+            if result['data'] == '':
+                result = '生成成功。'
+            else:
+                result = '生成失败。'
         except:
-            info = '生成失败。'
-
-        return info
+            result = '生成失败。'
+        return result
 
     def define_kvm(self, copy_name):
         """
@@ -550,7 +497,6 @@ class KVMApi():
             result = '定义成功。'
         else:
             result = '定义失败。'
-
         return result
 
     def guestmount(self, kvm_machine, filesystem):
@@ -610,50 +556,13 @@ class KVMApi():
             result = '取消挂载失败。'
         return result
 
-    def kvm_disk_space(self):
+    def disk_cpu_data(self):
         """
-        获取kvm文件系统磁盘使用情况：zfs list
-        """
-
-        exe_cmd = r'zfs list'
-        result = self.remote_linux(exe_cmd)
-        kvm_space_list = [x for x in result['data'].split(' ') if x]
-
-        del kvm_space_list[0:5]
-        end_list = self.list_of_groups(kvm_space_list, 5)
-        data = {}
-        for item in end_list:
-            if 'data' == item[0]:
-                data['used_total'] = float(item[1].replace('G', ''))
-                data['size_total'] = float(item[2].replace('G', ''))
-                data['used_percent'] = round(float(item[1].replace('G', ''))/float(item[2].replace('G', '')), 2)*100
-
-        return data
-
-    def memory_disk_cpu_data(self):
-        """
-        宿主机查看内存使用率：cat /proc/meminfo
         查看cpu使用率
         查看磁盘使用率
         查看操作系统
-        查看主机名
         """
-        data = ''
         try:
-            # 内存
-            exe_cmd = r'cat /proc/meminfo'
-            result = self.remote_linux(exe_cmd)
-            memory_info = [x for x in result['data'].split(' ') if x]
-            end_list = self.list_of_groups(memory_info, 3)[0:5]
-            memtotal = end_list[0][1]   # 总内存
-            memfree = end_list[1][1]    # 空闲内存
-            buffers = end_list[3][1]    # 给文件缓存大小
-            cached = end_list[4][1]     # 高速缓冲存储器使用的大小
-
-            free_mem = int(memfree) + int(buffers) + int(cached)
-            used_mem = int(memtotal) - free_mem
-            memory_usage = round(100 * used_mem / float(memtotal), 2)
-
             # 磁盘
             exe_cmd = r'df'
             result = self.remote_linux(exe_cmd)
@@ -675,50 +584,27 @@ class KVMApi():
                     total += int(i['total'])
                     used += int(i['used'])
             disk_usage = round(used / total * 100, 2)
-
             # cpu使用率
             exe_cmd = r"top -n1 | awk '/Cpu/{print $2}'"
             result = self.remote_linux(exe_cmd)
             cpu_usage = float(result['data'])
-
-            # cpu个数
-            exe_cmd = r'cat /proc/cpuinfo| grep "physical id"| sort| uniq| wc -l'
-            result = self.remote_linux(exe_cmd)
-            cpu_count = result['data']
-
             # 操作系统
             exe_cmd = r"cat /etc/centos-release"
             result = self.remote_linux(exe_cmd)
             os = result['data']
-
-            # 主机名
-            exe_cmd = r"cat /etc/hostname"
-            result = self.remote_linux(exe_cmd)
-            hostname = result['data']
-
             data = {
-                'mem_total': round(int(memtotal) / 1024 / 1024, 2),
-                'mem_used': round(used_mem / 1024 / 1024, 2),
-                'memory_usage': memory_usage,
-
                 'disk_total': round(total / 1024 / 1024, 2),
                 'disk_used': round(used / 1024 / 1024, 2),
                 'disk_usage': disk_usage,
-
                 'cpu_usage': cpu_usage,
-                'cpu_count': cpu_count,
-
                 'os': os,
-                'hostname': hostname
-
             }
         except Exception as e:
             print(e)
+            data = '获取信息失败。'
         return data
 
     def kvm_cpu_mem_usage(self, kvm_id):
-        kvm_mem_usage = ''
-        kvm_cpu_usage = ''
         try:
             # 获取内存使用信息
             exe_cmd = r"./test5.py {0}".format(kvm_id)
@@ -728,36 +614,15 @@ class KVMApi():
             exe_cmd = r"./test4.py {0}".format(kvm_id)
             result = self.remote_linux(exe_cmd)
             kvm_cpu_usage = result['data']
-
-        except Exception as e:
-            print(e)
-        kvm_mem_usage = json.loads(kvm_mem_usage)
-        kvm_cpu_usage = json.loads(kvm_cpu_usage)
-        data = {
-            "kvm_mem_usage": kvm_mem_usage,
-            "kvm_cpu_usage": kvm_cpu_usage,
-        }
-        return data
-
-    def kvm_disk_usage(self, kvm_name):
-        kvm_disk_usage = ''
-        try:
-            # 获取磁盘使用信息
-            exe_cmd = r'virt-df -d {0}'.format(kvm_name)
-            result = self.remote_linux(exe_cmd)
-            kvm_disk_list = [x for x in result['data'].split(' ') if x]
-            del kvm_disk_list[0:5]
-            # ['CentOS-7:/dev/sda1', '10474496', '1004380', '9470116', '10%']
-            kvm_disk_usage = {
-                'kvm_name': kvm_disk_list[0].split(':')[0],
-                'disk_filesystem': kvm_disk_list[0],
-                'disk_total': round(int(kvm_disk_list[1]) / 1024 / 1024, 2),
-                'disk_used': round(int(kvm_disk_list[2]) / 1024 / 1024, 2),
-                'disk_usage': kvm_disk_list[4]
+            kvm_mem_usage = json.loads(kvm_mem_usage)
+            kvm_cpu_usage = json.loads(kvm_cpu_usage)
+            data = {
+                "kvm_mem_usage": kvm_mem_usage,
+                "kvm_cpu_usage": kvm_cpu_usage,
             }
         except Exception as e:
             print(e)
-        data = {"kvm_disk_usage": kvm_disk_usage}
+            data = '获取信息失败。'
         return data
 
     def kvm_template(self):
@@ -768,7 +633,7 @@ class KVMApi():
             result = [x.replace('\t', ' ').split(' ') for x in result['data'].split(' ') if x][0]
         except Exception as e:
             print(e)
-            result = '查找kvm模板文件失败。'
+            result = '查找模板文件失败。'
         return result
 
     def copy_disk(self, kvm_template_path, filesystem):
@@ -804,11 +669,14 @@ class KVMApi():
             xml_content = etree.tounicode(config)
             xml_path = '/etc/libvirt/qemu/{0}.xml'.format(kvmname)
             exe_cmd = r'cat > {0} << \EOH'.format(xml_path) + '\n' + xml_content + '\nEOH'
-            self.remote_linux(exe_cmd)
-            info = '生成成功。'
+            result = self.remote_linux(exe_cmd)
+            if result['data'] == '':
+                result = '生成成功。'
+            else:
+                result = '生成失败。'
         except:
-            info = '生成失败。'
-        return info
+            result = '生成失败。'
+        return result
 
 
 linuxserver_credit = {
@@ -825,24 +693,22 @@ linuxserver_credit = {
 # result = KVMApi(linuxserver_credit).zfs_create_snapshot('kvm_1', '2020-08-20')
 # result = KVMApi(linuxserver_credit).zfs_snapshot_list('tank/CentOS-7')
 # result = KVMApi(linuxserver_credit).zfs_clone_snapshot('tank/CentOS-7@2020-08-25')
-# result = KVMApi(linuxserver_credit).create_kvm_xml('CentOS-7@test3', 'tank/CentOS-7@2020-08-28', 'CentOS-7@2020-08-28', '2', '1024')
+
 # result = KVMApi(linuxserver_credit).define('kvm_1')
 # result = KVMApi(linuxserver_credit).start('CentOS-7@2020-08-30')
 # result = KVMApi(linuxserver_credit).shutdown('Test-1')
 # result = KVMApi(linuxserver_credit).zfs_list()
 # result = KVMApi(linuxserver_credit).zfs_kvm_filesystem()
 # result = KVMApi(linuxserver_credit).snapshot_list('Test-1')
-# print(result)
 
 # result = KVMApi(linuxserver_credit).guestmount('CentOS-7', 'tank/CentOS-7@test1')
 # result = KVMApi(linuxserver_credit).alert_ip('192.168.1.180')
 # result = KVMApi(linuxserver_credit).alert_hostname('CentOS-7@test5')
 # result = KVMApi(linuxserver_credit).guestmount_umount()
-# result = KVMApi(linuxserver_credit).alert_ip_hostname_sh('CentOS-7', 'tank/CentOS-7-test2', '192.168.1.197', 'CentOS-7-test2')
-# print(result)
+
 # result = KVMApi(linuxserver_credit).kvm_disk_space()
 # result = KVMApi(linuxserver_credit).kvm_info_data('Test-1')
 # result = KVMApi(linuxserver_credit).kvm_include_copy_list('CentOS-7')
 # result = KVMApi(linuxserver_credit).zfs_kvm_filesystem()
-# result = KVMApi(linuxserver_credit).kvm_template()
+# result = KVMApi(linuxserver_credit).memory_disk_cpu_data()
 # print(result)

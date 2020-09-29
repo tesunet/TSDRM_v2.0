@@ -80,7 +80,7 @@ function getkvmtree() {
                                         var data = data.data.memory_disk_cpu_data;
                                         $("#hostname").val(data.hostname);
                                         $("#os").val(data.os);
-                                        $("#cpu").val(data.cpu_count + '个');
+                                        $("#cpu").val(data.cpu_count + ' 个');
                                         $('#memory_space input').eq(0).val(data["memory_usage"].toFixed(0)).trigger('change');
                                         $('#memory_space h4').eq(1).text(data["mem_used"] + " GB/" + data["mem_total"] + " GB");
                                         $('#disk_space input').eq(0).val(data["disk_usage"].toFixed(0)).trigger('change');
@@ -102,6 +102,7 @@ function getkvmtree() {
                             });
 
                             var kvm_template = data.node.original.kvm_template;
+                            $('#kvm_template').empty();
                             for (i = 0; i < kvm_template.length; i++) {
                                 $('#kvm_template').append('<option value="' + kvm_template[i] + '">' + kvm_template[i] + '</option>')
                             }
@@ -146,16 +147,43 @@ function getkvmtree() {
                                         $("#kvm_os").val(kvm_info.kvm_os);
                                         $("#kvm_ip").val(data.data.ip);
                                         $("#kvm_hostname").val(data.data.hostname);
-                                        if ($("#kvm_ip").val() == '' || $("#kvm_hostname").val() == ''){
+                                        if ($("#kvm_ip").val() == '' && $("#kvm_hostname").val() == ''){
                                             $("#kvm_power_div").show();
-                                            $("#kvm_task_div").hide()
-                                        }else if ($("#kvm_ip").val() != '' || $("#kvm_hostname").val() != ''){
+                                            $("#kvm_task_div").hide();
+
+                                        }else if ($("#kvm_ip").val() != '' && $("#kvm_hostname").val() != ''){
                                             $("#kvm_power_div").hide();
-                                            $("#kvm_task_div").show()
+                                            $("#kvm_task_div").show();
+                                            if ($("#kvm_state").val() == '运行中'){
+                                                $("#kvm_clone").hide();
+                                                $("#kvm_start").hide();
+                                                $("#kvm_resume").hide();
+                                                $("#kvm_shutdown").show();
+                                                $("#kvm_destroy").show();
+                                                $("#kvm_suspend").show();
+                                                $("#kvm_reboot").show();
+                                            }
+                                            else if ($("#kvm_state").val() == '关闭'){
+                                                $("#kvm_clone").show();
+                                                $("#kvm_start").show();
+                                                $("#kvm_resume").hide();
+                                                $("#kvm_suspend").hide();
+                                                $("#kvm_shutdown").hide();
+                                                $("#kvm_destroy").hide();
+                                                $("#kvm_reboot").hide();
+                                            }
+                                            else if ($("#kvm_state").val() == '暂停'){
+                                                $("#kvm_clone").show();
+                                                $("#kvm_start").hide();
+                                                $("#kvm_resume").show();
+                                                $("#kvm_suspend").hide();
+                                                $("#kvm_destroy").show();
+                                                $("#kvm_reboot").show();
+                                            }
                                         }
 
                                         var mem_cpu_data = data.data.kvm_cpu_mem_data;
-                                        var disk_data = data.data.kvm_disk_data["kvm_disk_usage"];
+                                        var disk_data = data.data.kvm_disk_data;
                                         if ($("#kvm_state").val() == '运行中'){
                                             $('#kvm_memory_space input').eq(0).val(mem_cpu_data["mem_usage"].toFixed(0)).trigger('change');
                                             $('#kvm_memory_space h4').eq(1).text(mem_cpu_data["mem_used"] + " GB/" + mem_cpu_data["mem_total"] + " GB");
