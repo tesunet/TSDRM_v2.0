@@ -136,10 +136,23 @@ class KvmCopy(models.Model):
     name = models.CharField("副本名称", blank=True, null=True, max_length=30)
     ip = models.CharField("副本IP", blank=True, null=True, max_length=30)
     hostname = models.CharField("副本主机名", blank=True, null=True, max_length=30)
+    password = models.CharField("副本密码", blank=True, null=True, max_length=30)
     create_time = models.DateTimeField("创建时间", blank=True, null=True)
     create_user = models.ForeignKey(User, blank=True, null=True, verbose_name="创建人")
     state = models.CharField("状态", blank=True, null=True, max_length=20)
     snapshot = models.CharField("所属快照", blank=True, null=True, max_length=30)
+
+
+class DiskTemplate(models.Model):
+    """
+    模板管理
+    """
+    utils = models.ForeignKey("UtilsManage", null=True, verbose_name="关联工具")
+    name = models.CharField("名称", blank=True, null=True, max_length=30)
+    os = models.CharField("操作系统", blank=True, null=True, max_length=30)
+    remark = models.TextField("说明", blank=True, null=True)
+    type = models.CharField("模板类型", blank=True, null=True, max_length=20)
+    path = models.CharField("模板路径", blank=True, null=True, max_length=50)
 
 
 class Process(models.Model):
@@ -162,7 +175,6 @@ class Process(models.Model):
                                     related_name="process_backprocess_set")
     hosts = models.ForeignKey(HostsManage, blank=True, null=True, verbose_name='关联客户端')
     processtype = models.CharField("预案类型", blank=True, max_length=100, null=True)
-
 
 
 class Step(models.Model):
