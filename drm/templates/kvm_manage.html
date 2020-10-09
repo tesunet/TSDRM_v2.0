@@ -9,7 +9,7 @@
         background-position: center;
     }
 
-    #loading1, #loading3, #loading4 {
+    #loading1 {
         height: 83px;
         width: 100%;
         background-image: url(../static/upload/loading.gif);
@@ -19,6 +19,21 @@
 
     #loading2 {
         height: 200px;
+        width: 100%;
+        background-image: url(../static/upload/loading.gif);
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+
+    #loading3 {
+        height: 230px;
+        width: 100%;
+        background-image: url(../static/upload/loading.gif);
+        background-repeat: no-repeat;
+        background-position: center;
+    }
+    #loading4 {
+        height: 132px;
         width: 100%;
         background-image: url(../static/upload/loading.gif);
         background-repeat: no-repeat;
@@ -70,7 +85,7 @@
                                     </div>
                                     <div style="float:left;padding-left: 20px;padding-top: 20px">
                                         <h4>内存空间</h4>
-                                        <h4 class="">0 GB/0 GB </h4>
+                                        <h4 class="">0/0 GB </h4>
                                     </div>
 
                                 </div>
@@ -82,7 +97,7 @@
                                     </div>
                                     <div style="float:left;padding-left: 20px;padding-top: 20px">
                                         <h4>CPU使用率</h4>
-                                        <h4 class="">0 %/100 %</h4>
+                                        <h4 class="">0 %</h4>
                                     </div>
                                 </div>
                                 <div class="col-md-4" align="center" style="padding-top: 20px;" id="disk_space">
@@ -93,7 +108,7 @@
                                     </div>
                                     <div style="float:left;padding-left: 20px;padding-top: 20px">
                                         <h4>磁盘空间</h4>
-                                        <h4 class="">0 GB/0 GB </h4>
+                                        <h4 class="">0/0 GB </h4>
 
                                     </div>
                                 </div>
@@ -169,7 +184,7 @@
                                     </div>
                                     <div style="float:left;padding-left: 20px;padding-top: 20px">
                                         <h4>内存空间</h4>
-                                        <h4 class="">0 GB/0 GB </h4>
+                                        <h4 class="">0/0 GB </h4>
                                     </div>
 
                                 </div>
@@ -181,7 +196,7 @@
                                     </div>
                                     <div style="float:left;padding-left: 20px;padding-top: 20px">
                                         <h4>CPU使用率</h4>
-                                        <h4 class="">0 %/100 %</h4>
+                                        <h4 class="">0 %</h4>
                                     </div>
                                 </div>
                                 <div class="col-md-4" align="center" style="padding-top: 20px;" id="kvm_disk_space">
@@ -192,7 +207,7 @@
                                     </div>
                                     <div style="float:left;padding-left: 20px;padding-top: 20px">
                                         <h4>磁盘空间</h4>
-                                        <h4 class="">0 GB/0 GB </h4>
+                                        <h4 class="">0/0 GB </h4>
 
                                     </div>
                                 </div>
@@ -233,6 +248,14 @@
                                 <label class="col-md-2 control-label" for="form_control_1">IP</label>
                                 <div class="col-md-9">
                                     <input readonly type="text" class="form-control" id="kvm_ip" name="kvm_ip"  value="">
+                                    <div class="form-control-focus"></div>
+                                </div>
+                                <div class="col-md-1"></div>
+                            </div>
+                            <div class="form-group ">
+                                <label class="col-md-2 control-label" for="form_control_1">密码</label>
+                                <div class="col-md-9">
+                                    <input readonly type="text" class="form-control" id="kvm_password" name="kvm_password"  value="">
                                     <div class="form-control-focus"></div>
                                 </div>
                                 <div class="col-md-1"></div>
@@ -372,7 +395,16 @@
                         <div class="form-group">
                              <label class="col-md-3 control-label"><span style="color:red; ">*</span>选择模板</label>
                             <div class="col-md-9">
-                                <select name="kvm_template" id="kvm_template" class="form-control">
+                                <select name="select_kvm_template" id="select_kvm_template" class="form-control">
+
+                                </select>
+                                <div class="form-control-focus"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                             <label class="col-md-3 control-label">选择存储</label>
+                            <div class="col-md-9">
+                                <select name="select_kvm_storage" id="select_kvm_storage" class="form-control">
 
                                 </select>
                                 <div class="form-control-focus"></div>
@@ -386,6 +418,23 @@
                                 <div class="form-control-focus"></div>
                             </div>
                         </div>
+                        <div class="form-group">
+                             <label class="col-md-3 control-label">CPU</label>
+                            <div class="col-md-9">
+                                <input id="alter_kvm_cpu" type="text" name="alter_kvm_cpu" class="form-control"
+                                       placeholder="个">
+                                <div class="form-control-focus"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                             <label class="col-md-3 control-label">内存</label>
+                            <div class="col-md-9">
+                                <input id="alter_kvm_memory" type="text" name="alter_kvm_memory" class="form-control"
+                                       placeholder="内存大小必须为4MB的倍数">
+                                <div class="form-control-focus"></div>
+                            </div>
+                        </div>
+
                     </div>
                     <div class="form-actions ">
                         <div class="modal-footer">
@@ -424,6 +473,14 @@
                              <label class="col-md-2 control-label"><span style="color:red; ">*</span>主机名</label>
                             <div class="col-md-10">
                                 <input id="alter_hostname" type="text" name="alter_hostname" class="form-control"
+                                       placeholder="">
+                                <div class="form-control-focus"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                             <label class="col-md-2 control-label"><span style="color:red; ">*</span>密码</label>
+                            <div class="col-md-10">
+                                <input id="alter_password" type="text" name="alter_password" class="form-control"
                                        placeholder="">
                                 <div class="form-control-focus"></div>
                             </div>

@@ -2195,6 +2195,7 @@ def kvm_copy_data(request):
                 "name": kvmcopy.name,
                 "ip": kvmcopy.ip,
                 "hostname": kvmcopy.hostname,
+                "password": kvmcopy.password,
                 "create_time": kvmcopy.create_time.strftime(
                                 '%Y-%m-%d %H:%M:%S') if kvmcopy.create_time else '',
                 "create_user": kvmcopy.create_user.userinfo.fullname if kvmcopy.create_user.userinfo.fullname else '',
@@ -2255,7 +2256,7 @@ def kvm_copy_del(request):
 
 @login_required
 def kvm_power_on(request):
-    # 给电：修改ip和主机名，开启虚拟机
+    # 给电：修改ip、主机名、root密码，开启虚拟机
     result = {}
     utils_id = request.POST.get("utils_id", "")
     copy_id = request.POST.get("id", "")
@@ -2264,6 +2265,7 @@ def kvm_power_on(request):
     kvm_machine = request.POST.get("kvm_machine", "")
     copy_ip = request.POST.get("copy_ip", "")
     copy_hostname = request.POST.get("copy_hostname", "")
+    copy_password = request.POST.get("copy_password", "")
 
     compile_ip = re.compile('^(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|[1-9])\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)$')
 
@@ -2276,6 +2278,8 @@ def kvm_power_on(request):
         result['res'] = '实例IP未填写。'
     elif not copy_hostname.strip():
         result['res'] = '实例主机名未填写。'
+    elif not copy_password.strip():
+        result['res'] = '实例密码未填写。'
     elif not compile_ip.match(copy_ip):
         result['res'] = '实例IP不合法。'
     else:
@@ -2288,27 +2292,36 @@ def kvm_power_on(request):
         filesystem = filesystem.replace('@', '-')   # data/vmdata/CentOS-7-2020-09-14
         try:
             result_info = libvirtApi.KVMApi(kvm_credit).guestmount(kvm_machine, filesystem)
-            # ⑥挂载成功，修改ip和主机名
             if result_info == '挂载成功。':
+                # ①挂载成功，修改ip和主机名
                 result_info = libvirtApi.KVMApi(kvm_credit).alert_ip_hostname(copy_ip, copy_hostname)
                 if result_info == '修改成功。':
-                    result_info = libvirtApi.KVMApi(kvm_credit).umount()
-                    if result_info == '取消挂载成功。':
-                        result_info = libvirtApi.KVMApi(kvm_credit).kvm_start(copy_state, copy_name)
-                        if result_info == '开机成功。':
-                            try:
-                                kvm_copy = KvmCopy.objects.get(id=copy_id)
-                                kvm_copy.ip = copy_ip
-                                kvm_copy.hostname = copy_hostname
-                                kvm_copy.save()
-                                result['res'] = '给电成功。'
-                            except Exception as e:
-                                print(e)
-                                result['res'] = '给电失败。'
+                    # ②修改密码
+                    result_info = libvirtApi.KVMApi(kvm_credit).alter_password(copy_password)
+                    if result_info == '修改密码成功。':
+                        # ③取消挂载
+                        result_info = libvirtApi.KVMApi(kvm_credit).umount()
+                        if result_info == '取消挂载成功。':
+                            # ④开机
+                            result_info = libvirtApi.KVMApi(kvm_credit).kvm_start(copy_state, copy_name)
+                            if result_info == '开机成功。':
+                                # ⑤保存数据库
+                                try:
+                                    kvm_copy = KvmCopy.objects.get(id=copy_id)
+                                    kvm_copy.ip = copy_ip
+                                    kvm_copy.hostname = copy_hostname
+                                    kvm_copy.password = copy_password
+                                    kvm_copy.save()
+                                    result['res'] = '给电成功。'
+                                except Exception as e:
+                                    print(e)
+                                    result['res'] = '给电失败。'
+                            else:
+                                result['res'] = '开机失败。'
                         else:
-                            result['res'] = '开机失败。'
+                            result['res'] = '取消挂载失败。'
                     else:
-                        result['res'] = '取消挂载失败。'
+                        result['res'] = '修改密码失败。'
                 else:
                     result['res'] = '修改失败。'
             else:
@@ -2513,14 +2526,15 @@ def get_kvm_detail(request):
         # 已开启的虚拟机有id，未开启的虚拟机id为-
         if kvm_name and kvm_id:
             kvm_id = kvm_id.strip()
-            print(kvm_id)
             if kvm_id != '-':
                 ip = ''
                 hostname = ''
+                password = ''
                 kvm_data = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
                 if kvm_data.exists():
                     ip = kvm_data[0].ip
                     hostname = kvm_data[0].hostname
+                    password = kvm_data[0].password
                 kvm_info_data = libvirtApi.KVMApi(kvm_credit).kvm_info_data(kvm_name)
                 kvm_disk_data = libvirtApi.LibvirtApi(utils_ip).kvm_disk_usage(kvm_name)
                 kvm_cpu_mem_data = libvirtApi.LibvirtApi(utils_ip).kvm_memory_cpu_usage(kvm_id)
@@ -2529,22 +2543,26 @@ def get_kvm_detail(request):
                     'kvm_cpu_mem_data': kvm_cpu_mem_data,
                     'kvm_disk_data': kvm_disk_data,
                     'ip': ip,
-                    'hostname': hostname}
+                    'hostname': hostname,
+                    'password': password
+                }
             elif kvm_id == '-':
                 ip = ''
                 hostname = ''
+                password = ''
                 kvm_data = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
                 if kvm_data.exists():
                     ip = kvm_data[0].ip
                     hostname = kvm_data[0].hostname
-
+                    password = kvm_data[0].password
                 kvm_info_data = libvirtApi.KVMApi(kvm_credit).kvm_info_data(kvm_name)
                 kvm_disk_data = libvirtApi.LibvirtApi(utils_ip).kvm_disk_usage(kvm_name)
                 data = {
                     'kvm_info_data': kvm_info_data,
                     'kvm_disk_data': kvm_disk_data,
                     'ip': ip,
-                    'hostname': hostname
+                    'hostname': hostname,
+                    'password': password
                 }
     except Exception as e:
         print(e)
@@ -2562,6 +2580,7 @@ def get_kvm_task_data(request):
     ret = 1
     data = ''
     kvm_id = kvm_id.strip()
+    print(kvm_id, '******')
     try:
         # kvm虚拟机磁盘文件信息：cpu、内存、磁盘
         # 已开启的虚拟机有id，未开启的虚拟机id为-
@@ -2789,6 +2808,10 @@ def kvm_machine_create(request):
     kvm_template = request.POST.get("kvm_template", "")
     kvm_template_name = request.POST.get("kvm_template_name", "")
 
+    kvm_storage = request.POST.get("kvm_storage", "")
+    kvm_cpu = request.POST.get("kvm_cpu", "")
+    kvm_memory = request.POST.get("kvm_memory", "")
+
     try:
         utils_id = int(utils_id)
     except:
@@ -2825,7 +2848,7 @@ def kvm_machine_create(request):
                     result_info = libvirtApi.KVMApi(kvm_credit).copy_disk(kvm_template_path, kvm_disk_path)
                     if result_info == '拷贝磁盘文件成功。':
                         # ③生成新的xml文件
-                        result_info = libvirtApi.KVMApi(kvm_credit).create_new_xml(kvm_xml, kvm_disk_path, kvm_template_name)
+                        result_info = libvirtApi.KVMApi(kvm_credit).create_new_xml(kvm_xml, kvm_disk_path, kvm_template_name, kvm_storage, kvm_cpu, kvm_memory)
                         if result_info == '生成成功。':
                             # ④新的xml文件生成，开始定义虚拟机
                             result_info = libvirtApi.KVMApi(kvm_credit).define_kvm(kvm_template_name)
@@ -2847,14 +2870,15 @@ def kvm_machine_create(request):
 
 @login_required
 def kvm_power(request):
-    # 给电：修改ip和主机名，开启虚拟机
+    # 给电：修改ip和主机名，开启虚拟机、新增数据库
     result = {}
     utils_id = request.POST.get("utils_id", "")
     kvm_name = request.POST.get("kvm_name", "")
     kvm_state = request.POST.get("kvm_state", "")
     kvm_ip = request.POST.get("kvm_ip", "")
     kvm_hostname = request.POST.get("kvm_hostname", "")
-
+    kvm_password = request.POST.get("kvm_password", "")
+    kvm_id = ''
     compile_ip = re.compile('^(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|[1-9])\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)$')
 
     user_id = request.user.id
@@ -2882,48 +2906,59 @@ def kvm_power(request):
             if result_info == '挂载成功。':
                 result_info = libvirtApi.KVMApi(kvm_credit).alert_ip_hostname(kvm_ip, kvm_hostname)
                 if result_info == '修改成功。':
-                    result_info = libvirtApi.KVMApi(kvm_credit).umount()
-                    if result_info == '取消挂载成功。':
-                        result_info = libvirtApi.KVMApi(kvm_credit).kvm_start(kvm_state, kvm_name)
-                        if result_info == '开机成功。':
-                            # 保存数据库
-                            try:
-                                kvm = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
-                                if kvm.exists():
-                                    kvm.update(**{
-                                        'name': kvm_name,
-                                        'create_time': datetime.datetime.now(),
-                                        'create_user_id': user_id,
-                                        'utils_id': utils_id,
-                                        'ip': kvm_ip,
-                                        'hostname': kvm_hostname
-                                    })
-                                else:
-                                    kvm.create(**{
-                                        'name': kvm_name,
-                                        'create_time': datetime.datetime.now(),
-                                        'create_user_id': user_id,
-                                        'utils_id': utils_id,
-                                        'ip': kvm_ip,
-                                        'hostname': kvm_hostname
-                                    })
-                                result['res'] = '给电成功。'
-                            except Exception as e:
-                                print(e)
-                                result['res'] = '给电失败。'
+                    result_info = libvirtApi.KVMApi(kvm_credit).alter_password(kvm_password)
+                    if result_info == '修改密码成功。':
+                        result_info = libvirtApi.KVMApi(kvm_credit).umount()
+                        if result_info == '取消挂载成功。':
+                            result_info = libvirtApi.KVMApi(kvm_credit).kvm_start(kvm_state, kvm_name)
+                            if result_info == '开机成功。':
+                                # 保存数据库
+                                try:
+                                    kvm = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
+                                    if kvm.exists():
+                                        kvm.update(**{
+                                            'name': kvm_name,
+                                            'create_time': datetime.datetime.now(),
+                                            'create_user_id': user_id,
+                                            'utils_id': utils_id,
+                                            'ip': kvm_ip,
+                                            'hostname': kvm_hostname,
+                                            'password': kvm_password
+                                        })
+                                    else:
+                                        kvm.create(**{
+                                            'name': kvm_name,
+                                            'create_time': datetime.datetime.now(),
+                                            'create_user_id': user_id,
+                                            'utils_id': utils_id,
+                                            'ip': kvm_ip,
+                                            'hostname': kvm_hostname,
+                                            'password': kvm_password
+                                        })
+                                    result = '给电成功。'
+                                    kvm_id = libvirtApi.KVMApi(kvm_credit).domid(kvm_name)
+                                except Exception as e:
+                                    print(e)
+                                    result = '给电失败。'
+                            else:
+                                result = '开机失败。'
                         else:
-                            result['res'] = '开机失败。'
-                    else:
-                        result['res'] = '取消挂载失败。'
+                            result = '取消挂载失败。'
                 else:
-                    result['res'] = '修改失败。'
+                    result = '修改失败。'
             else:
-                result['res'] = '挂载失败。'
+                result = '挂载失败。'
 
         except Exception as e:
             print(e)
-            result["res"] = '开机失败。'
-    return JsonResponse(result)
+            result = '给电失败。'
+    return JsonResponse({
+        'res': result,
+        'kvm_id': kvm_id,
+        'ip': kvm_ip,
+        'hostname': kvm_hostname,
+        'password': kvm_password
+    })
 
 
 def get_client_node(parent, select_id, request):

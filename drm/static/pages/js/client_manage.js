@@ -2263,6 +2263,7 @@ $(document).ready(function () {
             // { "data": "snapshot" },
             { "data": "name" },
             { "data": "ip" },
+            { "data": "password" },
             { "data": "hostname" },
             { "data": "create_time" },
             { "data": "create_user" },
@@ -2374,10 +2375,14 @@ $(document).ready(function () {
         }
     });
 
-
-
     $('#kvm_power_on').click(function () {
-        $('#copy_manage_div').hide();
+        $('#static04').modal('show');
+        $('#loading2').hide();
+        $('#ip_hostname_div').show();
+    });
+
+    $('#kvm_power_on_save').click(function () {
+        $('#ip_hostname_div').hide();
         $('#loading2').show();
 
         $.ajax({
@@ -2391,8 +2396,9 @@ $(document).ready(function () {
                     copy_name: $("#copy_name").val(),
                     copy_state: $("#copy_state").val(),
                     kvm_machine: $("#kvm_machine").val(),
-                    copy_ip: $("#copy_ip").val(),
-                    copy_hostname: $("#copy_hostname").val(),
+                    copy_ip: $("#alter_ip").val(),
+                    copy_hostname: $("#alter_hostname").val(),
+                    copy_password: $("#alter_password").val(),
 
                 },
             success: function (data) {
@@ -2400,6 +2406,7 @@ $(document).ready(function () {
                 if (myres == "给电成功。") {
                     $('#loading2').hide();
                     $('#static03').modal('hide');
+                    $('#static04').modal('hide');
 
                     var table = $('#kvm_copy').DataTable();
                     table.ajax.reload();

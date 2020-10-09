@@ -668,6 +668,32 @@ class KVMApi():
             result = '修改失败。'
         return result
 
+    def alter_password(self, password):
+        # 修改密码
+        try:
+            # 找出要替换的密码
+            exe_cmd = r'cat /etc/libvirt/kvm_mount/etc/shadow | grep root'
+            result = self.remote_linux(exe_cmd)
+            org_password = result['data'].strip()         # root:$1$hello$vuJDiWysCYBQzeY5biTng.::0:99999:7:::
+            match_password = org_password.split(':')[1]   # $1$hello$vuJDiWysCYBQzeY5biTng.
+
+            # 生成新的密码
+            exe_cmd = r'openssl passwd -1 -salt "hello" "{0}"'.format(password)
+            result = self.remote_linux(exe_cmd)
+            new_password = result['data'].strip()         # $1$hello$uA2o9BNrEHkBeV0glgmvz/
+
+            # 旧密码替换成新密码
+            exe_cmd = r"sed -i 's#{0}#{1}#g' /etc/libvirt/kvm_mount/etc/shadow".format(match_password, new_password)
+            result = self.remote_linux(exe_cmd)
+            if result['data'] == '':
+                result = '修改密码成功。'
+            else:
+                result = '修改密码失败。'
+        except Exception as e:
+            print(e)
+            result = '修改密码失败。'
+        return result
+
     def umount(self):
         """
         取消挂载：umount /etc/libvirt/kvm_mount
@@ -776,7 +802,7 @@ class KVMApi():
             result = '拷贝磁盘文件失败。'
         return result
 
-    def create_new_xml(self, kvm_xml, kvm_disk_path, kvmname):
+    def create_new_xml(self, kvm_xml, kvm_disk_path, kvmname, kvmstorage, kvmcpu, kvmmemory):
         try:
             exe_cmd = r'cat /home/xml/{0}'.format(kvm_xml)
             result = self.remote_linux(exe_cmd)
@@ -787,6 +813,24 @@ class KVMApi():
             kvm_uuid = config.xpath("//uuid")[0]
             kvm_interface = config.xpath("//interface")[0]
             kvm_mac = config.xpath("//mac")[0]
+
+            if kvmcpu != '' and kvmmemory != '':
+                kvmmemory = int(kvmmemory) * 1024
+                kvm_cpu = config.xpath("//vcpu")[0]
+                kvm_cpu.text = kvmcpu
+                kvm_memory = config.xpath("//memory")[0]
+                kvm_currentmemory = config.xpath("//currentMemory")[0]
+                kvm_memory.text = str(kvmmemory)
+                kvm_currentmemory.text = str(kvmmemory)
+            elif kvmcpu != '' and kvmmemory == '':
+                kvm_cpu = config.xpath("//vcpu")[0]
+                kvm_cpu.text = kvmcpu
+            elif kvmcpu == '' and kvmmemory != '':
+                copymemory = int(kvmmemory) * 1024
+                kvm_memory = config.xpath("//memory")[0]
+                kvm_currentmemory = config.xpath("//currentMemory")[0]
+                kvm_memory.text = str(copymemory)
+                kvm_currentmemory.text = str(copymemory)
 
             # 修改名字、修改磁盘路径、删除uuid、删除mac
             kvm_name.text = kvmname
@@ -806,7 +850,15 @@ class KVMApi():
         return result
 
 
+linuxserver_credit = {
+    'KvmHost': '192.168.1.61',
+    'KvmUser': 'root',
+    'KvmPasswd': 'tesunet@2019',
+    'SystemType': 'Linux',
+}
+
 # result = KVMApi(linuxserver_credit).kvm_all_list()
 # result = KVMApi(linuxserver_credit).zfs_kvm_filesystem()
 # result = KVMApi(linuxserver_credit).memory_disk_cpu_data()
+# result = KVMApi(linuxserver_credit).alter_password('123')
 # print(result)

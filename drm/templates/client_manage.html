@@ -8,12 +8,13 @@
         background-position: center;
     }
     #loading2 {
-        height: 196px;
+        height: 132px;
         width: 100%;
         background-image: url(../static/upload/loading.gif);
         background-repeat: no-repeat;
         background-position: center;
     }
+
 </style>
 <div style="height:10px"></div>
 <div id="showdata" hidden class="portlet-body">
@@ -895,6 +896,7 @@
                                                             <th style="width:40px;"> 序号</th>
                                                             <th> 实例名称</th>
                                                             <th> 实例IP</th>
+                                                            <th> 实例密码</th>
                                                             <th> 实例主机名</th>
                                                             <th> 创建时间</th>
                                                             <th> 创建人</th>
@@ -1088,7 +1090,7 @@
                                  <label class="col-md-3 control-label">实例CPU</label>
                                 <div class="col-md-9">
                                     <input id="kvm_copy_cpu" type="number" name="kvm_copy_cpu" class="form-control"
-                                           placeholder="">
+                                           placeholder="个">
                                     <div class="form-control-focus"></div>
                                 </div>
                             </div>
@@ -1124,7 +1126,6 @@
                 </div>
                 <div class="panel-body">
                     <form class="bs-example form-horizontal activate-form">{% csrf_token %}
-                        <div id="loading2" class="portlet-body"></div>
                         <div class="form-body" id="copy_manage_div">
                             <div class="form-group">
                                 <label class="col-md-2 control-label"><span
@@ -1148,7 +1149,7 @@
                                 <label class="col-md-2 control-label"><span
                                         style="color:red; ">*</span>实例IP</label>
                                 <div class="col-md-4">
-                                    <input id="copy_ip" type="text" name="copy_ip" class="form-control "
+                                    <input readonly id="copy_ip" type="text" name="copy_ip" class="form-control "
                                            placeholder="" autocomplete="off">
                                     <div class="form-control-focus"></div>
                                 </div>
@@ -1156,7 +1157,7 @@
                                 <label class="col-md-2 control-label"><span
                                         style="color:red; ">*</span>实例主机名</label>
                                 <div class="col-md-4">
-                                    <input id="copy_hostname" type="text" name="copy_hostname" class="form-control "
+                                    <input readonly id="copy_hostname" type="text" name="copy_hostname" class="form-control "
                                            placeholder="" autocomplete="off">
                                     <div class="form-control-focus"></div>
                                 </div>
@@ -1206,6 +1207,56 @@
             </div>
         </div>
     </div>
+
+<div id="static04" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
+                <h4 class="modal-title">给电</h4>
+            </div>
+            <div class="panel-body">
+
+                <form class="bs-example form-horizontal activate-form">{% csrf_token %}
+                    <div id="loading2" class="portlet-body"></div>
+                    <div class="form-body" id="ip_hostname_div">
+                        <div class="form-group">
+                            <label class="col-md-2 control-label"><span style="color:red; ">*</span>IP</label>
+                            <div class="col-md-10">
+                                <input id="alter_ip" type="text" name="alter_ip" class="form-control"
+                                       placeholder="">
+                                <div class="form-control-focus"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                             <label class="col-md-2 control-label"><span style="color:red; ">*</span>主机名</label>
+                            <div class="col-md-10">
+                                <input id="alter_hostname" type="text" name="alter_hostname" class="form-control"
+                                       placeholder="">
+                                <div class="form-control-focus"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                             <label class="col-md-2 control-label"><span style="color:red; ">*</span>密码</label>
+                            <div class="col-md-10">
+                                <input id="alter_password" type="text" name="alter_password" class="form-control"
+                                       placeholder="">
+                                <div class="form-control-focus"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-actions ">
+                        <div class="modal-footer">
+                            <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
+                            </button>
+                            <button type="button" id="kvm_power_on_save" name="kvm_power_save" class="btn green">给电</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 
 {% endblock %} {% block script %}

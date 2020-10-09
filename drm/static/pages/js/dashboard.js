@@ -470,7 +470,7 @@ $(document).ready(function () {
                 $('#disk_space_div').show();
                 var disk_space = data.data;
                 $('#ma_disk_space input').eq(0).val(disk_space["used_space_percent"].toFixed(0)).trigger('change');
-                $('#ma_disk_space h4').eq(1).text(disk_space["used_space"] + " TB/" + disk_space["total_space"] + " TB")
+                $('#ma_disk_space h4').eq(1).text(disk_space["used_space"] + "/" + disk_space["total_space"] + " TB")
     
                 // href
                 $("#a_bk_space").attr("href", data.data["bk_space_href"]);
@@ -503,7 +503,7 @@ $(document).ready(function () {
                 else{
                     $('#kvm_disk_space input').eq(0).val(kvm_space["used_percent"]).trigger('change');
                 }
-                $('#kvm_disk_space h4').eq(1).text(kvm_space["used_total"] + " GB/" + kvm_space["size_total"] + " GB");
+                $('#kvm_disk_space h4').eq(1).text(kvm_space["used_total"] + "/" + kvm_space["size_total"] + " GB");
 
             }
         });
