@@ -153,6 +153,7 @@ class DiskTemplate(models.Model):
     remark = models.TextField("说明", blank=True, null=True)
     type = models.CharField("模板类型", blank=True, null=True, max_length=20)
     path = models.CharField("模板路径", blank=True, null=True, max_length=50)
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
 
 
 class Process(models.Model):

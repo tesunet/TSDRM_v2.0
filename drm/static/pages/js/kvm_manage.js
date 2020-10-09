@@ -103,10 +103,17 @@ function getkvmtree() {
                                 }
                             });
 
-                            var kvm_template = data.node.original.kvm_template;
+                            var os_image = data.node.original.kvm_template.os_image;
+                            var disk_image = data.node.original.kvm_template.disk_image;
                             $('#select_kvm_template').empty();
-                            for (i = 0; i < kvm_template.length; i++) {
-                                $('#select_kvm_template').append('<option value="' + kvm_template[i] + '">' + kvm_template[i] + '</option>')
+                            $('#select_kvm_storage').empty();
+                            var pre_kvm_option = '<option selected value=""></option>';
+                            $('#select_kvm_storage').append(pre_kvm_option);
+                            for (i = 0; i < os_image.length; i++) {
+                                $('#select_kvm_template').append('<option value="' + os_image[i] + '">' + os_image[i] + '</option>')
+                            }
+                            for (i = 0; i < disk_image.length; i++) {
+                                $('#select_kvm_storage').append('<option value="' + disk_image[i] + '">' + disk_image[i] + '</option>')
                             }
                         }
                         // 虚拟机

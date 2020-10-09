@@ -271,4 +271,8 @@ urlpatterns = [
     url(r'^kvm_destroy/$', kvm_destroy),
     url(r'^kvm_machine_create/$', kvm_machine_create),
     url(r'^kvm_power/$', kvm_power),
+
+    # 模板管理
+    url(r'^kvm_template/$', kvm_template, {'funid': '119'}),
+    url(r'^kvm_template_data/$', kvm_template_data),
 ]

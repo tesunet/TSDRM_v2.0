@@ -2829,9 +2829,12 @@ def kvm_machine_create(request):
 
         # 拼接路径
         filesystem = 'data/vmdata/' + kvm_template_name                          # data/vmdata/Test-10
-        kvm_template_path = '/home/images/' + kvm_template                       # /home/images/CentOS-7.qcow2
+        kvm_os_image_path = '/home/images/os-image/' + kvm_template              # /home/images/os-image/CentOS-7.qcow2
         kvm_xml = kvm_template.replace('.qcow2', '.xml')                         # CentOS-7.xml
         kvm_disk_path = '/' + filesystem + '/' + kvm_template_name + '.qcow2'    # /data/vmdata/Test-10/Test-10.qcow2
+        kvm_disk_image_path = '/home/images/disk-image/' + kvm_storage           # /home/images/disk-image/100G.qcow2
+        kvm_storage_path = '/' + filesystem                                      # /data/vmdata/Test-10
+
 
         try:
             kvm_exist = []
@@ -2844,11 +2847,11 @@ def kvm_machine_create(request):
                 # ①创建文件系统
                 result_info = libvirtApi.KVMApi(kvm_credit).create_filesystem(filesystem)
                 if result_info == '文件系统创建成功。':
-                    # ②拷贝模板文件到文件系统
-                    result_info = libvirtApi.KVMApi(kvm_credit).copy_disk(kvm_template_path, kvm_disk_path)
+                    # ②拷贝模板文件到文件系统   + 判断有无选择存储文件
+                    result_info = libvirtApi.KVMApi(kvm_credit).copy_disk(kvm_os_image_path, kvm_disk_path, kvm_storage, kvm_disk_image_path, kvm_storage_path)
                     if result_info == '拷贝磁盘文件成功。':
-                        # ③生成新的xml文件
-                        result_info = libvirtApi.KVMApi(kvm_credit).create_new_xml(kvm_xml, kvm_disk_path, kvm_template_name, kvm_storage, kvm_cpu, kvm_memory)
+                        # ③生成新的xml文件  + 判断有无选择存储文件
+                        result_info = libvirtApi.KVMApi(kvm_credit).create_new_xml(kvm_xml, kvm_disk_path, kvm_template_name, kvm_cpu, kvm_memory, kvm_storage, kvm_storage, kvm_disk_image_path, kvm_storage_path)
                         if result_info == '生成成功。':
                             # ④新的xml文件生成，开始定义虚拟机
                             result_info = libvirtApi.KVMApi(kvm_credit).define_kvm(kvm_template_name)
@@ -2959,6 +2962,42 @@ def kvm_power(request):
         'hostname': kvm_hostname,
         'password': kvm_password
     })
+
+
+######################
+# 模板管理
+######################
+def kvm_template(request, funid):
+    util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
+    utils_kvm_list = []
+    for utils in util_manage:
+        utils_kvm_list.append({
+            "id": utils.id,
+            "code": utils.code,
+            "name": utils.name,
+        })
+    return render(request, 'kvm_template.html',
+                  {'username': request.user.userinfo.fullname,
+                   "pagefuns": getpagefuns(funid, request=request),
+                   "utils_kvm_list": utils_kvm_list,
+                   })
+
+
+def kvm_template_data(request):
+    result = []
+    all_template = DiskTemplate.objects.exclude(state='9')
+    if len(all_template) > 0:
+        for template in all_template:
+            result.append({
+                "id": template.id,
+                "name": template.name,
+                "path": template.path,
+                "type": template.type,
+                "os": template.os,
+                "utils_id": template.utils_id,
+
+            })
+    return JsonResponse({"data": result})
 
 
 def get_client_node(parent, select_id, request):

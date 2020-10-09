@@ -779,30 +779,47 @@ class KVMApi():
         return data
 
     def kvm_template(self):
-        # kvm虚拟机模板文件： cd /home/images
+        # kvm虚拟机模板文件： cd /home/images/os-image
+        # kvm虚拟机存储文件： cd /home/images/disk-image
         try:
-            exe_cmd = r'ls /home/images'
+            exe_cmd = r'ls /home/images/os-image'
             result = self.remote_linux(exe_cmd)
-            result = [x.replace('\t', ' ').split(' ') for x in result['data'].split(' ') if x][0]
+            os_template = [x.replace('\t', ' ').split(' ') for x in result['data'].split(' ') if x][0]
+
+            exe_cmd = r'ls /home/images/disk-image'
+            result = self.remote_linux(exe_cmd)
+            disk_template = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+            result = {
+                'os_image': os_template,
+                'disk_image': disk_template
+            }
         except Exception as e:
             print(e)
             result = '查找模板文件失败。'
         return result
 
-    def copy_disk(self, kvm_template_path, filesystem):
+    def copy_disk(self, kvm_template_path, filesystem, kvm_storage, kvm_disk_image_path, kvm_storage_path):
         try:
-            exe_cmd = r'cp {0} {1}'.format(kvm_template_path, filesystem)
-            result = self.remote_linux(exe_cmd)
-            if result['data'] == '':
-                result = '拷贝磁盘文件成功。'
+            if kvm_storage == '':
+                exe_cmd = r'cp {0} {1}'.format(kvm_template_path, filesystem)
+                result = self.remote_linux(exe_cmd)
+                if result['data'] == '':
+                    result = '拷贝磁盘文件成功。'
+                else:
+                    result = '拷贝磁盘文件失败。'
             else:
-                result = '拷贝磁盘文件失败。'
+                exe_cmd = r'cp {0} {1} && cp {2} {3}'.format(kvm_template_path, filesystem, kvm_disk_image_path, kvm_storage_path)
+                result = self.remote_linux(exe_cmd)
+                if result['data'] == '':
+                    result = '拷贝磁盘文件成功。'
+                else:
+                    result = '拷贝磁盘文件失败。'
         except Exception as e:
             print(e)
             result = '拷贝磁盘文件失败。'
         return result
 
-    def create_new_xml(self, kvm_xml, kvm_disk_path, kvmname, kvmstorage, kvmcpu, kvmmemory):
+    def create_new_xml(self, kvm_xml, kvm_disk_path, kvmname, kvmcpu, kvmmemory, kvmstorage, kvm_disk_image_path, kvm_storage_path):
         try:
             exe_cmd = r'cat /home/xml/{0}'.format(kvm_xml)
             result = self.remote_linux(exe_cmd)
@@ -837,7 +854,13 @@ class KVMApi():
             kvm_diskpath.attrib['file'] = kvm_disk_path
             config.remove(kvm_uuid)
             kvm_interface.remove(kvm_mac)
-            xml_content = etree.tounicode(config)
+
+            # 判断有无选择存储
+            xml_content = ''
+            if kvmstorage == '':
+                xml_content = etree.tounicode(config)
+            else:
+                pass
             xml_path = '/etc/libvirt/qemu/{0}.xml'.format(kvmname)
             exe_cmd = r'cat > {0} << \EOH'.format(xml_path) + '\n' + xml_content + '\nEOH'
             result = self.remote_linux(exe_cmd)
@@ -860,5 +883,5 @@ linuxserver_credit = {
 # result = KVMApi(linuxserver_credit).kvm_all_list()
 # result = KVMApi(linuxserver_credit).zfs_kvm_filesystem()
 # result = KVMApi(linuxserver_credit).memory_disk_cpu_data()
-# result = KVMApi(linuxserver_credit).alter_password('123')
+# result = KVMApi(linuxserver_credit).kvm_template()
 # print(result)
