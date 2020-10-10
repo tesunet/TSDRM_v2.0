@@ -819,7 +819,7 @@ class KVMApi():
             result = '拷贝磁盘文件失败。'
         return result
 
-    def create_new_xml(self, kvm_xml, kvm_disk_path, kvmname, kvmcpu, kvmmemory, kvmstorage, kvm_disk_image_path, kvm_storage_path):
+    def create_new_xml(self, kvm_xml, kvm_disk_path, kvmname, kvmcpu, kvmmemory, kvmstorage, kvm_storage_path):
         try:
             exe_cmd = r'cat /home/xml/{0}'.format(kvm_xml)
             result = self.remote_linux(exe_cmd)

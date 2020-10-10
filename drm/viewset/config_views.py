@@ -2833,7 +2833,7 @@ def kvm_machine_create(request):
         kvm_xml = kvm_template.replace('.qcow2', '.xml')                         # CentOS-7.xml
         kvm_disk_path = '/' + filesystem + '/' + kvm_template_name + '.qcow2'    # /data/vmdata/Test-10/Test-10.qcow2
         kvm_disk_image_path = '/home/images/disk-image/' + kvm_storage           # /home/images/disk-image/100G.qcow2
-        kvm_storage_path = '/' + filesystem                                      # /data/vmdata/Test-10
+        kvm_storage_path = '/' + filesystem + '/' + kvm_storage                  # /data/vmdata/Test-10/100G.qcow2
 
 
         try:
@@ -2851,7 +2851,7 @@ def kvm_machine_create(request):
                     result_info = libvirtApi.KVMApi(kvm_credit).copy_disk(kvm_os_image_path, kvm_disk_path, kvm_storage, kvm_disk_image_path, kvm_storage_path)
                     if result_info == '拷贝磁盘文件成功。':
                         # ③生成新的xml文件  + 判断有无选择存储文件
-                        result_info = libvirtApi.KVMApi(kvm_credit).create_new_xml(kvm_xml, kvm_disk_path, kvm_template_name, kvm_cpu, kvm_memory, kvm_storage, kvm_storage, kvm_disk_image_path, kvm_storage_path)
+                        result_info = libvirtApi.KVMApi(kvm_credit).create_new_xml(kvm_xml, kvm_disk_path, kvm_template_name, kvm_cpu, kvm_memory, kvm_storage, kvm_storage_path)
                         if result_info == '生成成功。':
                             # ④新的xml文件生成，开始定义虚拟机
                             result_info = libvirtApi.KVMApi(kvm_credit).define_kvm(kvm_template_name)
@@ -2986,18 +2986,75 @@ def kvm_template(request, funid):
 def kvm_template_data(request):
     result = []
     all_template = DiskTemplate.objects.exclude(state='9')
+    type_dict = {
+        'os_image': '系统磁盘',
+        'disk_image': '存储磁盘'
+    }
     if len(all_template) > 0:
         for template in all_template:
             result.append({
                 "id": template.id,
                 "name": template.name,
                 "path": template.path,
-                "type": template.type,
+                "type": type_dict[template.type],
                 "os": template.os,
-                "utils_id": template.utils_id,
+                "utils_name": template.utils.code if template.utils.code else '',
 
             })
     return JsonResponse({"data": result})
+
+
+def kvm_template_save(request):
+    if request.user.is_authenticated():
+        id = request.POST.get("id", "")
+        name = request.POST.get("name", "")
+        utils_id = request.POST.get("utils_id", "")
+        type = request.POST.get("type", "")
+        path = request.POST.get("path", "")
+
+        template_file = request.FILES.get("template_file", None)
+        file_name = template_file.name if template_file else ""
+
+        try:
+            id = int(id)
+            utils_id = int(utils_id)
+        except:
+            raise Http404()
+
+        result = {}
+        if not template_file and id == 0:
+            result['res'] = '请选择要导入的文件。'
+        else:
+            if if_contains_sign(file_name):
+                result['res'] = r"""请注意文件命名格式，'\/"*?<>'符号文件不允许上传。"""
+            else:
+                name_exist = DiskTemplate.objects.filter(name=name).exclude(state="9")
+
+                # 新增时判断是否存在，修改时覆盖，不需要判断
+                if name_exist.exists() and id == 0:
+                    result['res'] = '该文件已存在,请勿重复上传。'
+                else:
+                    if name.strip() != '':
+                        if utils_id != '':
+                            if type.strip() != '':
+                                if path.strip() != '':
+                                    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+                                    content = utils_kvm_info[0].content
+                                    util_type = utils_kvm_info[0].util_type
+                                    kvm_credit = get_credit_info(content, util_type.upper())
+
+                                    # 新增 或者 修改(且有my_file存在) 时写入文件
+                                    if id == 0 or id != 0 and template_file:
+                                        pass
+                                else:
+                                    result['res'] = '模板名称不能为空。'
+                            else:
+                                result['res'] = '模板类型未选择。'
+                        else:
+                            result['res'] = '模板平台未选择。'
+                    else:
+                        result['res'] = '模板名称不能为空。'
+        return JsonResponse(result)
 
 
 def get_client_node(parent, select_id, request):

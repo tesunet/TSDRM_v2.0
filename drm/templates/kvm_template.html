@@ -42,8 +42,7 @@
                 </div>
                 <div class="panel-body">
                     <form class="bs-example form-horizontal activate-form" method="post" enctype="multipart/form-data">{% csrf_token %}
-                        <input hidden id="id" type="text" name="id" value={{id}}>
-                        <input hidden id="app" type="text" name="app" value={{adminapp}}>
+                        <input hidden id="id" type="text" name="id">
 
                         <div class="form-body">
                             <div class="form-group">
@@ -78,7 +77,7 @@
                             <div class="form-group">
                                 <label class="col-md-2 control-label"><span style="color:red; ">*</span>模板平台</label>
                                 <div class="col-md-10">
-                                    <select class="form-control" id="kvm_utils_id" name="kvm_utils_id">
+                                    <select class="form-control" id="utils_id" name="utils_id">
                                         {% for util in utils_kvm_list %}
                                             <option value="{{ util.id }}">{{ util.code }} </option>
                                         {% endfor %}
@@ -89,7 +88,7 @@
                             <div class="form-group">
                                 <label class="col-md-2 control-label"><span style="color:red; ">*</span>模板类型</label>
                                 <div class="col-md-10">
-                                    <select class="form-control" id="type" name="report_type">
+                                    <select class="form-control" id="type" name="type">
                                         <option value="os_image">系统磁盘</option>
                                         <option value="disk_image">存储磁盘</option>
                                     </select>
@@ -108,7 +107,7 @@
                             <div class="modal-footer">
                                 <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
                                 </button>
-                                <button type="submit" id="save" name="save" class="btn green">保存</button>
+                                <button type="submit" id="save" name="save" class="btn green">上传</button>
                             </div>
                         </div>
                     </form>

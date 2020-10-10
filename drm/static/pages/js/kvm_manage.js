@@ -107,14 +107,22 @@ function getkvmtree() {
                             var disk_image = data.node.original.kvm_template.disk_image;
                             $('#select_kvm_template').empty();
                             $('#select_kvm_storage').empty();
-                            var pre_kvm_option = '<option selected value=""></option>';
-                            $('#select_kvm_storage').append(pre_kvm_option);
+
+                            var os_image_pre = '<optgroup label="' + '/home/images/os-image' + '" class="dropdown-header">';
                             for (i = 0; i < os_image.length; i++) {
-                                $('#select_kvm_template').append('<option value="' + os_image[i] + '">' + os_image[i] + '</option>')
+                                os_image_pre += '<option value="' + os_image[i] + '">' + os_image[i] + '</option>'
                             }
+                            os_image_pre += '</optgroup>';
+                            $('#select_kvm_template').append(os_image_pre);
+
+
+                            var disk_image_pre = '<option selected value="" ></option>';
+                            disk_image_pre += '<optgroup label="' + '/home/images/disk-image' + '" class="dropdown-header">';
                             for (i = 0; i < disk_image.length; i++) {
-                                $('#select_kvm_storage').append('<option value="' + disk_image[i] + '">' + disk_image[i] + '</option>')
+                                disk_image_pre += '<option value="' + disk_image[i] + '">' + disk_image[i] + '</option>'
                             }
+                            disk_image_pre += '</optgroup>';
+                             $('#select_kvm_storage').append(disk_image_pre)
                         }
                         // 虚拟机
                         else {
@@ -706,6 +714,12 @@ $(document).ready(function () {
         $('#static02').modal('show');
         $('#loading3').hide();
         $('#create_kvm_machine').show();
+        $('#select_kvm_template').val('');
+        $('#select_kvm_storage').val('');
+        $('#kvm_template_name').val('');
+        $('#alter_kvm_cpu').val('');
+        $('#alter_kvm_memory').val('');
+
     });
     $('#kvm_machine_create').click(function () {
         $('#create_kvm_machine').hide();

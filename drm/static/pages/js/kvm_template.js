@@ -9,7 +9,7 @@ $(document).ready(function () {
             {"data": "name"},
             {"data": "path"},
             {"data": "type"},
-            {"data": "utils_id"},
+            {"data": "utils_name"},
             {"data": null}
         ],
         "columnDefs": [{
@@ -36,14 +36,14 @@ $(document).ready(function () {
 
         }
     });
-    // 行按钮
-    $('#util_manage_dt tbody').on('click', 'button#delrow', function () {
+
+    $('#kvm_template_dt tbody').on('click', 'button#delrow', function () {
         if (confirm("确定要删除该条数据？")) {
-            var table = $('#util_manage_dt').DataTable();
+            var table = $('#kvm_template_dt').DataTable();
             var data = table.row($(this).parents('tr')).data();
             $.ajax({
                 type: "POST",
-                // url: "../util_manage_del/",
+                // url: "../kvm_template_del/",
                 data: {
                     util_manage_id: data.id,
                 },
@@ -57,24 +57,25 @@ $(document).ready(function () {
                     alert("删除失败，请于管理员联系。");
                 }
             });
-
         }
     });
 
+    $('#kvm_template_dt tbody').on('click', 'button#edit', function () {
+        var table = $('#kvm_template_dt').DataTable();
+        var data = table.row($(this).parents('tr')).data();
+    });
 
     $("#upload").click(function () {
         $("span.fileinput-filename").empty();
         $("#file_status").attr("class", "fileinput fileinput-new");
-
         $("#id").val(0);
         $("#name").val("");
         $("#code").val("");
         $("#template_file").val("");
         $("#type").val("");
         $("#path").val("");
-        $("#kvm_utils_id").val("");
+        $("#utils_id").val("");
     });
-
 
     $("#type").change(function () {
         if ($("#type").val() == 'os_image'){
@@ -84,6 +85,37 @@ $(document).ready(function () {
             $("#path").val("/home/images/disk-image");
         }
     });
+
+    $("#save").click(function () {
+        var table = $('#kvm_template_dt').DataTable();
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../kvm_template_save/",
+            data:
+                {
+                    id: $("#id").val(),
+                    template_file: $("#template_file").val(),
+                    name: $("#name").val(),
+                    utils_id: $("#utils_id").val(),
+                    type: $("#type").val(),
+                    path: $("#path").val(),
+                },
+            success: function (data) {
+                var myres = data["res"];
+                if (myres == "保存成功。") {
+                    $("#id").val(data["data"]);
+                    $('#static').modal('hide');
+                    table.ajax.reload();
+                }
+                alert(myres);
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+            }
+        });
+    });
+
 
 
 });
