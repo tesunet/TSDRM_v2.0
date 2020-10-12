@@ -1,5 +1,15 @@
 {% extends "base1.html" %}
 {% block content %}
+    <style>
+        #loading1 {
+            height: 235px;
+            width: 100%;
+            background-image: url(../static/upload/loading.gif);
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+    </style>
+
     <div style="height:10px"></div>
     <div class="table-toolbar">
         <div id="error">
@@ -41,10 +51,10 @@
                     <h4 class="modal-title">上传模板</h4>
                 </div>
                 <div class="panel-body">
-                    <form class="bs-example form-horizontal activate-form" method="post" enctype="multipart/form-data">{% csrf_token %}
+                    <form class="bs-example form-horizontal activate-form">{% csrf_token %}
                         <input hidden id="id" type="text" name="id">
-
-                        <div class="form-body">
+                        <div id="loading1" class="portlet-body"></div>
+                        <div class="form-body" id="upload_template_div">
                             <div class="form-group">
                                 <label class="col-md-2 control-label"><span style="color:red; ">*</span>选择模板</label>
                                 <div class="col-md-10">
@@ -107,7 +117,7 @@
                             <div class="modal-footer">
                                 <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
                                 </button>
-                                <button type="submit" id="save" name="save" class="btn green">上传</button>
+                                <button type="button" id="save" name="save" class="btn green">上传</button>
                             </div>
                         </div>
                     </form>
@@ -117,6 +127,11 @@
     </div>
 {% endblock %}
 {% block script %}
+    <script>
+        $.ajaxSetup({
+            data: {csrfmiddlewaretoken: '{{ csrf_token }}'},
+        });
+    </script>
     <link href="/static/assets/global/plugins/bootstrap-fileinput/bootstrap-fileinput.css" rel="stylesheet"
           type="text/css"/>
     <link href="/static/assets/global/plugins/datatables/datatables.min.css" rel="stylesheet" type="text/css"/>

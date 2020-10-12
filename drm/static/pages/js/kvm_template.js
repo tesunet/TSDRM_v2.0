@@ -61,16 +61,31 @@ $(document).ready(function () {
     });
 
     $('#kvm_template_dt tbody').on('click', 'button#edit', function () {
+        $('#upload_template_div').show();
+        $('#loading1').hide();
         var table = $('#kvm_template_dt').DataTable();
         var data = table.row($(this).parents('tr')).data();
+
+        $("#template_file").val("");
+        $("#name").val(data.name);
+        $("#template_file").val("");
+        $("#type").val(data.type);
+        $("#path").val(data.path);
+        $("#utils_id").val(data.utils_name);
+
+        $("span.fileinput-filename").text(data.name);
+        $("#file_status").attr("class", "fileinput fileinput-exists");
+
     });
 
     $("#upload").click(function () {
+        $('#upload_template_div').show();
+        $('#loading1').hide();
+
         $("span.fileinput-filename").empty();
         $("#file_status").attr("class", "fileinput fileinput-new");
         $("#id").val(0);
         $("#name").val("");
-        $("#code").val("");
         $("#template_file").val("");
         $("#type").val("");
         $("#path").val("");
@@ -87,31 +102,41 @@ $(document).ready(function () {
     });
 
     $("#save").click(function () {
+        $('#upload_template_div').hide();
+        $('#loading1').show();
+
         var table = $('#kvm_template_dt').DataTable();
+        var form = new FormData();
+        form.append("template_file", $("#template_file")[0].files[0]);
+        form.append("id", $("#id").val());
+        form.append("name", $("#name").val());
+        form.append("utils_id", $("#utils_id").val());
+        form.append("type", $("#type").val());
+        form.append("path", $("#path").val());
+        form.append("csrfmiddlewaretoken", $('input[name="csrfmiddlewaretoken"]').val());
+
         $.ajax({
             type: "POST",
-            dataType: 'json',
             url: "../kvm_template_save/",
-            data:
-                {
-                    id: $("#id").val(),
-                    template_file: $("#template_file").val(),
-                    name: $("#name").val(),
-                    utils_id: $("#utils_id").val(),
-                    type: $("#type").val(),
-                    path: $("#path").val(),
-                },
+            data:form,
+            processData: false,
+            contentType: false,
             success: function (data) {
                 var myres = data["res"];
-                if (myres == "保存成功。") {
+                if (myres == "上传成功。") {
                     $("#id").val(data["data"]);
+                    $('#loading1').hide();
                     $('#static').modal('hide');
                     table.ajax.reload();
                 }
                 alert(myres);
+                $('#upload_template_div').show();
+                $('#loading1').hide();
             },
             error: function (e) {
                 alert("页面出现错误，请于管理员联系。");
+                $('#upload_template_div').show();
+                $('#loading1').hide();
             }
         });
     });

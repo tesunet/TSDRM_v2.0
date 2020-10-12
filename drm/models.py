@@ -149,6 +149,7 @@ class DiskTemplate(models.Model):
     """
     utils = models.ForeignKey("UtilsManage", null=True, verbose_name="关联工具")
     name = models.CharField("名称", blank=True, null=True, max_length=30)
+    file_name = models.CharField("文件名称", blank=True, null=True, max_length=30)
     os = models.CharField("操作系统", blank=True, null=True, max_length=30)
     remark = models.TextField("说明", blank=True, null=True)
     type = models.CharField("模板类型", blank=True, null=True, max_length=20)

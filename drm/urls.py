@@ -275,4 +275,5 @@ urlpatterns = [
     # 模板管理
     url(r'^kvm_template/$', kvm_template, {'funid': '119'}),
     url(r'^kvm_template_data/$', kvm_template_data),
+    url(r'^kvm_template_save/$', kvm_template_save),
 ]
