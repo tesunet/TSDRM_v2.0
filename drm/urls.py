@@ -276,4 +276,6 @@ urlpatterns = [
     url(r'^kvm_template/$', kvm_template, {'funid': '119'}),
     url(r'^kvm_template_data/$', kvm_template_data),
     url(r'^kvm_template_save/$', kvm_template_save),
+    url(r'^kvm_template_del/$', kvm_template_del),
+    url(r'^get_kvm_template/$', get_kvm_template),
 ]

@@ -2995,13 +2995,42 @@ def kvm_template_data(request):
             result.append({
                 "id": template.id,
                 "name": template.name,
+                "file_name": template.file_name,
                 "path": template.path,
                 "type": type_dict[template.type],
                 "os": template.os,
                 "utils_name": template.utils.code if template.utils.code else '',
+                "type_val": template.type,
+                "utils_id": template.utils_id
+
 
             })
     return JsonResponse({"data": result})
+
+
+def get_kvm_template(request):
+    utils_id = request.POST.get("utils_id", "")
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    ret = 1
+
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+    try:
+        data = libvirtApi.KVMApi(kvm_credit).all_kvm_template()
+    except Exception as e:
+        print(e)
+        ret = 0
+        data = '获取远程模板文件失败。'
+
+    return JsonResponse({
+        "ret": ret,
+        "data": data,
+    })
 
 
 def kvm_template_save(request):
@@ -3015,127 +3044,205 @@ def kvm_template_save(request):
         path = request.POST.get("path", "")
 
         template_file = request.FILES.get("template_file", None)
+        remote_template_file = request.POST.get("remote_template_file", "")
         file_name = template_file.name if template_file else ""
         try:
             id = int(id)
             utils_id = int(utils_id)
         except:
             raise Http404()
-
-        if not template_file and id == 0:
-            result['res'] = '请选择要导入的文件。'
-        else:
-            if if_contains_sign(file_name):
-                result['res'] = r"""请注意文件命名格式，'\/"*?<>'符号文件不允许上传。"""
+        # 判断是选择本地模板还是选择现有模板
+        if remote_template_file == '':
+            if not template_file and id == 0:
+                result['res'] = '请选择要导入的文件。'
             else:
-                localfilepath = settings.BASE_DIR + os.sep + "drm" + os.sep + "upload" + os.sep + "disk_img" + os.sep + file_name
-                linuxfilepath = path + '/' + file_name
-
-                name_exist = DiskTemplate.objects.filter(name=name).filter(utils_id=utils_id).exclude(state="9")
-
-                # 新增时判断是否存在，修改时覆盖，不需要判断
-                if name_exist.exists() and id == 0:
-                    result['res'] = '该文件已存在,请勿重复上传。'
+                if if_contains_sign(file_name):
+                    result['res'] = r"""请注意文件命名格式，'\/"*?<>'符号文件不允许上传。"""
                 else:
-                    if name.strip() != '':
-                        if utils_id != '':
-                            if type.strip() != '':
-                                if path.strip() != '':
-                                    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
-                                    content = utils_kvm_info[0].content
-                                    util_type = utils_kvm_info[0].util_type
-                                    kvm_credit = get_credit_info(content, util_type.upper())
+                    localfilepath = settings.BASE_DIR + os.sep + "drm" + os.sep + "upload" + os.sep + "disk_img" + os.sep + file_name
+                    linuxfilepath = path + '/' + file_name
 
-                                    ip = kvm_credit['KvmHost']
-                                    username = kvm_credit['KvmUser']
-                                    password = kvm_credit['KvmPasswd']
+                    name_exist = DiskTemplate.objects.filter(name=name).filter(utils_id=utils_id).exclude(state="9")
 
-                                    # 新增 (且有my_file存在) 上传文件
-                                    if id == 0 and template_file:
-                                        try:
-                                            with open(localfilepath, 'wb+') as f:
-                                                for chunk in template_file.chunks():
-                                                    f.write(chunk)
-                                        except Exception as e:
-                                            print(e)
-                                            result['res'] = '文件上传失败。'
-                                        else:
-                                            try:
-                                                ssh = paramiko.Transport((ip, 22))
-                                                ssh.connect(username=username, password=password)
-                                                sftp = paramiko.SFTPClient.from_transport(ssh)
-                                            except paramiko.ssh_exception.SSHException as e:
-                                                print(e)
-                                                result['res'] = '连接服务器失败。'
-                                            else:
-                                                try:
-                                                    sftp.put(localfilepath, linuxfilepath)
-                                                except Exception as e:
-                                                    print(e)
-                                                    result['res'] = '上传失败'
-                                                else:
-                                                    # 上传成功，数据库新增数据
-                                                    template_save = DiskTemplate()
-                                                    template_save.name = name
-                                                    template_save.type = type
-                                                    template_save.path = path + name
-                                                    template_save.utils_id = utils_id
-                                                    template_save.save()
-                                                    result['res'] = '上传成功。'
-                                                ssh.close()
+                    # 新增时判断是否存在，修改时覆盖，不需要判断
+                    if name_exist.exists() and id == 0:
+                        result['res'] = '该文件已存在,请勿重复上传。'
+                    else:
+                        if name.strip() != '':
+                            if utils_id != '':
+                                if type.strip() != '':
+                                    if path.strip() != '':
+                                        utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+                                        content = utils_kvm_info[0].content
+                                        util_type = utils_kvm_info[0].util_type
+                                        kvm_credit = get_credit_info(content, util_type.upper())
 
-                                    # 编辑：没有修改上传文件/修改上传文件
-                                    if id != 0:
-                                        if template_file:
+                                        ip = kvm_credit['KvmHost']
+                                        username = kvm_credit['KvmUser']
+                                        password = kvm_credit['KvmPasswd']
+
+                                        # 新增 (且有my_file存在) 上传文件
+                                        if id == 0 and template_file:
                                             try:
                                                 with open(localfilepath, 'wb+') as f:
                                                     for chunk in template_file.chunks():
                                                         f.write(chunk)
                                             except Exception as e:
                                                 print(e)
-                                                result['res'] = '文件上传失败。'
+                                                result['res'] = '文件保存失败。'
                                             else:
                                                 try:
                                                     ssh = paramiko.Transport((ip, 22))
                                                     ssh.connect(username=username, password=password)
                                                     sftp = paramiko.SFTPClient.from_transport(ssh)
-                                                except paramiko.ssh_exception.SSHException as e:
+                                                except Exception as e:
                                                     print(e)
-                                                    result['res'] = '连接服务器失败。'
+                                                    result['res'] = '保存失败。'
                                                 else:
                                                     try:
                                                         sftp.put(localfilepath, linuxfilepath)
-                                                    except FileNotFoundError as e:
+                                                    except Exception as e:
                                                         print(e)
-                                                        result['res'] = '上传失败。'
+                                                        result['res'] = '保存失败'
                                                     else:
-                                                        # 上传成功，数据库修改数据
-                                                        template_save = DiskTemplate.objects.get(id=id)
+                                                        # 上传成功，数据库新增数据
+                                                        template_save = DiskTemplate()
                                                         template_save.name = name
+                                                        template_save.file_name = file_name
                                                         template_save.type = type
-                                                        template_save.path = path + file_name
+                                                        template_save.path = path + '/' + file_name
                                                         template_save.utils_id = utils_id
                                                         template_save.save()
-                                                        result['res'] = '上传成功。'
+                                                        result['res'] = '保存成功。'
                                                     ssh.close()
-                                        if not template_file:
-                                            template_save = DiskTemplate.objects.get(id=id)
-                                            template_save.name = name
-                                            template_save.type = type
-                                            template_save.path = path + file_name
-                                            template_save.utils_id = utils_id
-                                            template_save.save()
-                                            result['res'] = '上传成功。'
+
+                                        # 编辑：没有修改上传文件/修改上传文件
+                                        if id != 0:
+                                            if template_file:
+                                                try:
+                                                    with open(localfilepath, 'wb+') as f:
+                                                        for chunk in template_file.chunks():
+                                                            f.write(chunk)
+                                                except Exception as e:
+                                                    print(e)
+                                                    result['res'] = '文件保存失败。'
+                                                else:
+                                                    try:
+                                                        ssh = paramiko.Transport((ip, 22))
+                                                        ssh.connect(username=username, password=password)
+                                                        sftp = paramiko.SFTPClient.from_transport(ssh)
+                                                    except paramiko.ssh_exception.SSHException as e:
+                                                        print(e)
+                                                        result['res'] = '连接服务器失败。'
+                                                    else:
+                                                        try:
+                                                            sftp.put(localfilepath, linuxfilepath)
+                                                        except FileNotFoundError as e:
+                                                            print(e)
+                                                            result['res'] = '保存失败。'
+                                                        else:
+                                                            # 上传成功，数据库修改数据
+                                                            template_save = DiskTemplate.objects.get(id=id)
+                                                            template_save.name = name
+                                                            template_save.file_name = file_name
+                                                            template_save.type = type
+                                                            template_save.path = path + '/' + file_name
+                                                            template_save.utils_id = utils_id
+                                                            template_save.save()
+                                                            result['res'] = '保存成功。'
+                                                        ssh.close()
+                                            if not template_file:
+                                                template_save = DiskTemplate.objects.get(id=id)
+                                                template_save.name = name
+                                                template_save.file_name = file_name
+                                                template_save.type = type
+                                                template_save.path = path + '/' + file_name
+                                                template_save.utils_id = utils_id
+                                                template_save.save()
+                                                result['res'] = '保存成功。'
+                                    else:
+                                        result['res'] = '模板路径未填写。'
                                 else:
-                                    result['res'] = '模板路径未填写。'
+                                    result['res'] = '模板类型未选择。'
                             else:
-                                result['res'] = '模板类型未选择。'
+                                result['res'] = '模板平台未选择。'
                         else:
-                            result['res'] = '模板平台未选择。'
+                            result['res'] = '模板名称不能为空。'
+
+        if remote_template_file != '':
+            if name.strip() != '':
+                if utils_id != '':
+                    if type.strip() != '':
+                        if path.strip() != '':
+                            # 新增
+                            if id == 0:
+                                name_exist = DiskTemplate.objects.filter(path=path).filter(utils_id=utils_id).exclude(state="9")
+                                if name_exist.exists():
+                                    result['res'] = '该文件已存在。'
+                                else:
+                                    template_save = DiskTemplate()
+                                    template_save.name = name
+                                    template_save.file_name = remote_template_file
+                                    template_save.type = type
+                                    template_save.path = path
+                                    template_save.utils_id = utils_id
+                                    template_save.save()
+                                    result['res'] = '保存成功。'
+                            else:
+                                template_save = DiskTemplate.objects.get(id=id)
+                                template_save.name = name
+                                template_save.file_name = remote_template_file
+                                template_save.type = type
+                                template_save.path = path
+                                template_save.utils_id = utils_id
+                                template_save.save()
+                                result['res'] = '保存成功。'
+                        else:
+                            result['res'] = '模板路径未填写。'
                     else:
-                        result['res'] = '模板名称不能为空。'
+                        result['res'] = '模板类型未选择。'
+                else:
+                    result['res'] = '模板平台未选择。'
+            else:
+                result['res'] = '模板名称不能为空。'
 
         return JsonResponse(result)
+
+
+def kvm_template_del(request):
+    # 删除模板文件： 删除远程数据 + 删除数据库数据
+    id = request.POST.get("id", "")
+    path = request.POST.get("path", "")
+    utils_id = request.POST.get("utils_id", "")
+    try:
+        id = int(id)
+        utils_id = int(utils_id)
+    except:
+        pass
+    status = 1
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+    try:
+        info = libvirtApi.KVMApi(kvm_credit).del_kvm_template(path)
+        if info == '删除成功。':
+            template_save = DiskTemplate.objects.get(id=id)
+            template_save.state = "9"
+            template_save.save()
+            result = '删除成功。'
+        else:
+            status = 0
+            result = '删除失败。'
+    except Exception as e:
+        print(e)
+        status = 0
+        result = '删除失败。'
+
+    return JsonResponse({
+        "status": status,
+        "data": result,
+    })
 
 
 def get_client_node(parent, select_id, request):

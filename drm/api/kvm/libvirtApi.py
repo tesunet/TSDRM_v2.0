@@ -784,18 +784,67 @@ class KVMApi():
         try:
             exe_cmd = r'ls /home/images/os-image'
             result = self.remote_linux(exe_cmd)
-            os_template = [x.replace('\t', ' ').split(' ') for x in result['data'].split(' ') if x][0]
+            os_image = [x.replace('\t', ' ').split(' ') for x in result['data'].split(' ') if x][0]
 
             exe_cmd = r'ls /home/images/disk-image'
             result = self.remote_linux(exe_cmd)
-            disk_template = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+            disk_image = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+
             result = {
-                'os_image': os_template,
-                'disk_image': disk_template
+                'os_image': os_image,
+                'disk_image': disk_image,
             }
         except Exception as e:
             print(e)
             result = '查找模板文件失败。'
+        return result
+
+    def all_kvm_template(self):
+        try:
+            exe_cmd = r'ls /home/images/os-image'
+            result = self.remote_linux(exe_cmd)
+            os_image = [x.replace('\t', ' ').split(' ') for x in result['data'].split(' ') if x][0]
+
+            exe_cmd = r'ls /home/images/disk-image'
+            result = self.remote_linux(exe_cmd)
+            disk_image = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+
+            exe_cmd = r'ls /home/images/base-image'
+            result = self.remote_linux(exe_cmd)
+            base_image = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+
+            exe_cmd = r'ls /home/images/linuxdb-image'
+            result = self.remote_linux(exe_cmd)
+            linuxdb_image = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+
+            exe_cmd = r'ls /home/images/windb-image'
+            result = self.remote_linux(exe_cmd)
+            windb_image = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+
+            result = {
+                'os_image': os_image,
+                'disk_image': disk_image,
+                'base_image': base_image,
+                'linuxdb_image': linuxdb_image,
+                'windb_image': windb_image,
+            }
+
+        except Exception as e:
+            print(e)
+            result = '查找模板文件失败。'
+        return result
+
+    def del_kvm_template(self, path):
+        try:
+            exe_cmd = r'rm -rf {0}'.format(path)
+            result = self.remote_linux(exe_cmd)
+            if result['data'] == '':
+                result = '删除成功。'
+            else:
+                result = '删除失败。'
+        except Exception as e:
+            print(e)
+            result = '删除失败。'
         return result
 
     def copy_disk(self, kvm_template_path, filesystem, kvm_storage, kvm_disk_image_path, kvm_storage_path):
@@ -883,5 +932,5 @@ linuxserver_credit = {
 # result = KVMApi(linuxserver_credit).kvm_all_list()
 # result = KVMApi(linuxserver_credit).zfs_kvm_filesystem()
 # result = KVMApi(linuxserver_credit).memory_disk_cpu_data()
-# result = KVMApi(linuxserver_credit).kvm_template()
+# result = KVMApi(linuxserver_credit).all_kvm_template()
 # print(result)
