@@ -778,27 +778,6 @@ class KVMApi():
             data = '获取信息失败。'
         return data
 
-    def kvm_template(self):
-        # kvm虚拟机模板文件： cd /home/images/os-image
-        # kvm虚拟机存储文件： cd /home/images/disk-image
-        try:
-            exe_cmd = r'ls /home/images/os-image'
-            result = self.remote_linux(exe_cmd)
-            os_image = [x.replace('\t', ' ').split(' ') for x in result['data'].split(' ') if x][0]
-
-            exe_cmd = r'ls /home/images/disk-image'
-            result = self.remote_linux(exe_cmd)
-            disk_image = [x.replace('\t', '') for x in result['data'].split(' ') if x]
-
-            result = {
-                'os_image': os_image,
-                'disk_image': disk_image,
-            }
-        except Exception as e:
-            print(e)
-            result = '查找模板文件失败。'
-        return result
-
     def all_kvm_template(self):
         try:
             exe_cmd = r'ls /home/images/os-image'
@@ -828,7 +807,6 @@ class KVMApi():
                 'linuxdb_image': linuxdb_image,
                 'windb_image': windb_image,
             }
-
         except Exception as e:
             print(e)
             result = '查找模板文件失败。'

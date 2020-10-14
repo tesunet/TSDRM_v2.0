@@ -105,6 +105,11 @@ function getkvmtree() {
 
                             var os_image = data.node.original.kvm_template.os_image;
                             var disk_image = data.node.original.kvm_template.disk_image;
+                            var base_image = data.node.original.kvm_template.base_image;
+                            var windb_image = data.node.original.kvm_template.windb_image;
+                            var linuxdb_image = data.node.original.kvm_template.linuxdb_image;
+
+
                             $('#select_kvm_template').empty();
                             $('#select_kvm_storage').empty();
 
@@ -122,7 +127,27 @@ function getkvmtree() {
                                 disk_image_pre += '<option value="' + disk_image[i] + '">' + disk_image[i] + '</option>'
                             }
                             disk_image_pre += '</optgroup>';
-                             $('#select_kvm_storage').append(disk_image_pre)
+
+                            disk_image_pre += '<optgroup label="' + '/home/images/windb-image' + '" class="dropdown-header">';
+                            for (i = 0; i < windb_image.length; i++) {
+                                disk_image_pre += '<option value="' + windb_image[i] + '">' + windb_image[i] + '</option>'
+                            }
+                            disk_image_pre += '</optgroup>';
+
+
+                            disk_image_pre += '<optgroup label="' + '/home/images/linuxdb-image' + '" class="dropdown-header">';
+                            for (i = 0; i < linuxdb_image.length; i++) {
+                                disk_image_pre += '<option value="' + linuxdb_image[i] + '">' + linuxdb_image[i] + '</option>'
+                            }
+                            disk_image_pre += '</optgroup>';
+
+                            disk_image_pre += '<optgroup label="' + '/home/images/base-image' + '" class="dropdown-header">';
+                            for (i = 0; i < base_image.length; i++) {
+                                disk_image_pre += '<option value="' + base_image[i] + '">' + base_image[i] + '</option>'
+                            }
+                            disk_image_pre += '</optgroup>';
+
+                            $('#select_kvm_storage').append(disk_image_pre)
                         }
                         // 虚拟机
                         else {

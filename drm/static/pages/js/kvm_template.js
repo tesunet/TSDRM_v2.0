@@ -16,7 +16,7 @@ $(document).ready(function () {
                     var windb_image = data.data.windb_image;
                     var linuxdb_image = data.data.linuxdb_image;
 
-                    $('#select_kvm_template').empty();
+                    $('#remote_template_file').empty();
 
                     var all_image_pre = '<optgroup label="' + '/home/images/disk-image' + '" class="dropdown-header">';
                     for (i = 0; i < disk_image.length; i++) {
@@ -135,10 +135,10 @@ $(document).ready(function () {
         $('#upload_template_div').show();
         $('#loading1').hide();
 
-        $('input:radio[name=radio2]')[0].checked = false;
-        $('input:radio[name=radio2]')[1].checked = true;
+
         $("#local_file_div").hide();
         $("#remote_file_div").show();
+        $("#select_template_div").hide();
 
         var table = $('#kvm_template_dt').DataTable();
         var data = table.row($(this).parents('tr')).data();
@@ -148,15 +148,19 @@ $(document).ready(function () {
         $("#path").val(data.path);
         $("#utils_id").val(data.utils_id);
         $("#remote_template_file").val(data.file_name);
+
     });
 
     $("#upload").click(function () {
         $('#upload_template_div').show();
         $('#loading1').hide();
-        $('input:radio[name=radio2]')[0].checked = true;
-        $('input:radio[name=radio2]')[1].checked = false;
+
+        $("#select_template_div").show();
         $("#local_file_div").show();
         $("#remote_file_div").hide();
+        $('input:radio[name=radio2]')[0].checked = true;
+        $('input:radio[name=radio2]')[1].checked = false;
+
         $("span.fileinput-filename").empty();
         $("#file_status").attr("class", "fileinput fileinput-new");
         $("#id").val(0);
@@ -200,10 +204,11 @@ $(document).ready(function () {
                 success: function (data) {
                     var myres = data["res"];
                     if (myres == "保存成功。") {
-                        $("#id").val(data["data"]);
                         $('#loading1').hide();
                         $('#static').modal('hide');
                         table.ajax.reload();
+                        // 重新获取模板
+                        get_kvm_template();
                     }
                     alert(myres);
                     $('#upload_template_div').show();
@@ -217,7 +222,7 @@ $(document).ready(function () {
             });
         }
 
-        if (remote_template_file && local_template_file == undefined){
+        if ((remote_template_file && local_template_file == undefined) || (remote_template_file == null && local_template_file == undefined)) {
             $('#loading1').hide();
             var table = $('#kvm_template_dt').DataTable();
             $.ajax({
@@ -236,7 +241,6 @@ $(document).ready(function () {
                 success: function (data) {
                         var myres = data["res"];
                         if (myres == "保存成功。") {
-                            $("#id").val(data["data"]);
                             $('#loading1').hide();
                             $('#static').modal('hide');
                             table.ajax.reload();
