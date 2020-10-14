@@ -15,9 +15,7 @@ $(document).ready(function () {
                     var base_image = data.data.base_image;
                     var windb_image = data.data.windb_image;
                     var linuxdb_image = data.data.linuxdb_image;
-
                     $('#remote_template_file').empty();
-
                     var all_image_pre = '<optgroup label="' + '/home/images/disk-image' + '" class="dropdown-header">';
                     for (i = 0; i < disk_image.length; i++) {
                         all_image_pre += '<option value="' + disk_image[i] + '">' + disk_image[i] + '</option>'
@@ -30,13 +28,11 @@ $(document).ready(function () {
                     }
                     all_image_pre += '</optgroup>';
 
-
                     all_image_pre += '<optgroup label="' + '/home/images/windb-image' + '" class="dropdown-header">';
                     for (i = 0; i < windb_image.length; i++) {
                         all_image_pre += '<option value="' + windb_image[i] + '">' + windb_image[i] + '</option>'
                     }
                     all_image_pre += '</optgroup>';
-
 
                     all_image_pre += '<optgroup label="' + '/home/images/linuxdb-image' + '" class="dropdown-header">';
                     for (i = 0; i < linuxdb_image.length; i++) {
@@ -49,9 +45,7 @@ $(document).ready(function () {
                         all_image_pre += '<option value="' + base_image[i] + '">' + base_image[i] + '</option>'
                     }
                     all_image_pre += '</optgroup>';
-
                     $('#remote_template_file').append(all_image_pre)
-
                 } else {
                     alert(data.data);
                 }
@@ -62,11 +56,9 @@ $(document).ready(function () {
         });
     }
     get_kvm_template();
-
     $('#util').change(function(){
         get_kvm_template()
     });
-
     $('#kvm_template_dt').dataTable({
         "bAutoWidth": true,
         "bSort": false,
@@ -105,7 +97,6 @@ $(document).ready(function () {
 
         }
     });
-
     $('#kvm_template_dt tbody').on('click', 'button#delrow', function () {
         if (confirm("确定要删除该条数据？")) {
             var table = $('#kvm_template_dt').DataTable();
@@ -130,37 +121,34 @@ $(document).ready(function () {
             });
         }
     });
-
     $('#kvm_template_dt tbody').on('click', 'button#edit', function () {
         $('#upload_template_div').show();
         $('#loading1').hide();
-
-
         $("#local_file_div").hide();
         $("#remote_file_div").show();
         $("#select_template_div").hide();
-
         var table = $('#kvm_template_dt').DataTable();
         var data = table.row($(this).parents('tr')).data();
         $("#id").val(data.id);
         $("#name").val(data.name);
         $("#type").val(data.type_val);
+        $("#os_path_div").show();
+        $("#disk_path_div").hide();
         $("#path").val(data.path);
         $("#utils_id").val(data.utils_id);
         $("#remote_template_file").val(data.file_name);
 
     });
-
     $("#upload").click(function () {
         $('#upload_template_div').show();
         $('#loading1').hide();
-
+        $('#os_path_div').show();
+        $('#disk_path_div').hide();
         $("#select_template_div").show();
         $("#local_file_div").show();
         $("#remote_file_div").hide();
         $('input:radio[name=radio2]')[0].checked = true;
         $('input:radio[name=radio2]')[1].checked = false;
-
         $("span.fileinput-filename").empty();
         $("#file_status").attr("class", "fileinput fileinput-new");
         $("#id").val(0);
@@ -170,16 +158,28 @@ $(document).ready(function () {
         $("#type").val("");
         $("#path").val("");
     });
-
     $("#type").change(function () {
+        var os_path = '/home/images/os-image';
+        var disk_path = '/home/images/disk-image';
+        var base_path = '/home/images/base-image';
+        var windb_path = '/home/images/windb-image';
+        var linuxdb_path = '/home/images/linuxdb-image';
         if ($("#type").val() == 'os_image'){
-            $("#path").val("/home/images/os-image");
+            $("#os_path_div").show();
+            $("#disk_path_div").hide();
+            $("#path").val(os_path);
         }
         if ($("#type").val() == 'disk_image'){
-            $("#path").val("/home/images/disk-image");
+            $('#disk_path').empty();
+            $("#os_path_div").hide();
+            $("#disk_path_div").show();
+            var all_disk_path = '<option value="' + disk_path + '">' + disk_path + '</option>';
+            all_disk_path += '<option value="' + base_path + '">' + base_path + '</option>';
+            all_disk_path += '<option value="' + windb_path + '">' + windb_path + '</option>';
+            all_disk_path += '<option value="' + linuxdb_path + '">' + linuxdb_path + '</option>';
+            $("#disk_path").append(all_disk_path)
         }
     });
-
     $("#save").click(function () {
         var remote_template_file = $("#remote_template_file").val();
         var local_template_file = $("#local_template_file")[0].files[0];
@@ -221,7 +221,6 @@ $(document).ready(function () {
                 }
             });
         }
-
         if ((remote_template_file && local_template_file == undefined) || (remote_template_file == null && local_template_file == undefined)) {
             $('#loading1').hide();
             var table = $('#kvm_template_dt').DataTable();
@@ -257,36 +256,39 @@ $(document).ready(function () {
             });
         }
     });
-
     if ($("#local_file:checked").val() == "1") {
         $("#local_file_div").show();
         $("#remote_file_div").hide();
-    }else{
+    } else{
          $("#local_file_div").hide();
          $("#remote_file_div").show();
     }
-
     $('input:radio[name="radio2"]').click(function() {
         if ($("#local_file:checked").val() == "1") {
             $("#name").val("");
             $("#type").val("");
             $("#path").val("");
+            $("#disk_path").val("");
             $("#remote_template_file").val("");
+            $("#os_path_div").show();
+            $("#disk_path_div").hide();
             $("#local_file_div").show();
             $("#remote_file_div").hide();
             $('input:radio[name=radio2]')[0].checked = true;
         }
         if (($("#remote_file:checked").val() == "0")){
             $("#name").val("");
+            $("#type").val("");
+            $("#path").val("");
             $("#remote_template_file").val("");
             $("#local_template_file").val("");
+            $("#os_path_div").show();
+            $("#disk_path_div").hide();
             $("#local_file_div").hide();
             $("#remote_file_div").show();
             $('input:radio[name=radio2]')[1].checked = true;
-
         }
     });
-
     $('#remote_template_file').change(function(){
         var data = JSON.parse($("#template_data").val());
         var os_image = data.os_image;
