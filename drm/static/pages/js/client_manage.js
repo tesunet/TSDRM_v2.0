@@ -2312,9 +2312,6 @@ $(document).ready(function () {
         $('#copy_manage_div').show();
         $('#loading2').hide();
 
-
-
-
         var table = $('#kvm_copy').DataTable();
         var data = table.row($(this).parents('tr')).data();
         $("#copy_id").val(data.id);

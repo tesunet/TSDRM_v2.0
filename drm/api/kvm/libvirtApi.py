@@ -4,7 +4,6 @@ import time
 from xml.etree import ElementTree
 from drm import remote
 from lxml import etree
-import json
 
 ############################################################
 #        KVM虚拟机管理：接口方式                             #
@@ -100,6 +99,162 @@ class LibvirtApi():
         }
         return data
 
+    def kvm_state(self, kvm_name):
+        # 获取虚拟机的状态
+        state_dict = {
+            1: '运行中',
+            3: '暂停',
+            5: '关闭',
+        }
+        dom = self.conn().lookupByName(kvm_name)
+        state, reason = dom.state()
+        state = state_dict.get(state, 'unknown')
+        return state
+
+    def kvm_id(self, kvm_name):
+        # 获取虚拟机的id:未开启的虚拟机id都是-1
+        dom = self.conn().lookupByName(kvm_name)
+        id = str(dom.ID())
+        return id
+
+    def kvm_shutdown(self, kvm_state, kvm_name):
+        # 关闭虚拟机：是开启的状态（running）
+        if kvm_state == 'running' or kvm_state == '运行中':
+            try:
+                dom = self.conn().lookupByName(kvm_name)
+                dom.shutdown()
+                time.sleep(3)
+                state = self.kvm_state(kvm_name)
+                if state == '关闭':
+                    result = '关闭成功。'
+                else:
+                    result = '关闭失败。'
+            except Exception as e:
+                print(e)
+                result = '关闭失败。'
+        elif kvm_state == '暂停' or kvm_state == 'paused':
+            result = '虚拟机未运行。'
+        else:
+            result = '虚拟机未开启。'
+        return result
+
+    def kvm_start(self, kvm_state, kvm_name):
+        # 开启虚拟机：是关闭的状态（shut off/关闭）
+        if kvm_state == 'shut off' or kvm_state == '关闭':
+            try:
+                dom = self.conn().lookupByName(kvm_name)
+                dom.create()
+                result = '开机成功。'
+            except Exception as e:
+                print(e)
+                result = '开机失败。'
+        else:
+            result = '虚拟机已开启。'
+        return result
+
+    def kvm_destroy(self, kvm_state, kvm_name):
+        # 断电虚拟机:是开启的状态（running）或者是暂停状态（pasued）
+        if kvm_state == 'running' or kvm_state == '运行中' or kvm_state == 'paused' or kvm_state == '暂停':
+            try:
+                dom = self.conn().lookupByName(kvm_name)
+                dom.destroy()
+                result = '断电成功。'
+            except Exception as e:
+                print(e)
+                result = '断电失败。'
+        else:
+            result = '虚拟机未开启。'
+        return result
+
+    def kvm_suspend(self, kvm_state, kvm_name):
+        # 暂停虚机：开启(ruuning)/的状态，关闭状态提醒错误。
+        if kvm_state == 'running' or kvm_state == '运行中':
+            try:
+                dom = self.conn().lookupByName(kvm_name)
+                dom.suspend()
+                result = '暂停成功。'
+            except Exception as e:
+                print(e)
+                result = '暂停失败。'
+        else:
+            result = '虚拟机未开启。'
+        return result
+
+    def kvm_resume(self, kvm_state, kvm_name):
+        # 恢复暂停的虚机：必须是暂停（paused）状态的虚拟机才可以执行恢复操作
+        if kvm_state == 'paused' or kvm_state == '暂停':
+            try:
+                dom = self.conn().lookupByName(kvm_name)
+                dom.resume()
+                result = '运行成功。'
+            except Exception as e:
+                print(e)
+                result = '运行失败。'
+        else:
+            result = '虚拟机非暂停状态，无法执行此操作。'
+        return result
+
+    def kvm_undefine(self, kvm_state, kvm_name):
+        """
+        删除虚拟机
+        停止主机：virsh shutdown linux65
+        删除主机定义：virsh undefine linux65
+        删除KVM虚拟机文件系统： zfs destroy tank/CentOS-7@test3
+        需要先判断虚拟机的状态
+        如果是关闭（shut off）的虚拟机直接删除，然后删除磁盘文件，如果是开启（running）的虚拟机，先关闭再删除虚拟机，在删除磁盘文件
+        如果虚拟机中创建了快照，虚拟机是无法删除的，需要删除所有的快照，然后在执行删除虚拟机操作
+        """
+        if kvm_state == 'shut off' or kvm_state == '关闭':
+            try:
+                dom = self.conn().lookupByName(kvm_name)
+                dom.undefine()
+                result = '取消定义成功。'
+            except Exception as e:
+                print(e)
+                result = '取消定义失败。'
+        else:
+            result = '虚拟机未关闭。'
+        return result
+
+    def kvm_reboot(self, kvm_state, kvm_name):
+        # 重启虚机：必须是开启(running)/暂停(paused)状态的虚拟机才可以执行重启操作
+        if kvm_state == 'running' or kvm_state == '运行中' or kvm_state == '暂停' or kvm_state == 'paused':
+            try:
+                dom = self.conn().lookupByName(kvm_name)
+                dom.reboot()
+                result = '重启成功。'
+            except Exception as e:
+                print(e)
+                result = '重启失败。'
+        else:
+            result = '虚拟机未开启。'
+        return result
+
+    def kvm_info_data(self, kvm_name):
+        # 从xml文件中获取虚拟机cpu、内存、系统类型、磁盘
+        try:
+            dom = self.conn().lookupByName(kvm_name)
+            xml_data = dom.XMLDesc()
+            config = etree.XML(xml_data)
+            kvm_cpu = config.xpath("//vcpu")[0]
+            kvm_memory = config.xpath("//memory")[0]
+            kvm_os = config.xpath("//os/type")[0]
+            kvm_diskpath = config.xpath("//disk/source")[0]
+            kvm_os = kvm_os.text
+            kvm_cpu = int(kvm_cpu.text)
+            kvm_memory = int(int(kvm_memory.text) / 1024)
+            kvm_disk = kvm_diskpath.attrib['file']
+            result = {
+                'kvm_os': kvm_os,
+                'kvm_disk': kvm_disk,
+                'kvm_cpu': kvm_cpu,
+                'kvm_memory': kvm_memory
+            }
+        except Exception as e:
+            print(e)
+            result = '获取信息失败。'
+        return result
+
 
 ############################################################
 #        KVM虚拟机管理：命令方式                             #
@@ -128,20 +283,6 @@ class KVMApi():
         end_list.append(list_info[-count:]) if count != 0 else end_list
         return end_list
 
-    def domstate(self, kvm_name):
-        # 获取虚拟机的状态
-        exe_cmd = r'virsh domstate {0}'.format(kvm_name)
-        result = self.remote_linux(exe_cmd)
-        result = result['data'].strip()
-        return result
-
-    def domid(self, kvm_name):
-        # 获取虚拟机的id
-        exe_cmd = r'virsh domid {0}'.format(kvm_name)
-        result = self.remote_linux(exe_cmd)
-        result = result['data']
-        return result
-
     def kvm_all_list(self):
         # 获取所有kvm虚拟机
         exe_cmd = r'virsh list --all'
@@ -159,6 +300,8 @@ class KVMApi():
                 i = '运行中'
             if i == 'paused':
                 i = '暂停'
+            if i == '-':
+                i = '-1'
             kvm_list_filter.append(i)
         end_list = self.list_of_groups(kvm_list_filter, 3)
         kvm_all_list_dict = []
@@ -187,6 +330,8 @@ class KVMApi():
                 i = '运行中'
             if i == 'paused':
                 i = '暂停'
+            if i == '-':
+                i = '-1'
             kvm_list_filter.append(i)
         end_list = self.list_of_groups(kvm_list_filter, 3)
         kvm_all_list_dict = []
@@ -217,6 +362,8 @@ class KVMApi():
                 i = '运行中'
             if i == 'paused':
                 i = '暂停'
+            if i == '-':
+                i = '-1'
             kvm_list_filter.append(i)
         end_list = self.list_of_groups(kvm_list_filter, 3)
         kvm_all_list_dict = []
@@ -230,147 +377,6 @@ class KVMApi():
                 kvm_all_list_dict.append(data)
 
         return kvm_all_list_dict
-
-    def kvm_start(self, kvm_state, kvm_name):
-        # 开启虚拟机:是关闭的状态（shut off/关闭）
-        if kvm_state == 'shut off' or kvm_state == '关闭':
-            exe_cmd = r'virsh start {0}'.format(kvm_name)
-            result = self.remote_linux(exe_cmd)
-            if result['data'].strip() == 'Domain {0} started'.format(kvm_name) or \
-                    result['data'].strip() == '域 {0} 已开始'.format(kvm_name):
-                result = '开机成功。'
-            else:
-                result = '开机失败。'
-        else:
-            result = '虚拟机已开启。'
-
-        return result
-
-    def kvm_shutdown(self, kvm_state, kvm_name):
-        # 关闭虚拟机:是开启的状态（running）
-        if kvm_state == 'running' or kvm_state == '运行中':
-            exe_cmd = r'virsh shutdown {0}'.format(kvm_name)
-            result = self.remote_linux(exe_cmd)
-            if result['data'].strip() == 'Domain {0} is being shutdown'.format(kvm_name) or \
-                    result['data'].strip() == '域 {0} 被关闭'.format(kvm_name):
-                time.sleep(3)
-                state = self.domstate(kvm_name)
-                if state == 'shut off' or state == '关闭':
-                    result = '关闭成功。'
-                else:
-                    result = '关闭失败。'
-            else:
-                result = '关闭失败。'
-        elif kvm_state == '暂停' or kvm_state == 'paused':
-            result = '虚拟机未运行。'
-        else:
-            result = '虚拟机未开启。'
-        return result
-
-    def kvm_destroy(self, kvm_state, kvm_name):
-        # 断电虚拟机:是开启的状态（running）或者是暂停状态（pasued）
-        if kvm_state == 'running' or kvm_state == '运行中' or kvm_state == 'paused' or kvm_state == '暂停':
-            exe_cmd = r'virsh destroy {0}'.format(kvm_name)
-            result = self.remote_linux(exe_cmd)
-            if result['data'].strip() == 'Domain {0} destroyed'.format(kvm_name) or \
-                    result['data'].strip() == '域 {0} 被删除'.format(kvm_name):
-                result = '断电成功。'
-            else:
-                result = '断电失败。'
-        else:
-            result = '虚拟机未开启。'
-        return result
-
-    def filesystem_del(self, filesystem):
-        try:
-            exe_cmd = r'zfs destroy {0}'.format(filesystem)
-            result = self.remote_linux(exe_cmd)
-            if result['data'] == '':
-                result = '删除文件系统成功。'
-            else:
-                result = '删除文件系统成功。'
-        except Exception as e:
-            print(e)
-            result = '删除文件系统失败。'
-        return result
-
-    def undefine(self, kvm_name, state):
-        """
-        删除虚拟机
-        停止主机：virsh shutdown linux65
-        删除主机定义：virsh undefine linux65
-        删除KVM虚拟机文件系统： zfs destroy tank/CentOS-7@test3
-        """
-        # 这里需要先判断虚拟机的状态
-        # 如果是关闭（shut off）的虚拟机直接删除，然后删除磁盘文件，如果是开启（running）的虚拟机，先关闭再删除虚拟机，在删除磁盘文件
-        # 如果虚拟机中创建了快照，虚拟机是无法删除的，需要删除所有的快照，然后在执行删除虚拟机操作
-        if state == 'shut off' or state == '关闭':
-            snapshot_list = self.snapshot_list(kvm_name)
-            if not snapshot_list:
-                try:
-                    exe_cmd = r'virsh undefine {0}'.format(kvm_name)
-                    result = self.remote_linux(exe_cmd)
-                    if result['data'].strip() == 'Domain {0} has been undefined'.format(kvm_name) or \
-                            result['data'].strip() == '域 {0} 已经被取消定义'.format(kvm_name):
-                        result = '取消定义成功。'
-                    else:
-                        result = '取消定义失败。'
-                except Exception as e:
-                    print(e)
-                    result = '取消定义失败。'
-            else:
-                result = '虚拟机已创建快照，无法删除。'
-        else:
-            result = '虚拟机未关闭。'
-        return result
-
-    def kvm_suspend(self, kvm_state, kvm_name):
-        """
-        暂停虚机：开启(ruuning)/暂停(paused)的状态，关闭状态提醒错误。
-        """
-        if kvm_state == 'running' or kvm_state == '运行中' or kvm_state == 'paused' or kvm_state == '暂停':
-            exe_cmd = r'virsh suspend {0}'.format(kvm_name)
-            result = self.remote_linux(exe_cmd)
-            if result['data'].strip() == 'Domain {0} suspended'.format(kvm_name) or \
-                    result['data'].strip() == '域 {0} 被挂起'.format(kvm_name):
-                result = '暂停成功。'
-            else:
-                result = '暂停失败。'
-        else:
-            result = '虚拟机未开启。'
-        return result
-
-    def kvm_resume(self, kvm_state, kvm_name):
-        """
-        恢复暂停的虚机：必须是暂停（paused）状态的虚拟机才可以执行恢复操作
-        """
-        if kvm_state == 'paused' or kvm_state == '暂停':
-            exe_cmd = r'virsh resume {0}'.format(kvm_name)
-            result = self.remote_linux(exe_cmd)
-            if result['data'].strip() == 'Domain {0} resumed'.format(kvm_name) or \
-                    result['data'].strip() == '域 {0} 被重新恢复'.format(kvm_name):
-                result = '运行成功。'
-            else:
-                result = '运行失败。'
-        else:
-            result = '虚拟机非暂停状态，无法执行此操作。'
-        return result
-
-    def kvm_reboot(self, kvm_state, kvm_name):
-        """
-        重启虚机：必须是开启(running)/暂停(paused)状态的虚拟机才可以执行重启操作
-        """
-        if kvm_state == 'running' or kvm_state == '运行中' or kvm_state == '暂停' or kvm_state == 'paused':
-            exe_cmd = r'virsh reboot {0}'.format(kvm_name)
-            result = self.remote_linux(exe_cmd)
-            if result['data'].strip() == 'Domain {0} is being rebooted'.format(kvm_name) or \
-                    result['data'].strip() == '域 {0} 正在被重新启动'.format(kvm_name):
-                result = '重启成功。'
-            else:
-                result = '重启失败。'
-        else:
-            result = '虚拟机未开启。'
-        return result
 
     def kvm_clone(self, kvm_state, kvm_name, kvm_name_clone, filesystem):
         """
@@ -398,32 +404,8 @@ class KVMApi():
             result = '虚拟机未关闭。'
         return result
 
-    def kvm_info_data(self, kvm_name):
-        # 获取虚拟机cpu、内存、系统类型、磁盘
-        try:
-            exe_cmd = r'cat /etc/libvirt/qemu/{0}.xml'.format(kvm_name)
-            result = self.remote_linux(exe_cmd)
-            config = etree.XML(result['data'])
-            kvm_cpu = config.xpath("//vcpu")[0]
-            kvm_memory = config.xpath("//memory")[0]
-            kvm_os = config.xpath("//os/type")[0]
-            kvm_diskpath = config.xpath("//disk/source")[0]
-            kvm_os = kvm_os.text
-            kvm_cpu = int(kvm_cpu.text)
-            kvm_memory = int(int(kvm_memory.text)/1024)
-            kvm_disk = kvm_diskpath.attrib['file']
-            result = {
-                'kvm_os': kvm_os,
-                'kvm_disk': kvm_disk,
-                'kvm_cpu': kvm_cpu,
-                'kvm_memory': kvm_memory
-            }
-        except:
-            result = '获取信息失败。'
-        return result
-
     def snapshot_list(self, kvm_name):
-        # 查看快照列表
+        # 查看kvm快照列表
         try:
             exe_cmd = r'virsh snapshot-list {0}'.format(kvm_name)
             result = self.remote_linux(exe_cmd)
@@ -443,11 +425,22 @@ class KVMApi():
             result = '获取信息失败。'
         return result
 
-    def kvm_disk_space(self):
-        """
-        获取kvm文件系统磁盘使用情况：zfs list
-        """
+    def filesystem_del(self, filesystem):
+        # 删除kvm文件系统
+        try:
+            exe_cmd = r'zfs destroy {0}'.format(filesystem)
+            result = self.remote_linux(exe_cmd)
+            if result['data'] == '':
+                result = '删除文件系统成功。'
+            else:
+                result = '删除文件系统成功。'
+        except Exception as e:
+            print(e)
+            result = '删除文件系统失败。'
+        return result
 
+    def kvm_disk_space(self):
+        # 获取kvm文件系统磁盘使用情况：zfs list
         exe_cmd = r'zfs list'
         result = self.remote_linux(exe_cmd)
         kvm_space_list = [x for x in result['data'].split(' ') if x]
@@ -460,10 +453,10 @@ class KVMApi():
                 data['used_total'] = float(item[1].replace('G', ''))
                 data['size_total'] = float(item[2].replace('G', ''))
                 data['used_percent'] = round(float(item[1].replace('G', '')) / float(item[2].replace('G', '')), 2) * 100
-
         return data
 
     def zfs_kvm_filesystem(self):
+        # 获取所有kvm文件系统
         try:
             exe_cmd = r'ls /data/vmdata'.format()
             result = self.remote_linux(exe_cmd)
@@ -473,9 +466,7 @@ class KVMApi():
         return result
 
     def create_filesystem(self, filesystem):
-        """
-        为每一台虚拟机分别创建一个文件系统
-        """
+        # 为kvm虚拟机创建文件系统
         try:
             exe_cmd = r'zfs create {0}'.format(filesystem)
             result = self.remote_linux(exe_cmd)
@@ -488,11 +479,7 @@ class KVMApi():
         return result
 
     def zfs_create_snapshot(self, snapshot_name):
-        """
-        创建快照：zfs snapshot tank/kvm_1@2020-07-28
-        kvm_name：虚拟机
-        zfs_snapshot_name：快照名字
-        """
+        # 创建快照：zfs snapshot tank/kvm_1@2020-07-28
         try:
             exe_cmd = r'zfs snapshot {0}'.format(snapshot_name)
             result = self.remote_linux(exe_cmd)
@@ -505,9 +492,7 @@ class KVMApi():
         return result
 
     def zfs_snapshot_list(self, filesystem):
-        """
-        查看zfs快照：zfs list -t snapshot -r tank/kvm_1
-        """
+        # 查看zfs快照：zfs list -t snapshot -r tank/kvm_1
         try:
             exe_cmd = r'zfs list -t snapshot -r {0}'.format(filesystem)
             result = self.remote_linux(exe_cmd)
@@ -526,9 +511,7 @@ class KVMApi():
         return result
 
     def zfs_snapshot_del(self, snapshot_name):
-        """
-        删除快照:zfs destroy mypool/data@2020-07-28
-        """
+        # 删除快照:zfs destroy mypool/data@2020-07-28
         try:
             exe_cmd = r'zfs destroy {0}'.format(snapshot_name)
             result = self.remote_linux(exe_cmd)
@@ -541,12 +524,7 @@ class KVMApi():
         return result
 
     def zfs_clone_snapshot(self, snapshot_name, filesystem_name):
-        """
-        克隆快照：zfs clone tank/kvm_1@2020-08-20 tank/kvm_1@2020-08-20
-        kvm_name
-        kvm_snapshot_name
-        kvm_snapshot_clone_name
-        """
+        # 克隆快照：zfs clone tank/kvm_1@2020-08-20 tank/kvm_1@2020-08-20
         try:
             exe_cmd = r'zfs clone {0} {1}'.format(snapshot_name, filesystem_name)
             result = self.remote_linux(exe_cmd)
@@ -613,10 +591,7 @@ class KVMApi():
         return result
 
     def define_kvm(self, copy_name):
-        """
-        通过xml文件定义虚拟机
-        virsh define /etc/libvirt/qemu/kvm_1.xml
-        """
+        # 通过xml文件定义虚拟机:virsh define /etc/libvirt/qemu/kvm_1.xml
         xml_path = '/etc/libvirt/qemu/{0}.xml'.format(copy_name)
         exe_cmd = r'virsh define {0}'.format(xml_path)
         result = self.remote_linux(exe_cmd)     # 定义域 CentOS-7@test4（从 /etc/libvirt/qemu/CentOS-7@test4.xml）
@@ -695,9 +670,7 @@ class KVMApi():
         return result
 
     def umount(self):
-        """
-        取消挂载：umount /etc/libvirt/kvm_mount
-        """
+        # 取消挂载：umount /etc/libvirt/kvm_mount
         try:
             exe_cmd = r'umount /etc/libvirt/kvm_mount'
             result = self.remote_linux(exe_cmd)
@@ -711,10 +684,7 @@ class KVMApi():
         return result
 
     def disk_cpu_data(self):
-        """
-        查看cpu使用率
-        查看磁盘使用率
-        """
+        # 查看cpu使用率/查看磁盘使用率
         try:
             # 磁盘
             exe_cmd = r'df'
@@ -757,28 +727,8 @@ class KVMApi():
             data = '获取信息失败。'
         return data
 
-    def kvm_cpu_mem_usage(self, kvm_id):
-        try:
-            # 获取内存使用信息
-            exe_cmd = r"./test5.py {0}".format(kvm_id)
-            result = self.remote_linux(exe_cmd)
-            kvm_mem_usage = result['data']
-            # 获取cpu使用信息
-            exe_cmd = r"./test4.py {0}".format(kvm_id)
-            result = self.remote_linux(exe_cmd)
-            kvm_cpu_usage = result['data']
-            kvm_mem_usage = json.loads(kvm_mem_usage)
-            kvm_cpu_usage = json.loads(kvm_cpu_usage)
-            data = {
-                "kvm_mem_usage": kvm_mem_usage,
-                "kvm_cpu_usage": kvm_cpu_usage,
-            }
-        except Exception as e:
-            print(e)
-            data = '获取信息失败。'
-        return data
-
     def all_kvm_template(self):
+        # 查看/home/image目录下下所有的磁盘模板
         try:
             exe_cmd = r'ls /home/images/os-image'
             result = self.remote_linux(exe_cmd)
@@ -813,6 +763,7 @@ class KVMApi():
         return result
 
     def del_kvm_template(self, path):
+        # 删除模板
         try:
             exe_cmd = r'rm -rf {0}'.format(path)
             result = self.remote_linux(exe_cmd)
@@ -826,6 +777,7 @@ class KVMApi():
         return result
 
     def copy_disk(self, kvm_template_path, filesystem, kvm_storage, kvm_disk_image_path, kvm_storage_path):
+        # 拷贝磁盘文件:判断有无选择存储模板
         try:
             if kvm_storage == '':
                 exe_cmd = r'cp {0} {1}'.format(kvm_template_path, filesystem)
@@ -847,6 +799,7 @@ class KVMApi():
         return result
 
     def create_new_xml(self, kvm_xml, kvm_disk_path, kvmname, kvmcpu, kvmmemory, kvmstorage, kvm_storage_path):
+        # 生成新的xml文件
         try:
             exe_cmd = r'cat /home/xml/{0}'.format(kvm_xml)
             result = self.remote_linux(exe_cmd)
@@ -907,8 +860,11 @@ linuxserver_credit = {
     'SystemType': 'Linux',
 }
 
+ip = '192.168.1.61'
+
 # result = KVMApi(linuxserver_credit).kvm_all_list()
 # result = KVMApi(linuxserver_credit).zfs_kvm_filesystem()
 # result = KVMApi(linuxserver_credit).memory_disk_cpu_data()
 # result = KVMApi(linuxserver_credit).all_kvm_template()
+# result = LibvirtApi(ip).kvm_id('Test-1')
 # print(result)
