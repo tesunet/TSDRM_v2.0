@@ -1974,14 +1974,12 @@ def kvm_data(request):
                 "ret": 0,
                 "data": "获取kvm虚拟机失败。",
             })
-
     return JsonResponse({'all_kvm_dict': all_kvm_dict})
 
 
 @login_required
 def kvm_machine_data(request):
     kvminfo = {}
-    ret = 1
     id = request.POST.get("id", "")
     utils_id = request.POST.get("utils_id", "")
     try:
@@ -2091,11 +2089,11 @@ def kvm_copy_create(request):
         result['res'] = '实例名称未填写。'
     else:
         kvm_credit = kvm_credit_data(utils_id)
-
-        filesystem = 'data/vmdata/' + kvm_machine  # data/vmdata/CentOS-7
+        # 拼接路径
+        filesystem = 'data/vmdata/' + kvm_machine        # data/vmdata/CentOS-7
         snapshotname = filesystem + '@' + snapshot_name  # data/vmdata/CentOS-7@2020-07-28
-        filesystemname = filesystem + '-' + copy_name  # data/vmdata/CentOS-7-2020-07-28
-        copyname = kvm_machine + '@' + copy_name  # CentOS-7@2020-07-28
+        filesystemname = filesystem + '-' + copy_name    # data/vmdata/CentOS-7-2020-07-28
+        copyname = kvm_machine + '@' + copy_name         # CentOS-7@2020-07-28
         try:
             kvm_exist = []
             kvm_list = libvirtApi.KVMApi(kvm_credit).kvm_all_list()
@@ -2159,11 +2157,7 @@ def kvm_copy_data(request):
     all_kvmcopy = KvmCopy.objects.filter(kvmmachine_id=kvmmachine_id).filter(utils_id=utils_id).order_by('-create_time').exclude(state='9')
     if len(all_kvmcopy) > 0:
         for kvmcopy in all_kvmcopy:
-            copy_state = ''
-            try:
-                copy_state = libvirtApi.LibvirtApi(utils_ip).kvm_state(kvmcopy.name)
-            except:
-                pass
+            copy_state = libvirtApi.LibvirtApi(utils_ip).kvm_state(kvmcopy.name)
             result.append({
                 "id": kvmcopy.id,
                 "name": kvmcopy.name,
@@ -2252,7 +2246,7 @@ def kvm_power_on(request):
     else:
         kvm_credit = kvm_credit_data(utils_id)
         utils_ip = kvm_credit['KvmHost']
-
+        # 拼接路径
         filesystem = 'data/vmdata/' + copy_name     # data/vmdata/CentOS-7@2020-09-14
         filesystem = filesystem.replace('@', '-')   # data/vmdata/CentOS-7-2020-09-14
         try:
@@ -2350,7 +2344,6 @@ def kvm_destroy(request):
 ######################
 @login_required
 def kvm_manage(request, funid):
-    # kvm虚拟化平台
     util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
     utils_kvm_list = []
     for utils in util_manage:
@@ -2448,13 +2441,10 @@ def get_kvm_tree(request):
 
 @login_required
 def get_kvm_detail(request):
-
     utils_id = request.POST.get("utils_id", "")
     kvm_id = request.POST.get("kvm_id", "")
     kvm_name = request.POST.get("kvm_name", "")
-    utils_ip = request.POST.get("utils_ip", "")
     ret = 1
-    data = ''
     try:
         utils_id = int(utils_id)
     except:
@@ -2462,6 +2452,7 @@ def get_kvm_detail(request):
     kvm_credit = kvm_credit_data(utils_id)
     utils_ip = kvm_credit['KvmHost']
     try:
+        # 通过传参判断点击节点类型：点击根节点：kvm_name=='' and kvm_id==''，点击kvm虚拟机节点：kvm_name=='Test-1' and kvm_id=='1'
         # 宿主机信息：cpu、内存、磁盘
         if kvm_name == '' and kvm_id == '':
             memory_disk_cpu_data = libvirtApi.KVMApi(kvm_credit).disk_cpu_data()
@@ -2475,13 +2466,13 @@ def get_kvm_detail(request):
                 'memory_disk_cpu_data': memory_disk_cpu_data
             }
         # kvm虚拟机磁盘文件信息：cpu、内存、磁盘
-        # 已开启的虚拟机有id，未开启的虚拟机id为-1
-        if kvm_name and kvm_id:
+        else:
             kvm_id = kvm_id.strip()
+            ip = ''
+            hostname = ''
+            password = ''
+            # 已开启的虚拟机有id，未开启的虚拟机id为-1
             if kvm_id != '-1':
-                ip = ''
-                hostname = ''
-                password = ''
                 kvm_data = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
                 if kvm_data.exists():
                     ip = kvm_data[0].ip
@@ -2499,9 +2490,6 @@ def get_kvm_detail(request):
                     'password': password
                 }
             else:
-                ip = ''
-                hostname = ''
-                password = ''
                 kvm_data = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
                 if kvm_data.exists():
                     ip = kvm_data[0].ip
@@ -2527,13 +2515,13 @@ def get_kvm_detail(request):
 
 @login_required
 def get_kvm_task_data(request):
+    # kvm虚拟机磁盘文件信息：cpu、内存、磁盘
     kvm_id = request.POST.get("kvm_id", "")
     utils_ip = request.POST.get("utils_ip", "")
     ret = 1
     data = ''
     kvm_id = kvm_id.strip()
     try:
-        # kvm虚拟机磁盘文件信息：cpu、内存、磁盘
         # 已开启的虚拟机有id，未开启的虚拟机id为-1
         if kvm_id != '-1':
             kvm_cpu_mem_data = libvirtApi.LibvirtApi(utils_ip).kvm_memory_cpu_usage(kvm_id)
@@ -2659,10 +2647,9 @@ def kvm_delete(request):
         pass
     kvm_credit = kvm_credit_data(utils_id)
     utils_ip = kvm_credit['KvmHost']
-
+    # 拼接路径
     filesystem_snapshot = 'data/vmdata/' + name         # data/vmdata/CentOS-7@test2    快照
     filesystem = filesystem_snapshot.replace('@', '-')  # data/vmdata/CentOS-7-test2    文件系统
-
     try:
         # ①删除虚拟机
         result_info = libvirtApi.LibvirtApi(utils_ip).kvm_undefine(name, state)
@@ -2689,14 +2676,12 @@ def kvm_delete(request):
     except Exception as e:
         print(e)
         result["res"] = '删除失败。'
-
     return JsonResponse(result)
 
 
 @login_required
 def kvm_clone_save(request):
     # 克隆虚拟机：①判断要克隆虚拟机是否存在 ②先创建文件系统 ③再执行克隆操作
-
     result = {}
     utils_id = request.POST.get("utils_id", "")
     kvm_state = request.POST.get("kvm_state", "")
@@ -2740,7 +2725,6 @@ def kvm_machine_create(request):
     utils_id = request.POST.get("utils_id", "")
     kvm_template = request.POST.get("kvm_template", "")
     kvm_template_name = request.POST.get("kvm_template_name", "")
-
     kvm_storage = request.POST.get("kvm_storage", "")
     kvm_cpu = request.POST.get("kvm_cpu", "")
     kvm_memory = request.POST.get("kvm_memory", "")
@@ -2754,7 +2738,6 @@ def kvm_machine_create(request):
         result['res'] = '虚拟机名称未填写。'
     else:
         kvm_credit = kvm_credit_data(utils_id)
-
         # 拼接路径
         filesystem = 'data/vmdata/' + kvm_template_name                          # data/vmdata/Test-10
         kvm_os_image_path = '/home/images/os-image/' + kvm_template              # /home/images/os-image/CentOS-7.qcow2
@@ -2868,6 +2851,8 @@ def kvm_power(request):
                                 result = '开机失败。'
                         else:
                             result = '取消挂载失败。'
+                    else:
+                        result = '修改密码失败。'
                 else:
                     result = '修改失败。'
             else:
@@ -3116,7 +3101,6 @@ def kvm_template_del(request):
         print(e)
         status = 0
         result = '删除失败。'
-
     return JsonResponse({
         "status": status,
         "data": result,

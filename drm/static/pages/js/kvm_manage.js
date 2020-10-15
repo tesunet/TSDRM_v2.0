@@ -71,7 +71,6 @@ function getkvmtree() {
                                 url: "../get_kvm_detail/",
                                 data: {
                                     utils_id: utils_id,
-                                    utils_ip: utils_ip
                                 },
                                 success: function (data) {
                                     if (data.ret == 1) {
