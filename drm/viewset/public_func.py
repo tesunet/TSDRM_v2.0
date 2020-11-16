@@ -269,7 +269,7 @@ def get_fun_node(parent, selectid):
         node["text"] = child.name
         node["id"] = child.id
         node["type"] = child.type
-        node["data"] = {"name": child.name, "pname": parent.name}
+        node["data"] = {"name": child.name, "pname": parent.name, "new_window": child.if_new_wd}
         node["children"] = get_fun_node(child, selectid)
         try:
             if int(selectid) == child.id:

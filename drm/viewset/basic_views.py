@@ -607,13 +607,21 @@ def childfun(myfun, funid):
             if str(fun.id) == funid:
                 isselected = True
                 pisselected = True
+                # mychildfun.append(
+                #     {"id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon, "isselected": isselected,
+                #      "child": []})
                 mychildfun.append(
                     {"id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon, "isselected": isselected,
                      "child": []})
             else:
                 returnfuns = childfun(fun, funid)
-                mychildfun.append({"id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon,
-                                   "isselected": returnfuns["isselected"], "child": returnfuns["fun"]})
+                # mychildfun.append({"id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon,
+                #                    "isselected": returnfuns["isselected"], "child": returnfuns["fun"]})
+                mychildfun.append({
+                    "id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon,
+                    "isselected": returnfuns["isselected"], "child": returnfuns["fun"],
+                    "new_window": fun.if_new_wd,
+                })
                 if returnfuns["isselected"]:
                     pisselected = returnfuns["isselected"]
     return {"fun": mychildfun, "isselected": pisselected}
@@ -630,13 +638,23 @@ def getpagefuns(funid, request=""):
             isselected = False
             if str(fun.id) == funid:
                 isselected = True
-                pagefuns.append(
-                    {"id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon, "isselected": isselected,
-                     "child": []})
+                # pagefuns.append(
+                #     {"id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon, "isselected": isselected,
+                #      "child": []})
+                pagefuns.append({
+                    "id": fun.id, "name": fun.name, "url": fun.url,
+                    "icon": fun.icon, "isselected": isselected,
+                    "child": [], "new_window": fun.if_new_wd,
+                })
             else:
                 returnfuns = childfun(fun, funid)
-                pagefuns.append({"id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon,
-                                 "isselected": returnfuns["isselected"], "child": returnfuns["fun"]})
+                pagefuns.append({
+                    "id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon,
+                    "isselected": returnfuns["isselected"], "child": returnfuns["fun"],
+                    "new_window": fun.if_new_wd,
+                })
+                # pagefuns.append({"id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon,
+                #                  "isselected": returnfuns["isselected"], "child": returnfuns["fun"]})
     curfun = Fun.objects.filter(id=int(funid))
     if len(curfun) > 0:
         myurl = curfun[0].url

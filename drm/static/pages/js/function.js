@@ -22,9 +22,14 @@ function getFunctionDetail(id, node_type){
                     $("#url").val(data.url);
                     $("#icon").val(data.icon);
                     $('input:radio[name=radio2]')[0].checked = true;
+                    $('#visited_url_div').show();
+                    $('#new_window_div').show();
+                    $('#new_window').val(data.new_window);
                 }
                 if (node_type == "node") {
                     $('input:radio[name=radio2]')[1].checked = true;
+                    $('#visited_url_div').hide();
+                    $('#new_window_div').hide();
                 }
                 changeType(node_type);
             }
@@ -88,6 +93,8 @@ function getFunctiontTree(){
                                         $("#url").val("")
                                         $("#icon").val("")
                                         $("#save").show()
+                                        $("#visited_url_div").show();
+                                        $("#new_window_div").show();
                                     }
                                 }
                             },
@@ -242,9 +249,13 @@ $('#save').click(function(){
 function changeType(mytype){
     if (mytype == "fun"){
         $('input:radio[name=radio2]')[0].checked = true;
+        $('#visited_url_div').show();
+        $('#new_window_div').show();
     }
     if (mytype == "node"){
         $('input:radio[name=radio2]')[1].checked = true;
+        $('#visited_url_div').hide();
+        $('#new_window_div').hide();
     }
 }
 changeType($('#mytype').val());
