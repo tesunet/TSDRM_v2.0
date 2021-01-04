@@ -13,6 +13,7 @@ from TSDRM import settings
 from drm.api.commvault import SQLApi
 from drm.api.commvault.RestApi import *
 from .public_func import *
+from ..workflow.workflow import *
 
 #walkthroughinfo = {}
 funlist = []
@@ -277,52 +278,22 @@ def userpassword(request):
 # 首页
 ######################
 def test(request):
-    if request.user.is_authenticated():
-        errors = []
+    # testJob = Job()
+    # jobJson = {}
+    # jobJson["createuser"] = 1
+    # jobJson["name"] = '测试任务'
+    # jobJson["reson"] = '测试'
+    # jobJson["type"] = 'INSTANCE'
+    # aa = datetime.datetime.now()
+    # jobJson["modelguid"] = 'd19e3a02-44d0-11eb-b557-84fdd1a17907'
+    # jobJson["input"] = '<inputs><input><code>inputnum</code><value>1</value></input></inputs>'
+    #testJob.create_job(jobJson)
+    #testJob.get_job('ff395b2e-454c-11eb-8c53-000c29c81d38')
+    testJob = Job('ff395b2e-454c-11eb-8c53-000c29c81d38')
+    testJob.start_job()
 
-        # 填充原RTO数据
-        all_process_run = ProcessRun.objects.exclude(state="9")
-        for processrun in all_process_run:
-            if processrun.state == "DONE":
-                cur_process = processrun.process
 
-                # 正确顺序的父级Step
-                all_pnode_steps = cur_process.step_set.exclude(state="9").filter(pnode_id=None).order_by("sort")
-
-                correct_step_id_list = []
-
-                for pnode_step in all_pnode_steps:
-                    correct_step_id_list.append(pnode_step)
-
-                # 正确顺序的父级StepRun
-                correct_step_run_list = []
-
-                for pnode_step in correct_step_id_list:
-                    current_step_run = pnode_step.steprun_set.filter(processrun_id=processrun.id)
-                    if current_step_run.exists():
-                        current_step_run = current_step_run[0]
-                        correct_step_run_list.append(current_step_run)
-                starttime = processrun.starttime
-                rtoendtime = processrun.starttime
-
-                for c_step_run in reversed(correct_step_run_list):
-                    if c_step_run.step.rto_count_in == "1":
-                        rtoendtime = c_step_run.endtime
-                        break
-                delta_time = 0
-                if rtoendtime:
-                    delta_time = (rtoendtime - starttime).total_seconds()
-
-                processrun.rto = delta_time
-                processrun.save()
-            else:
-                processrun.rto = 0
-                processrun.save()
-
-        return render(request, 'test.html',
-                      {'username': request.user.userinfo.fullname, "errors": errors})
-    else:
-        return HttpResponseRedirect("/login")
+    return render(request, 'test.html')
 
 
 def processindex(request, processrun_id):

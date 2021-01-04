@@ -2405,8 +2405,6 @@ def get_kvm_node(utils_id, parent, kvm_credit, children):
         node["children"] = get_kvm_copy_node(utils_id, child['name'], kvm_credit)
         nodes.append(node)
     return nodes
-
-
 @login_required
 def get_kvm_tree(request):
     # 循环一级菜单工具管理：kvm
@@ -2437,8 +2435,6 @@ def get_kvm_tree(request):
         "ret": 1,
         "data": tree_data
     })
-
-
 @login_required
 def get_kvm_detail(request):
     utils_id = request.POST.get("utils_id", "")

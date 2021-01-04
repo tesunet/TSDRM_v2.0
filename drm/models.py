@@ -361,4 +361,163 @@ class DiskSpaceWeeklyData(models.Model):
     extract_time = models.DateTimeField("取数时间", null=True)
     point_tag = models.CharField("用以判断同一记录", null=True, default="", max_length=128)
 
+class TSDRMWorkflow(models.Model):
+    """
+    流程表
+    """
+    guid = models.CharField("GUID", null=True, max_length=50)
+    createtime = models.DateTimeField("创建时间", blank=True, null=True)
+    updatetime = models.DateTimeField("创建时间", blank=True, null=True)
+    createuser = models.ForeignKey(User, blank=True, null=True, verbose_name="创建人",related_name='workflow_createuser')
+    updateuser = models.ForeignKey(User, blank=True, null=True, verbose_name="更新人",related_name='workflow_updateuser')
+    longname = models.TextField("长名称", blank=True, null=True)
+    shortname = models.CharField("短名称", blank=True, null=True, max_length=50)
+    type = models.CharField("类型", blank=True, null=True, max_length=20)
+    owner = models.CharField("所有者", blank=True, null=True, max_length=20)
+    group = models.ManyToManyField(Group)
+    pnode = models.ForeignKey('self', blank=True, null=True, related_name='children', verbose_name='父节点')
+    icon = models.CharField("图标", blank=True, null=True, max_length=256)
+    version = models.CharField("版本", blank=True, null=True, max_length=256)
+    attribute = models.TextField("其他属性", blank=True, null=True)
+    input = models.TextField("输入参数", blank=True, null=True)
+    output = models.TextField("输出参数", blank=True, null=True)
+    variable = models.TextField("内部变量", blank=True, null=True)
+    remark = models.TextField("说明", blank=True, null=True)
+    sort = models.IntegerField("排序", blank=True, null=True)
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
+    content = models.TextField("流程内容", blank=True, null=True)
 
+class TSDRMControl(models.Model):
+    """
+    控件表
+    """
+    guid = models.CharField("GUID", null=True, max_length=50)
+    createtime = models.DateTimeField("创建时间", blank=True, null=True)
+    updatetime = models.DateTimeField("创建时间", blank=True, null=True)
+    createuser = models.ForeignKey(User, blank=True, null=True, verbose_name="创建人",related_name='control_createuser')
+    updateuser = models.ForeignKey(User, blank=True, null=True, verbose_name="更新人",related_name='control_updateuser')
+    longname = models.TextField("长名称", blank=True, null=True)
+    shortname = models.CharField("短名称", blank=True, null=True, max_length=50)
+    type = models.CharField("类型", blank=True, null=True, max_length=20)
+    owner = models.CharField("所有者", blank=True, null=True, max_length=20)
+    group = models.ManyToManyField(Group)
+    pnode = models.ForeignKey('self', blank=True, null=True, related_name='children', verbose_name='父节点')
+    icon = models.CharField("图标", blank=True, null=True, max_length=256)
+    version = models.CharField("版本", blank=True, null=True, max_length=256)
+    attribute = models.TextField("其他属性", blank=True, null=True)
+    input = models.TextField("输入参数", blank=True, null=True)
+    output = models.TextField("输出参数", blank=True, null=True)
+    variable = models.TextField("内部变量", blank=True, null=True)
+    remark = models.TextField("说明", blank=True, null=True)
+    sort = models.IntegerField("排序", blank=True, null=True)
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
+    controlclass = models.TextField("类名", blank=True, null=True)
+
+class TSDRMComponent(models.Model):
+    """
+    组件表
+    """
+    guid = models.CharField("GUID", null=True, max_length=50)
+    createtime = models.DateTimeField("创建时间", blank=True, null=True)
+    updatetime = models.DateTimeField("创建时间", blank=True, null=True)
+    createuser = models.ForeignKey(User, blank=True, null=True, verbose_name="创建人",related_name='component_createuser')
+    updateuser = models.ForeignKey(User, blank=True, null=True, verbose_name="更新人",related_name='component_updateuser')
+    longname = models.TextField("长名称", blank=True, null=True)
+    shortname = models.CharField("短名称", blank=True, null=True, max_length=50)
+    type = models.CharField("类型", blank=True, null=True, max_length=20)
+    owner = models.CharField("所有者", blank=True, null=True, max_length=20)
+    group = models.ManyToManyField(Group)
+    pnode = models.ForeignKey('self', blank=True, null=True, related_name='children', verbose_name='父节点')
+    icon = models.CharField("图标", blank=True, null=True, max_length=256)
+    version = models.CharField("版本", blank=True, null=True, max_length=256)
+    attribute = models.TextField("其他属性", blank=True, null=True)
+    input = models.TextField("输入参数", blank=True, null=True)
+    output = models.TextField("输出参数", blank=True, null=True)
+    variable = models.TextField("内部变量", blank=True, null=True)
+    remark = models.TextField("说明", blank=True, null=True)
+    sort = models.IntegerField("排序", blank=True, null=True)
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
+    language = models.CharField("脚本语言", blank=True, null=True, max_length=20)
+    code = models.TextField("脚本代码", blank=True, null=True)
+
+class TSDRMInstance(models.Model):
+    """
+    实例表
+    """
+    guid = models.CharField("GUID", null=True, max_length=50)
+    createtime = models.DateTimeField("创建时间", blank=True, null=True)
+    updatetime = models.DateTimeField("创建时间", blank=True, null=True)
+    createuser = models.ForeignKey(User, blank=True, null=True, verbose_name="创建人",related_name='instance_createuser')
+    updateuser = models.ForeignKey(User, blank=True, null=True, verbose_name="更新人",related_name='instance_updateuser')
+    workflow = models.ForeignKey(TSDRMWorkflow, blank=True, null=True, verbose_name="关联流程")
+    name = models.CharField("名称", blank=True, null=True, max_length=200)
+    type = models.CharField("类型", blank=True, null=True, max_length=20)
+    group = models.ManyToManyField(Group)
+    pnode = models.ForeignKey('self', blank=True, null=True, related_name='children', verbose_name='父节点')
+    instancetype = models.CharField("类型（保护/切换/安装/注册/恢复）", blank=True, null=True, max_length=20)
+    loglevel = models.CharField("日志级别", blank=True, null=True, max_length=20)
+    monitorable = models.CharField("是否可监控", blank=True, null=True, max_length=20)
+    sync = models.CharField("同步/异步", blank=True, null=True, max_length=20)
+    input = models.TextField("输入参数", blank=True, null=True)
+    remark = models.TextField("说明", blank=True, null=True)
+    sort = models.IntegerField("排序", blank=True, null=True)
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
+
+class TSDRMSchedule(models.Model):
+    """
+    计划策略表
+    """
+    guid = models.CharField("GUID", null=True, max_length=50)
+    dj_periodictask = models.OneToOneField(djmodels.PeriodicTask, null=True, verbose_name="定时任务")
+    instance = models.ForeignKey(TSDRMInstance, null=True, verbose_name="流程预案实例")
+    name = models.CharField("流程计划名称", blank=True, null=True, max_length=256)
+    input = models.TextField("输入参数", blank=True, null=True)
+    remark = models.TextField("计划说明", null=True, blank=True)
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
+    schedule_type_choices = (
+        (1, "每日"),
+        (2, "每周"),
+        (3, "每月"),
+        (4, "每小时"),
+    )
+    schedule_type = models.IntegerField(choices=schedule_type_choices, default=1, null=True)
+
+class SubSchedule(models.Model):
+    """
+    详细计划时间表
+    """
+    s = models.ForeignKey(TSDRMSchedule, null=True, verbose_name='周期')
+    minute = models.CharField('分钟', max_length=64, default='', blank=True)
+    hour = models.CharField('小时', max_length=64, default='', blank=True)
+    day_of_week = models.CharField('周中日', max_length=64, default='', blank=True)
+    day_of_month = models.CharField('月中日', max_length=64, default='', blank=True)
+    min_of_hour = models.CharField('时中分', max_length=64, default='', blank=True)
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
+
+
+class TSDRMJob(models.Model):
+    """
+    流程任务表
+    """
+    guid = models.CharField("GUID", null=True, max_length=50)
+    createtime = models.DateTimeField("创建时间", blank=True, null=True)
+    updatetime = models.DateTimeField("更新时间", blank=True, null=True)
+    createuser = models.ForeignKey(User, blank=True, null=True, verbose_name="创建人",related_name='job_createuser')
+    updateuser = models.ForeignKey(User, blank=True, null=True, verbose_name="更新人",related_name='job_updateuser')
+    starttime = models.DateTimeField("开始时间", blank=True, null=True)
+    startuser = models.ForeignKey(User, blank=True, null=True, verbose_name="启动人",related_name='job_startuser')
+    name = models.CharField("名称", blank=True, null=True, max_length=200)
+    reson = models.TextField("启动原因", blank=True, null=True)
+    pjob = models.ForeignKey('self', blank=True, null=True, related_name='children', verbose_name='父流程')
+    step = models.CharField("流程中的步骤号", blank=True, null=True, max_length=20)
+    type = models.CharField("类型", blank=True, null=True, max_length=20)
+    modelguid = models.CharField("模型guid", blank=True, null=True, max_length=50)
+    schedule = models.ForeignKey(TSDRMSchedule, blank=True, null=True, verbose_name="关联计划")
+    input = models.TextField("输入参数", blank=True, null=True)
+    output = models.TextField("输出参数", blank=True, null=True)
+    endtime = models.DateTimeField("结束时间", blank=True, null=True)
+    log = models.TextField("日志", blank=True, null=True)
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
+    jobstepoutput = models.TextField("每一步骤的输出参数及值", blank=True, null=True)
+    jobvariable = models.TextField("内部参数及值", blank=True, null=True)
+    finalinput = models.TextField("输入参数及值", blank=True, null=True)
