@@ -15,11 +15,15 @@ class WorkFlow(object):
         self.workflowBaseInfo = None
         self.workflow = None
         self.massage = ""
+        # 实例化传入guid时，从数据库中查找，guid为None时，视为新建
         if self.workflowGuid and len(self.workflowGuid.strip()) > 0:
             self.get_workflow(self.workflowGuid)
 
     # 获取流程
     def get_workflow(self,workflowGuid):
+        """
+        根据guid从数据库中获取数据，赋值给workflowBaseInfo
+        """
         self.workflow = None
         if self.workflowType == "WORKFLOW":
             self.workflow = TSDRMWorkflow.objects.exclude(state="9").filter(guid=workflowGuid).first()
@@ -73,6 +77,9 @@ class WorkFlow(object):
             self.massage = 'error(get_workflow):流程' + workflowGuid + '不存在'
 
     def set_workflow(self, jsonFromPage):
+        """
+        获取页面数据并赋值给workflowBaseInfo
+        """
         if self.workflowGuid is None:
             self.workflowGuid = uuid.uuid1()
         self.workflowBaseInfo.creattime = jsonFromPage.creattime
@@ -95,9 +102,11 @@ class WorkFlow(object):
         self.workflowBaseInfo.outputs = jsonFromPage.outputs
         self.workflowBaseInfo.steps = jsonFromPage.steps
 
-
     # 保存流程
     def save_workflow(self):
+        """
+        将workflowBaseInfo中数据保存到数据库
+        """
         if self.workflowGuid is None:
             self.massage='error(save_workflow):流程未初始化'
         else:
@@ -147,7 +156,6 @@ class WorkFlow(object):
                 self.massage='success(save_workflow):保存成功' + groupmsg
             else:
                 self.massage='error(save_workflow):保存失败'
-
 
     # 删除流程
     def del_workflow(self):
@@ -259,11 +267,20 @@ class Job(object):
         self.finalInput = []
         #输出参数及值
         self.finalOutput = []
+        # 实例化传入guid时，从数据库中查找，guid为None时，视为新建
         if self.jobGuid and len(self.jobGuid.strip()) > 0:
             self.get_job(self.jobGuid)
 
     # 获取任务
     def get_job(self,jobGuid):
+        """
+        根据guid从数据库中获取数据，jobBaseInfo
+        解析XML获得jobStepOutput（每步的输出数据）
+        jobVariable（内部变量值）
+        finalInput（全部输入参数值）
+        finalOutput（全部输出参数值）
+
+        """
         self.job = None
         self.job = TSDRMJob.objects.exclude(state="9").filter(guid=jobGuid).first()
         if self.job is not None:
@@ -348,6 +365,10 @@ class Job(object):
 
     #新建任务
     def create_job(self,jobJson):
+        """
+        根据jobJson创建任务
+        jobJson可包含name、reson、pjob、type、modelguid、schedule、input
+        """
 
         self.jobGuid = None
         self.jobModelguid = None
@@ -398,6 +419,9 @@ class Job(object):
 
     # 保存任务
     def _save_job(self):
+        """
+        将jobBaseInfo中数据保存到数据库
+        """
         self.job.updatetime = datetime.datetime.now()
         if self.userid:
             self.job.updateuser_id = self.userid
@@ -416,6 +440,12 @@ class Job(object):
 
     # 开始任务
     def start_job(self):
+        """
+        1、_getInput，获取获取input参数值
+        2、_getVariable，定义内部参数变量
+        3、保存任务
+        4、_run_workflow，_run_control，_run_component根据类型(流程、控件、组件)执行任务
+        """
         if self.jobGuid is None:
             self.massage = 'error(start_job):任务未初始化'
             self.jobBaseInfo["log"]+='error(start_job):任务未初始化'
@@ -423,9 +453,13 @@ class Job(object):
             self.jobBaseInfo["starttime"] = datetime.datetime.now()
             self.jobBaseInfo["startuser"] = self.userid
             self.jobBaseInfo["state"] = "RUN"
+            #1、_getInput，获取获取input参数值
             self._getInput()
+            #2、_getVariable，定义内部参数变量
             self._getVariable()
+            #3、保存任务
             self._save_job()
+            #4、_run_workflow，_run_control，_run_component根据类型(流程、控件、组件)执行任务
             if self.jobModel.workflowType == "WORKFLOW":
                 self._run_workflow()
             if self.jobModel.workflowType == "CONTROL":
@@ -435,6 +469,10 @@ class Job(object):
 
     # 执行流程
     def _run_workflow(self):
+        """
+        解析workflow的content字段，找出开始步骤modelguid='ef81b0de-44cc-11eb-9c38-84fdd1a17907'
+        执行开始步骤
+        """
         xml = etree.fromstring(self.jobModel.workflowBaseInfo["content"])
         startStep = xml.xpath("//modelguid[text()='ef81b0de-44cc-11eb-9c38-84fdd1a17907'][1]/parent::*/parent::*")
         if len(startStep) > 0:
@@ -445,6 +483,10 @@ class Job(object):
 
     # 执行控件
     def _run_control(self):
+        """
+        根据controlclass字段内容，执行对应方法
+        exec方法可执行储存在字符串Python 语句
+        """
         if self.jobModel.workflowBaseInfo["controlclass"] and len(self.jobModel.workflowBaseInfo["controlclass"].strip()) > 0:
             exec("self._control_" + self.jobModel.workflowBaseInfo["controlclass"] + "()")
         self.jobBaseInfo["state"] = "DONE"
@@ -452,18 +494,27 @@ class Job(object):
 
     # 执行组件
     def _run_component(self):
+        """
+        1.定义组件componentInput和componentOutput
+        2.根据类型执行组件代码，目前只写了python类型。组件code中，直接把输出参数值写到componentOutput对应的键上
+        3.将componentOutput写到任务的finalOutput中
+        4.保存任务
+        """
+        #1.定义组件componentInput和componentOutput
         componentInput = {}
         for input in self.finalInput:
             componentInput[input["code"]] = input["value"]
         componentOutput = {}
+        #2.根据类型执行组件代码，目前只写了python类型。组件code中，直接把输出参数值写到componentOutput对应的键上
         if self.jobModel.workflowBaseInfo["language"]=="python":
             componentCode=self.jobModel.workflowBaseInfo["code"]
             exec(componentCode)
-
+        #3.将componentOutput写到任务的finalOutput中
         if self.jobModel.workflowBaseInfo["output"] and len(self.jobModel.workflowBaseInfo["output"].strip()) > 0:
             tmpDTL = xmltodict.parse(self.jobModel.workflowBaseInfo["output"])
             if "outputs" in tmpDTL and tmpDTL["outputs"] and "output" in tmpDTL["outputs"] and tmpDTL["outputs"]["output"]:
                 tmpDTL = tmpDTL["outputs"]["output"]
+                #xmltodict会将只有一条记录的output转成OrderedDict，而我们需要的时list，需转化下
                 if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
                     tmpDTL = [tmpDTL]
                 self.finalOutput = tmpDTL
@@ -472,29 +523,48 @@ class Job(object):
                     if output["code"] in componentOutput:
                         output.update({'value':componentOutput[output["code"]]})
         self.jobBaseInfo["state"]="DONE"
+        #4.保存任务
         self._save_job()
         print(self.finalOutput)
 
     # 运行步骤
     def _run_step(self,step):
+        """
+        1.获得步骤信息
+        2.创建并运行步骤任务
+        3.获得步骤任务output并存入主任务jobStepOutput
+        4.将步骤output写入主任务内部参数jobVariable
+        5.保存任务
+        6.判断是否为结束步骤modelguid=='69255378-44ce-11eb-9203-84fdd1a17907'，如果是执行7，如果不是执行8
+        7.结束任务
+        8.根据step中的line查找下一步
+        9.解析line的条件criteria，只有判断控件（modelguid=='c2d3f2b6-49a9-11eb-99aa-84fdd1a17907'）的criteria才生效
+        10.执行下一步
+        11.保存
+        """
         stepJob=Job(userid=self.userid,pnode=self)
         jobJson = {}
         curStep = xmltodict.parse(step)
 
         if "step" in step and "baseInfo" in curStep["step"] and curStep["step"]["baseInfo"] and "stepid" in curStep["step"]["baseInfo"] and curStep["step"]["baseInfo"]["stepid"] and len(curStep["step"]["baseInfo"]["stepid"].strip()) and curStep["step"]["baseInfo"]["modelguid"] and len(curStep["step"]["baseInfo"]["modelguid"].strip()) and curStep["step"]["baseInfo"]["modelType"] and len(curStep["step"]["baseInfo"]["modelType"].strip()) > 0:
+            #1.获得步骤信息
             jobJson["modelguid"] = curStep["step"]["baseInfo"]["modelguid"]
             jobJson["type"] = curStep["step"]["baseInfo"]["modelType"]
             jobJson["pjob"] = self.jobBaseInfo["id"]
             jobJson["step"] = curStep["step"]["baseInfo"]["stepid"]
             if "inputs" in curStep["step"] and curStep["step"]["inputs"] and"input" in curStep["step"]["inputs"] and curStep["step"]["inputs"]["input"]:
                 tmpDTL = curStep["step"]["inputs"]["input"]
+                # xmltodict会将只有一条记录的input转成OrderedDict，而我们需要的时list，需转化下
                 if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
                     tmpDTL = [tmpDTL]
+                # 给步骤的input赋值
                 stepInput = self._sourceToValue(tmpDTL)
                 stepInput = {"inputs":{"input":stepInput}}
                 jobJson["input"] = xmltodict.unparse(stepInput,encoding='utf-8')
+            #2.创建并运行步骤任务
             stepJob.create_job(jobJson)
             stepJob.start_job()
+            #3.获得步骤任务output并存入主任务jobStepOutput
             stepOutput = stepJob.finalOutput
             for oldJobStepOutput in self.jobStepOutput:
                 if oldJobStepOutput["id"] ==curStep["step"]["baseInfo"]["stepid"]:
@@ -502,9 +572,10 @@ class Job(object):
                     break
             else:
                 self.jobStepOutput.append({"id":curStep["step"]["baseInfo"]["stepid"],"output":stepOutput})
-
+            #4.将步骤output写入主任务内部参数jobVariable
             if "outputs" in curStep["step"] and "output" in curStep["step"]["outputs"] and len(curStep["step"]["outputs"]["output"]) > 0:
                 tmpDTL = curStep["step"]["outputs"]["output"]
+                # xmltodict会将只有一条记录的output转成OrderedDict，而我们需要的时list，需转化下
                 if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
                     tmpDTL = [tmpDTL]
                 for outputSet in tmpDTL:
@@ -527,20 +598,25 @@ class Job(object):
         else:
             self.massage = 'error(_run_step)步骤信息错误'
             self.jobBaseInfo["log"] +='error(_run_step)步骤信息错误'
+        #5.保存任务
         self._save_job()
 
-        # 结束或下一步
+        #6.判断是否为结束步骤modelguid=='69255378-44ce-11eb-9203-84fdd1a17907'，如果是执行7，如果不是执行8
         if curStep["step"]["baseInfo"]["modelguid"]=='69255378-44ce-11eb-9203-84fdd1a17907':
+            #7.结束任务
             self._end_job()
         else:
+            #8.根据step中的line查找下一步
             if "step" in step and "lines" in curStep["step"] and "line" in curStep["step"]["lines"] and len(curStep["step"]["lines"]["line"]) > 0:
                 tmpDTL = curStep["step"]["lines"]["line"]
+                # xmltodict会将只有一条记录的line转成OrderedDict，而我们需要的时list，需转化下
                 if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
                     tmpDTL = [tmpDTL]
                 for line in tmpDTL:
                     if "nextPoint" in line:
                         nextStepId = line["nextPoint"]
                         criteria = True
+                        #9.解析line的条件criteria，只有判断控件（modelguid=='c2d3f2b6-49a9-11eb-99aa-84fdd1a17907'）的criteria才生效
                         #判断上一步是否未判断控件，如果是，对比判断结果和线条条件；如果不是，无视条件直接继续
                         if curStep["step"]["baseInfo"]["modelguid"] == 'c2d3f2b6-49a9-11eb-99aa-84fdd1a17907':
                             for lastOutput in stepOutput:
@@ -557,6 +633,7 @@ class Job(object):
                                         if criteriaStr == "False":
                                             criteria = False
                                     break
+                        #10.执行下一步
                         if criteria:
                             xml = etree.fromstring(self.jobModel.workflowBaseInfo["content"])
                             nextStep = xml.xpath("//stepid[text()='" + nextStepId + "'][1]/parent::*/parent::*")
@@ -568,17 +645,24 @@ class Job(object):
             else:
                 self.massage = 'error(_run_step)步骤未找到下一步'
                 self.jobBaseInfo["log"] +='error(_run_step)步骤未找到下一步'
+            #11.保存
             self._save_job()
 
     # 运行结束
     def _end_job(self):
+        """
+        1.设置finalOutput
+        2.结束并保存
+        """
         if self.jobModel.workflowBaseInfo["output"] and len(self.jobModel.workflowBaseInfo["output"].strip()) > 0:
             tmpOutput = xmltodict.parse(self.jobModel.workflowBaseInfo["output"])
             if "outputs" in tmpOutput and "output" in tmpOutput["outputs"]:
                 tmpDTL = tmpOutput["outputs"]["output"]
+                # xmltodict会将只有一条记录的output转成OrderedDict，而我们需要的时list，需转化下
                 if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
                     tmpDTL = [tmpDTL]
                 self.finalOutput = tmpDTL
+                # 给步骤的finalOutput赋值
                 self.finalOutput = self._sourceToValue(self.finalOutput)
         self.jobBaseInfo["state"] = "DONE"
         self._save_job()
@@ -586,8 +670,14 @@ class Job(object):
 
     # 获取输入参数
     def _getInput(self):
+        """
+        1.从流程中获取input
+        2.从实例中获取input
+        3.从任务中获取input
+        4.格式化input参数
+        """
         if self.jobModel.workflowBaseInfo["input"] and len(self.jobModel.workflowBaseInfo["input"].strip()) > 0:
-            #从流程中获取input
+            #1.从流程中获取input
             tmpInput = xmltodict.parse(self.jobModel.workflowBaseInfo["input"])
             if "inputs" in tmpInput and "input" in tmpInput["inputs"]:
                 tmpDTL= tmpInput["inputs"]["input"]
@@ -596,7 +686,7 @@ class Job(object):
                 self.finalInput = tmpDTL
                 if len(self.finalInput)>0:
                     if self.jobType == 'INSTANCE':
-                        # 从实例中获取input
+                        #2.从实例中获取input
                         tmpInput = xmltodict.parse(self.jobModel.instanceBaseInfo["input"])
                         if "inputs" in tmpInput and "input" in tmpInput["inputs"]:
                             tmpDTL = tmpInput["inputs"]["input"]
@@ -609,7 +699,7 @@ class Job(object):
                                         for instanceInput in instanceInputList:
                                             if instanceInput["code"] == input["code"]:
                                                 input["value"] = instanceInput["value"]
-                    # 从任务中获取input
+                    #3.从任务中获取input
                     tmpInput = xmltodict.parse(self.jobBaseInfo["input"])
                     if "inputs" in tmpInput and "input" in tmpInput["inputs"]:
                         tmpDTL = tmpInput["inputs"]["input"]
@@ -622,7 +712,7 @@ class Job(object):
                                     for jobInput in jobInputList:
                                         if jobInput["code"] == input["code"]:
                                             input["value"] = jobInput["value"]
-                #格式化参数
+                #4.格式化input参数
                 self.finalInput = self._sourceToValue(self.finalInput)
 
     # 获取内部变量
@@ -639,11 +729,16 @@ class Job(object):
 
     # 格式化参数
     def _sourceToValue(self, paramList,sourceNode=None):
+        """
+        1.根据source，从workfolwInput、workfolwVariable、stepOutput、_getFunctionValue中获取参数值；常数和input不需要额外获取
+        2.转换参数个格式
+        """
         curSourceNode = self
         if sourceNode is not None:
             curSourceNode = sourceNode
 
         for param in paramList:
+            #1.根据source，从workfolwInput、workfolwVariable、stepOutput、_getFunctionValue中获取参数值；常数和input不需要额外获取
             if param["source"] == "workfolwInput":
                 for tmpInput in curSourceNode.finalInput:
                     if param["value"] == tmpInput["code"]:
@@ -678,6 +773,7 @@ class Job(object):
             elif param["source"] == "function":
                 param["value"] = self._getFunctionValue(param["value"])
             try:
+                #2.转换参数个格式
                 if param["type"] == "int":
                     try:
                         param["value"] = int(param["value"])
@@ -723,9 +819,17 @@ class Job(object):
 
     # 控件——判断
     def _control_if(self):
+        """
+        1.获取条件列表
+        2.解析每个条件不等式左右两边参数值
+        3.根据不等式，判断单个条件结果
+        4.根据逻辑运算符，取最终结果
+        5.输出结果finalOutput
+        """
         criteriaList = []
         result = True
 
+        #1.获取条件列表
         if len(self.finalInput)>0:
             for input in self.finalInput:
                 if input["code"]=="criteria":
@@ -733,6 +837,7 @@ class Job(object):
                     break
         if criteriaList:
             for criteria in criteriaList:
+                #2.解析每个条件不等式左右两边参数
                 curResult = False
                 leftParm = [{"type":criteria["type"],"source":criteria["left_source"],"value":criteria["left_value"]}]
                 leftParm = self._sourceToValue(leftParm,sourceNode=self.pnode)
@@ -747,6 +852,7 @@ class Job(object):
                 if len(rightParm) > 0:
                     rightValue = rightParm[0]["value"]
 
+                #3.根据不等式，判断单个条件结果
                 criteriaChar=criteria["char"].strip()
                 if criteriaChar:
                     if criteriaChar=="==":
@@ -785,12 +891,14 @@ class Job(object):
                                 curResult = True
                         except:
                             pass
+                #4.根据逻辑运算符，取最终结果
                 criteriaLogic=criteria["logic"].strip()
                 if criteriaLogic:
                     if criteriaLogic=="and":
                         result = result and curResult
                     elif criteriaLogic=="or":
                         result = result or curResult
+        #5.输出结果finalOutput
         if self.jobModel.workflowBaseInfo["output"] and len(self.jobModel.workflowBaseInfo["output"].strip()) > 0:
             tmpDTL = xmltodict.parse(self.jobModel.workflowBaseInfo["output"])
             if "outputs" in tmpDTL and tmpDTL["outputs"] and "output" in tmpDTL["outputs"] and tmpDTL["outputs"][
@@ -1055,6 +1163,7 @@ class Job(object):
 #     return nodelist
 
 if __name__ == "__main__":
+    # #创建任务
     # testJob = Job()
     # jobJson = {}
     # jobJson["createuser"] = 1
@@ -1065,7 +1174,8 @@ if __name__ == "__main__":
     # jobJson["modelguid"] = 'd19e3a02-44d0-11eb-b557-84fdd1a17907'
     # jobJson["input"] = '<inputs><input><code>inputnum</code><value>1</value></input></inputs>'
     # testJob.create_job(jobJson)
-    # testJob.get_job('ff395b2e-454c-11eb-8c53-000c29c81d38')
+
+    # get并执行任务
     testJob = Job('ff395b2e-454c-11eb-8c53-000c29c81d38')
     testJob.start_job()
 

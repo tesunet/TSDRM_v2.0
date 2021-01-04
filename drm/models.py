@@ -367,7 +367,7 @@ class TSDRMWorkflow(models.Model):
     """
     guid = models.CharField("GUID", null=True, max_length=50)
     createtime = models.DateTimeField("创建时间", blank=True, null=True)
-    updatetime = models.DateTimeField("创建时间", blank=True, null=True)
+    updatetime = models.DateTimeField("更新时间", blank=True, null=True)
     createuser = models.ForeignKey(User, blank=True, null=True, verbose_name="创建人",related_name='workflow_createuser')
     updateuser = models.ForeignKey(User, blank=True, null=True, verbose_name="更新人",related_name='workflow_updateuser')
     longname = models.TextField("长名称", blank=True, null=True)
@@ -493,7 +493,6 @@ class SubSchedule(models.Model):
     day_of_month = models.CharField('月中日', max_length=64, default='', blank=True)
     min_of_hour = models.CharField('时中分', max_length=64, default='', blank=True)
     state = models.CharField("状态", blank=True, null=True, max_length=20)
-
 
 class TSDRMJob(models.Model):
     """
