@@ -7,12 +7,21 @@ from .viewset.config_views import *
 from .viewset.monitor_views import *
 from .viewset.commv_views import *
 from .viewset.report_views import *
+from .viewset.workflow_views import *
+from .viewset.test import *
 
 
 urlpatterns = [
+    url(r'^test/$', test),
+    url(r'^tsdrmstart1/$', tsdrmstart1),
+    url(r'^tsdrmstart2/$', tsdrmstart2),
+    url(r'^tsdrmstop/$', tsdrmstop),
+    url(r'^tsdrmpause/$', tsdrmpause),
+    url(r'^tsdrmretry1/$', tsdrmretry1),
+    url(r'^tsdrmretry2/$', tsdrmretry2),
+
     url(r'^favicon.ico$', RedirectView.as_view(url=r'static/pages/images/logo/favicon.ico')),
     url(r'^$', index, {'funid': '2'}),
-    url(r'^test/$', test),
     url(r'^processindex/(\d+)/$', processindex),
     url(r'^index/$', index, {'funid': '2'}),
     url(r'^get_process_rto/$', get_process_rto),
@@ -278,4 +287,7 @@ urlpatterns = [
     url(r'^kvm_template_save/$', kvm_template_save),
     url(r'^kvm_template_del/$', kvm_template_del),
     url(r'^get_kvm_template/$', get_kvm_template),
+
+    # 流程管理（新）
+    url(r'^workflow/$', workflow, {'funid': '120'}),
 ]

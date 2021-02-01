@@ -6,7 +6,7 @@ from django.conf import settings
 # set the default Django settings module for the 'TSDRM' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'TSDRM.settings')
 
-app = Celery('TSDRM')
+app = Celery('TSDRM2')
 
 # Using a string here means the worker will not have to
 # pickle the object when using Windows.

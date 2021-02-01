@@ -27,6 +27,8 @@ function getFunctionDetail(id, node_type){
                     $('#new_window').val(data.new_window);
                 }
                 if (node_type == "node") {
+                    $("#url").val(data.url);
+                    $("#icon").val(data.icon);
                     $('input:radio[name=radio2]')[1].checked = true;
                     $('#visited_url_div').hide();
                     $('#new_window_div').hide();
@@ -84,6 +86,7 @@ function getFunctiontTree(){
                                         alert("无法在功能下新建节点或功能。");
                                     }
                                     else {
+                                        $("#formdiv").show();
                                         $('input:radio[name=radio2]')[0].checked = true;
                                         $("#title").text("新建")
                                         $("#id").val("0")

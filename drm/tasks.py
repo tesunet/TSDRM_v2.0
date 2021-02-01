@@ -21,8 +21,27 @@ from TSDRM import settings
 from .api.commvault import SQLApi
 from .CVApi import *
 from .viewset.public_func import *
+from .workflow.workflow import *
 
 logger = logging.getLogger('tasks')
+
+
+@shared_task
+def run_workflow(jobGuid,type,skipJobGuid=None):
+    """
+    启动任务进程
+    """
+    job = Job(jobGuid)
+    if type=="start":
+        #开始流程
+        job.run_job()
+    elif type=="retry":
+        #重试/继续流程
+        job.retry_job()
+    elif type=="skip":
+        #跳过步骤并继续流程
+        job.skip_step(skipJobGuid)
+
 
 
 # @shared_task
