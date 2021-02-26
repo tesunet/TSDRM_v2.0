@@ -279,6 +279,8 @@ class Job(object):
         self.jobGuid = job_guid
         self.jobModelguid = None
         self.jobType = None
+        # 父任务
+        self.pnode = None
         #模型实例
         self.jobModel = None
         #任务信息
@@ -584,6 +586,8 @@ class Job(object):
             self.jobBaseInfo["state"] = "WAIT"
         else:
             self.jobBaseInfo["state"] = "DONE"
+        print(self.jobBaseInfo["name"] + ":")
+        print(self.finalOutput)
 
     # 执行组件
     def run_component(self):
@@ -600,7 +604,7 @@ class Job(object):
         """
 
         #1.定义组件componentInput和componentOutput，于脚本进行输入输出交互.
-        time.sleep(10)
+        #time.sleep(10)
         componentInput = {}
         for input in self.finalInput:
             componentInput[input["code"]] = input["value"]
@@ -629,6 +633,7 @@ class Job(object):
                         output.update({'value':componentOutput[output["code"]]})
         #将执行结果状态存入self.jobBaseInfo["state"].
         self.jobBaseInfo["state"]="DONE"
+        print(self.jobBaseInfo["name"] + ":")
         print(self.finalOutput)
 
     # 执行流程
@@ -642,6 +647,12 @@ class Job(object):
         Returns:
             无
         """
+        print('*----------------------------------------——*')
+        print("<<" + self.jobBaseInfo["name"] + ">>")
+        print('输入:')
+        print(self.finalInput)
+        print('*---------------——*')
+
         xml = etree.fromstring(self.jobModel.workflowBaseInfo["content"])
         #1.解析workflow的content字段，找出开始步骤modelguid='ef81b0de-44cc-11eb-9c38-84fdd1a17907'
         startStep = xml.xpath("//modelguid[text()='ef81b0de-44cc-11eb-9c38-84fdd1a17907'][1]/parent::*/parent::*")
@@ -651,6 +662,10 @@ class Job(object):
         else:
             self.jobBaseInfo["log"] += 'error(run_job)未配置开始步骤'
             self.jobBaseInfo["state"] = "ERROR"
+        print('*---------------——*')
+        print('输出:')
+        print(self.finalOutput)
+        print('*----------------------------------------——*')
 
     # 运行步骤
     def _run_step(self,step):
@@ -682,6 +697,7 @@ class Job(object):
             jobJson["modelguid"] = curStep["step"]["baseInfo"]["modelguid"]
             jobJson["type"] = curStep["step"]["baseInfo"]["modelType"]
             jobJson["step"] = curStep["step"]["baseInfo"]["stepid"]
+            jobJson["name"] = curStep["step"]["baseInfo"]["name"]
             #2.判断需执行的步骤是否为正在运行中的for循环，如果是，查找for步骤的信息；如果不是，创建并运行步骤任务
             isRunLoop=False
             if curStep["step"]["baseInfo"]["modelguid"]=="0aa259dc-50ad-11eb-a8a3-84fdd1a17907":
@@ -693,7 +709,8 @@ class Job(object):
                 stepJob.get_job(loopJobList[0].guid)
                 stepJob.jobBaseInfo["state"] = "RUN"
                 stepJob.save_job()
-                returnState = stepJob.run_control()
+                stepJob.run_control()
+                returnState = stepJob.jobBaseInfo["state"]
                 stepJob.save_job()
             else:
                 #2.2创建并运行步骤任务
@@ -840,7 +857,7 @@ class Job(object):
         else:
             self.jobStepOutput.append({"id": curStep["step"]["baseInfo"]["stepid"], "output": stepOutput})
         # 2.将步骤output写入主任务内部参数jobVariable
-        if "outputs" in curStep["step"] and "output" in curStep["step"]["outputs"] and len(
+        if "outputs" in curStep["step"] and curStep["step"]["outputs"] and "output" in curStep["step"]["outputs"] and len(
                 curStep["step"]["outputs"]["output"]) > 0:
             tmpDTL = curStep["step"]["outputs"]["output"]
             # xmltodict会将只有一条记录的output转成OrderedDict，而我们需要的时list，需转化下
@@ -1187,11 +1204,11 @@ class Job(object):
 
     #控件——开始流程
     def _control_workflowStart(self):
-        print("流程开始")
+        pass
 
     #控件——结束流程
     def _control_workflowEnd(self):
-        print("流程结束")
+        pass
 
     # 控件——判断
     def _control_if(self):

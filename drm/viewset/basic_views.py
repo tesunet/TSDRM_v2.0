@@ -17,7 +17,6 @@ from ..workflow.workflow import *
 from ..tasks import *
 
 #walkthroughinfo = {}
-funlist = []
 
 ######################
 # 知识库
@@ -553,162 +552,54 @@ def getfun(myfunlist, fun):
 
 
 def childfun(myfun, funid):
-    mychildfun = []
-    funs = myfun.children.order_by("sort").all()
     pisselected = False
-    for fun in funs:
-        if fun in funlist:
-            isselected = False
-            if str(fun.id) == funid:
-                isselected = True
-                pisselected = True
-                # mychildfun.append(
-                #     {"id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon, "isselected": isselected,
-                #      "child": []})
-                mychildfun.append(
-                    {"id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon, "isselected": isselected,
-                     "child": []})
-            else:
-                returnfuns = childfun(fun, funid)
-                # mychildfun.append({"id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon,
-                #                    "isselected": returnfuns["isselected"], "child": returnfuns["fun"]})
-                mychildfun.append({
-                    "id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon,
-                    "isselected": returnfuns["isselected"], "child": returnfuns["fun"],
-                    "new_window": fun.if_new_wd,
-                })
-                if returnfuns["isselected"]:
-                    pisselected = returnfuns["isselected"]
-    return {"fun": mychildfun, "isselected": pisselected}
+    for fun in myfun:
+        if str(fun["id"]) == str(funid):
+            fun["isselected"] = True
+            pisselected = True
+        else:
+            returnfuns = childfun(fun["child"], funid)
+            fun["isselected"] = returnfuns["isselected"]
+            fun["child"] = returnfuns["fun"]
+            if returnfuns["isselected"]:
+                pisselected = returnfuns["isselected"]
+    return {"fun": myfun, "isselected": pisselected}
 
 
 def getpagefuns(funid, request=""):
-    pagefuns = []
+    funlist = request.session['funlist']
     mycurfun = {}
-    message_task = []
     task_nums = 0
 
     for fun in funlist:
-        if fun.pnode_id == 1:
-            isselected = False
-            if str(fun.id) == funid:
-                isselected = True
-                # pagefuns.append(
-                #     {"id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon, "isselected": isselected,
-                #      "child": []})
-                pagefuns.append({
-                    "id": fun.id, "name": fun.name, "url": fun.url,
-                    "icon": fun.icon, "isselected": isselected,
-                    "child": [], "new_window": fun.if_new_wd,
-                })
-            else:
-                returnfuns = childfun(fun, funid)
-                pagefuns.append({
-                    "id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon,
-                    "isselected": returnfuns["isselected"], "child": returnfuns["fun"],
-                    "new_window": fun.if_new_wd,
-                })
-                # pagefuns.append({"id": fun.id, "name": fun.name, "url": fun.url, "icon": fun.icon,
-                #                  "isselected": returnfuns["isselected"], "child": returnfuns["fun"]})
+        if str(fun["id"]) == str(funid):
+            fun["isselected"] = True
+        else:
+            returnfuns = childfun(fun["child"], funid)
+            fun["isselected"] = returnfuns["isselected"]
+            fun["child"] = returnfuns["fun"]
+
     curfun = Fun.objects.filter(id=int(funid))
     if len(curfun) > 0:
         myurl = curfun[0].url
-        jsurl = curfun[0].url
-        if len(myurl) > 0:
+        if myurl:
             myurl = myurl[:-1]
-            jsurl = jsurl[:-1]
-            if "oracle_restore" in myurl:
-                compile_obj = re.compile(r"/.*/")
-                jsurl = compile_obj.findall(myurl)[0][:-1]
-        mycurfun = {"id": curfun[0].id, "name": curfun[0].name, "url": myurl, "jsurl": jsurl}
-    if request:
-        # 右上角消息下拉菜单
-        mygroup = []
-        userinfo = request.user.userinfo
-        guoups = userinfo.group.all()
-        pop = False
-        if len(guoups) > 0:
-            for curguoup in guoups:
-                mygroup.append(str(curguoup.id))
-        allprosstasks = ProcessTask.objects.filter(
-            Q(receiveauth__in=mygroup) | Q(receiveuser=request.user.username)).filter(state="0").order_by(
-            "-starttime").exclude(processrun__state="9").select_related("processrun", "processrun__process",
-                                                                        "steprun__step")
-        if len(allprosstasks) > 0:
-            for task in allprosstasks:
-                send_time = task.starttime
-                process_name = task.processrun.process.name
-                process_run_reason = task.processrun.run_reason
-                task_id = task.id
-                processrunid = task.processrun.id
+        jsurl = request.path  # /falconstorswitch/24
+        if jsurl:
+            jsurl = jsurl[1:-1]
+            curjsurl = jsurl.split('/')
+            jsurl = '/' + curjsurl[0]
 
-                c_task_step_run = task.steprun
-                if c_task_step_run:
-                    address = c_task_step_run.step.remark
-                    if not address:
-                        address = ""
-                else:
-                    address = ""
+        mycurfun = {
+            "id": curfun[0].id, "name": curfun[0].name, "url": myurl, "jsurl": jsurl
+        }
 
-                task_nums = len(allprosstasks)
-                process_color = task.processrun.process.color
-                process_url = task.processrun.process.url + "/" + str(task.processrun.id)
-                time = task.starttime
+    return {"pagefuns": funlist, "curfun": mycurfun, "task_nums": task_nums}
 
-                # 图标与颜色
-                if task.type == "ERROR":
-                    current_icon = "fa fa-exclamation-triangle"
-                    current_color = "label-danger"
-                elif task.type == "SIGN":
-                    current_icon = "fa fa-user"
-                    current_color = "label-warning"
-                elif task.type == "RUN":
-                    current_icon = "fa fa-bell-o"
-                    current_color = "label-warning"
-                else:
-                    pass
-
-                time = custom_time(time)
-
-                message_task.append(
-                    {"content": task.content, "time": time, "process_name": process_name, "address": address,
-                     "task_color": current_color.strip(), "task_type": task.type, "task_extra": task.content,
-                     "task_icon": current_icon, "process_color": process_color.strip(), "process_url": process_url,
-                     "pop": True if task.type == "SIGN" else False, "task_id": task_id,
-                     "send_time": send_time.strftime("%Y-%m-%d %H:%M:%S"),
-                     "processrunid": processrunid, "process_run_reason": process_run_reason,
-                     "group_name": guoups[0].name})
-    return {"pagefuns": pagefuns, "curfun": mycurfun, "message_task": message_task, "task_nums": task_nums}
-
-
+@login_required
 def index(request, funid):
     if request.user.is_authenticated():
-        global funlist
-        funlist = []
-        if request.user.is_superuser == 1:
-            allfunlist = Fun.objects.all()
-            for fun in allfunlist:
-                funlist.append(fun)
-        else:
-            cursor = connection.cursor()
-            cursor.execute(
-                "select drm_fun.id from drm_group,drm_fun,drm_userinfo,drm_userinfo_group,drm_group_fun "
-                "where drm_group.id=drm_userinfo_group.group_id and drm_group.id=drm_group_fun.group_id and "
-                "drm_group_fun.fun_id=drm_fun.id and drm_userinfo.id=drm_userinfo_group.userinfo_id and userinfo_id= "
-                + str(request.user.userinfo.id) + " order by drm_fun.sort"
-            )
-
-            rows = cursor.fetchall()
-            for row in rows:
-                try:
-                    fun = Fun.objects.get(id=row[0])
-                    funlist = getfun(funlist, fun)
-                except:
-                    pass
-        for index, value in enumerate(funlist):
-            if value.sort is None:
-                value.sort = 0
-        funlist = sorted(funlist, key=lambda fun: fun.sort)
+        request.session['funlist'] = custom_personal_fun_list(request.user.is_superuser, request.user.userinfo.id)
         # 最新操作
         alltask = []
         cursor = connection.cursor()
@@ -858,6 +749,67 @@ def index(request, funid):
                        "today_process_run_length": today_process_run_length, "all_process": all_process})
     else:
         return HttpResponseRedirect("/login")
+
+
+def getchildfun(myfun,funlist):
+    mychildfun = []
+    funs = myfun.children.order_by("sort")
+
+    for fun in funs:
+        if fun in funlist:
+            url = fun.url if fun.url else ""
+            returnfuns = getchildfun(fun,funlist)
+            mychildfun.append({
+                "id": fun.id, "name": fun.name, "url": url, "icon": fun.icon,
+                "isselected": False, "child": returnfuns["fun"],
+                "new_window": fun.if_new_wd,
+            })
+    return {"fun": mychildfun}
+
+
+def custom_personal_fun_list(if_superuser, userinfo_id):
+    funlist = []
+    if if_superuser == 1:
+        allfunlist = Fun.objects.all()
+        for fun in allfunlist:
+            funlist.append(fun)
+    else:
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "select datacenter_fun.id from datacenter_group,datacenter_fun,datacenter_userinfo,datacenter_userinfo_group,datacenter_group_fun "
+                    "where datacenter_group.id=datacenter_userinfo_group.group_id and datacenter_group.id=datacenter_group_fun.group_id and "
+                    "datacenter_group_fun.fun_id=datacenter_fun.id and datacenter_userinfo.id=datacenter_userinfo_group.userinfo_id and userinfo_id= "
+                    + str(userinfo_id) + " order by datacenter_fun.sort"
+                )
+
+                rows = cursor.fetchall()
+                for row in rows:
+                    try:
+                        fun = Fun.objects.get(id=row[0])
+                        funlist = getfun(funlist, fun)
+                    except:
+                        pass
+        finally:
+            connection.close()
+    for index, value in enumerate(funlist):
+        if value.sort is None:
+            value.sort = 0
+    funlist = sorted(funlist, key=lambda fun: fun.sort)
+
+    pagefuns = []
+
+    for fun in funlist:
+        if fun.pnode_id == 1:
+            url = fun.url if fun.url else ""
+            returnfuns = getchildfun(fun,funlist)
+            pagefuns.append({
+                "id": fun.id, "name": fun.name, "url": url, "icon": fun.icon,
+                "isselected": False, "child": returnfuns["fun"],
+                "new_window": fun.if_new_wd,
+            })
+
+    return pagefuns
 
 
 def monitor(request):

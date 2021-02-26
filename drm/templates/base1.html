@@ -270,29 +270,29 @@
                                 {% endfor %}
                             </ul>
                             <section class="panel panel-default">
-                                <header class="panel-heading">
-                                    {% for  fun in pagefuns.pagefuns %}
-                                        {% if fun.isselected %}
-                                            {% if not fun.child %}
-                                                {{ fun.name }}
-                                            {% else %}
-                                                {% for  fun1 in fun.child %}
-                                                    {% if fun1.isselected %}
-                                                        {% if not fun1.child %}
-                                                            {{ fun1.name }}
-                                                        {% else %}
-                                                            {% for  fun2 in fun1.child %}
-                                                                {% if fun2.isselected %}
-                                                                    {{ fun2.name }}
-                                                                {% endif %}
-                                                            {% endfor %}
-                                                        {% endif %}
-                                                    {% endif %}
-                                                {% endfor %}
-                                            {% endif %}
-                                        {% endif %}
-                                    {% endfor %}
-                                </header>
+{#                                <header class="panel-heading">#}
+{#                                    {% for  fun in pagefuns.pagefuns %}#}
+{#                                        {% if fun.isselected %}#}
+{#                                            {% if not fun.child %}#}
+{#                                                {{ fun.name }}#}
+{#                                            {% else %}#}
+{#                                                {% for  fun1 in fun.child %}#}
+{#                                                    {% if fun1.isselected %}#}
+{#                                                        {% if not fun1.child %}#}
+{#                                                            {{ fun1.name }}#}
+{#                                                        {% else %}#}
+{#                                                            {% for  fun2 in fun1.child %}#}
+{#                                                                {% if fun2.isselected %}#}
+{#                                                                    {{ fun2.name }}#}
+{#                                                                {% endif %}#}
+{#                                                            {% endfor %}#}
+{#                                                        {% endif %}#}
+{#                                                    {% endif %}#}
+{#                                                {% endfor %}#}
+{#                                            {% endif %}#}
+{#                                        {% endif %}#}
+{#                                    {% endfor %}#}
+{#                                </header>#}
                                 {% block content %}{% endblock %}
                             </section>
                         </section>

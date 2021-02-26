@@ -289,5 +289,13 @@ urlpatterns = [
     url(r'^get_kvm_template/$', get_kvm_template),
 
     # 流程管理（新）
-    url(r'^workflow/$', workflow, {'funid': '120'}),
+    url(r'^workflow/(\d+)/$', workflow, {'funid': '120'}),
+    url(r'^workflowlist/$', workflowlist, {'funid': '120'}),
+    url(r'^get_workflow_tree/$', get_workflow_tree),
+    url(r'^get_workflow_detail/$', get_workflow_detail),
+    url(r'^workflow_save/$', workflow_save),
+    url(r'^workflow_del/$', workflow_del),
+    url(r'^workflow_move/$', workflow_move),
+    url(r'^workflow_getdata/$', workflow_getdata),
+    url(r'^workflow_draw_save/$', workflow_draw_save),
 ]
