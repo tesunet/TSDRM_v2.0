@@ -106,7 +106,6 @@ def get_workflow_detail(request):
                                 '%Y-%m-%d %H:%M:%S') if workflow.updatetime else '',
             "createuser": workflow.createuser.userinfo.fullname if workflow.createuser else "",
             "updateuser": workflow.updateuser.userinfo.fullname if workflow.updateuser else "",
-            "longname": workflow.longname,
             "shortname": workflow.shortname,
             "type": workflow.type,
             "owner": workflow.owner,
@@ -159,7 +158,7 @@ def workflow_move(request):
     else:
         # 目标父节点下所有节点 除了自身 流程名称都不得相同 否则重名
         workflow_same = TSDRMWorkflow.objects.exclude(state="9").exclude(id=id).filter(pnode=workflow_parent).filter(
-            name=my_workflow.name)
+            shortname=my_workflow.shortname)
 
         if workflow_same:
             return HttpResponse("重名")
@@ -182,12 +181,14 @@ def workflow_move(request):
                 my_workflow.pnode = workflow_parent
                 my_workflow.sort = sort
                 my_workflow.save()
+                my_workflow.longname = getLongname(my_workflow)
+                my_workflow.save()
             except:
                 pass
 
             # 起始 结束 点不在同一节点下 写入父节点名称与ID ?
             if parent != old_parent:
-                return HttpResponse(workflow_parent.name + "^" + str(workflow_parent.id))
+                return HttpResponse(workflow_parent.shortname + "^" + str(workflow_parent.id))
             else:
                 return HttpResponse("0")
 
@@ -209,7 +210,6 @@ def workflow_save(request):
     node_name = request.POST.get('node_name', '')
     node_remark = request.POST.get('node_remark', '')
 
-    longname=request.POST.get('longname', '')
     shortname = request.POST.get('shortname', '')
     owner = request.POST.get('owner', '')
     group = request.POST.getlist('group', [])
@@ -238,7 +238,6 @@ def workflow_save(request):
                     except:
                         pass
                     workflowsave = TSDRMWorkflow()
-                    workflowsave.longname = node_name
                     workflowsave.shortname = node_name
                     workflowsave.sort = sort if sort else None
                     workflowsave.remark = node_remark
@@ -249,6 +248,8 @@ def workflow_save(request):
                     workflowsave.updatetime = datetime.datetime.now()
                     workflowsave.createuser = request.user
                     workflowsave.updateuser = request.user
+                    workflowsave.save()
+                    workflowsave.longname = getLongname(workflowsave)
                     workflowsave.save()
 
                     select_id = workflowsave.id
@@ -264,6 +265,8 @@ def workflow_save(request):
                     workflowsave.updatetime = datetime.datetime.now()
                     workflowsave.updateuser = request.user
                     workflowsave.save()
+                    workflowsave.longname = getLongname(workflowsave)
+                    workflowsave.save()
 
                     select_id = workflowsave.id
                 except Exception as e:
@@ -271,9 +274,6 @@ def workflow_save(request):
                     status = 0
     else:
         allgroup = Group.objects.exclude(state="9")
-        if longname.strip() == '':
-            info = '长名称不能为空。'
-            status = 0
         if shortname.strip() == '':
             info = '短名称不能为空。'
             status = 0
@@ -292,7 +292,6 @@ def workflow_save(request):
                         pass
                     workflowsave = TSDRMWorkflow()
                     workflowsave.guid = uuid.uuid1()
-                    workflowsave.longname = longname
                     workflowsave.shortname = shortname
                     workflowsave.owner = owner
                     workflowsave.icon = icon
@@ -306,6 +305,8 @@ def workflow_save(request):
                     workflowsave.updatetime = datetime.datetime.now()
                     workflowsave.createuser = request.user
                     workflowsave.updateuser = request.user
+                    workflowsave.save()
+                    workflowsave.longname = getLongname(workflowsave)
                     workflowsave.save()
                     workflowsave.group.clear()
                     for groupid in group:
@@ -329,7 +330,6 @@ def workflow_save(request):
             else:
                 try:
                     workflowsave = TSDRMWorkflow.objects.get(id=id)
-                    workflowsave.longname = longname
                     workflowsave.shortname = shortname
                     workflowsave.owner = owner
                     workflowsave.icon = icon
@@ -338,6 +338,8 @@ def workflow_save(request):
 
                     workflowsave.updatetime = datetime.datetime.now()
                     workflowsave.updateuser = request.user
+                    workflowsave.save()
+                    workflowsave.longname = getLongname(workflowsave)
                     workflowsave.save()
                     workflowsave.group.clear()
                     for groupid in group:
@@ -429,7 +431,7 @@ def workflow_getdata(request):
                              "totype": ""})
 
             controlDate.append({"category": control.controlclass, "modeltype": "CONTROL", "modelguid": control.guid, "modelname": control.shortname,
-             "text": control.shortname, "geo": control.icon, "color": "#2a6dc0", "input": input, "output": output})
+             "text": control.shortname, "geo": control.icon, "color": "#2a6dc0", "input": json.dumps(input), "output": json.dumps(output)})
         workflowData["controlDate"]=controlDate
 
         # 组件模型
@@ -459,7 +461,7 @@ def workflow_getdata(request):
                              "totype": ""})
             componentDate.append(
                 {"category": "component", "modeltype": "COMPONENT", "modelguid": component.guid, "modelname": component.shortname,
-                 "text": component.shortname, "geo": component.icon, "color": "#2a6dc0", "input": input, "output": output})
+                 "text": component.shortname, "geo": component.icon, "color": "#2a6dc0", "input": json.dumps(input), "output": json.dumps(output)})
         workflowData["componentDate"] = componentDate
 
         # 子流程模型
@@ -492,7 +494,7 @@ def workflow_getdata(request):
             subworkflowDate.append(
                 {"category": "subworkflow", "modeltype": "WORKFLOW", "modelguid": subworkflow.guid,
                  "modelname": subworkflow.shortname,
-                 "text": subworkflow.shortname, "geo": subworkflow.icon, "color": "#2a6dc0", "input": input, "output":output})
+                 "text": subworkflow.shortname, "geo": subworkflow.icon, "color": "#2a6dc0", "input": json.dumps(input), "output": json.dumps(output)})
         workflowData["subworkflowDate"] = subworkflowDate
 
         # 流程数据
@@ -538,17 +540,16 @@ def workflow_getdata(request):
                     '%Y-%m-%d %H:%M:%S') if workflow.updatetime else '',
                 "createuser": workflow.createuser.userinfo.fullname if workflow.createuser else "",
                 "updateuser": workflow.updateuser.userinfo.fullname if workflow.updateuser else "",
-                "longname": workflow.longname,
                 "shortname": workflow.shortname,
                 "type": workflow.type,
                 "owner": workflow.owner,
-                "group": [x.id for x in workflow.group.all()],
+                "group": json.dumps([x.id for x in workflow.group.all()]),
                 "icon": workflow.icon,
                 "version": workflow.version,
                 "remark": workflow.remark,
-                "input": input,
-                "variable": variable,
-                "output": output
+                "input": json.dumps(input),
+                "variable": json.dumps(variable),
+                "output": json.dumps(output)
             }
 
             # 流程步骤内容
@@ -635,7 +636,7 @@ def workflow_getdata(request):
                                 category = "subworkflow"
                             nodelist.append({"category": category, "modeltype": step_modeltype, "modelguid": step_guid,
                              "modelname": stepObject.shortname, "text": curstep["baseInfo"]["name"], "geo": stepObject.icon, "color": "#2a6dc0", "key":  curstep["baseInfo"]["stepid"],
-                             "loc": curstep["baseInfo"]["loc"],"input": input, "output": output})
+                             "loc": curstep["baseInfo"]["loc"],"input": json.dumps(input), "output": json.dumps(output)})
 
                         # 线条
                         if "lines" in curstep and curstep["lines"] and "line" in curstep["lines"]:
@@ -706,21 +707,17 @@ def workflow_draw_save(request):
             status = 0
             info = "保存失败，流程不存在！"
         else:
-            longname = baseinfo["longname"]
             shortname = baseinfo["shortname"]
             owner = baseinfo["owner"]
-            group = baseinfo["group"]
+            group = json.loads(baseinfo["group"])
             icon = baseinfo["icon"]
             version = baseinfo["version"]
             remark = baseinfo["remark"]
-            input = baseinfo["input"]
-            output = baseinfo["output"]
-            variable = baseinfo["variable"]
+            input = json.loads(baseinfo["input"])
+            output = json.loads(baseinfo["output"])
+            variable = json.loads(baseinfo["variable"])
 
             workflowsave=workflow[0]
-            if longname.strip() == '':
-                info = '长名称不能为空。'
-                status = 0
             if shortname.strip() == '':
                 info = '短名称不能为空。'
                 status = 0
@@ -729,7 +726,6 @@ def workflow_draw_save(request):
                 status = 0
             else:
 
-                workflowsave.longname = longname
                 workflowsave.shortname = shortname
                 workflowsave.owner = owner
                 workflowsave.icon = icon
@@ -757,6 +753,7 @@ def workflow_draw_save(request):
                         xmlnode_step_loc = etree.SubElement(xmlnode_step_baseInfo, "loc")
                         xmlnode_step_loc.text = step["loc"]
                         xmlnode_step_inputs = etree.SubElement(xmlnode_step, "inputs")
+                        step["input"] = json.loads(step["input"])
                         if "input" in step and step["input"]:
                             for input in step["input"]:
                                 xmlnode_step_input = etree.SubElement(xmlnode_step_inputs, "input")
@@ -770,6 +767,7 @@ def workflow_draw_save(request):
                                 #     inputvalue = json.dumps(inputvalue)
                                 xmlnode_step_input_value.text = inputvalue
                         xmlnode_step_outputs = etree.SubElement(xmlnode_step, "outputs")
+                        step["output"] = json.loads(step["output"])
                         if "output" in step and step["output"]:
                             for output in step["output"]:
                                 xmlnode_step_output = etree.SubElement(xmlnode_step_outputs, "output")
@@ -820,6 +818,8 @@ def workflow_draw_save(request):
                 workflowsave.updatetime = datetime.datetime.now()
                 workflowsave.updateuser = request.user
                 workflowsave.save()
+                workflowsave.longname = getLongname(workflowsave)
+                workflowsave.save()
                 workflowsave.group.clear()
                 allgroup = Group.objects.exclude(state="9")
                 for groupid in group:
@@ -834,3 +834,10 @@ def workflow_draw_save(request):
         "status": status,
         "info": info,
     })
+
+
+def getLongname(node):
+    if node.pnode is None:
+        return node.shortname
+    else:
+        return getLongname(node.pnode) + "-" + node.shortname

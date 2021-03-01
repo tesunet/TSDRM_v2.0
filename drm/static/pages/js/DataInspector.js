@@ -92,7 +92,7 @@ Inspector.prototype.inspectObject = function (object) {
                 $('#stepinput_others').hide();
 
                 $("#step_criteria").empty();
-                var stepinput = stepData['input'];
+                var stepinput = JSON.parse(stepData['input']);
                 for (var i = 0; i < stepinput.length; i++) {
                     if (stepinput[i]["code"] == "criteria") {
                         var stepcriteria = stepinput[i]["value"];
@@ -144,7 +144,7 @@ Inspector.prototype.inspectObject = function (object) {
                     var source=$('#step_criteria_source_left').val();
                     if(source == "workfolwInput"){
                         $('#modal_workflowinput').modal('show');
-                        var workflowinputdata = modelData['input'];
+                        var workflowinputdata = JSON.parse(modelData['input']);
                         var dataSet = workflowinputdata;
                         var oldTable = $('#table_workflowinput').dataTable();
                         oldTable.fnClearTable();
@@ -196,7 +196,7 @@ Inspector.prototype.inspectObject = function (object) {
                     }
                     else if(source == "workfolwVariable"){
                         $('#modal_workfolwvariable').modal('show');
-                        var workflowvariabledata = modelData['variable'];
+                        var workflowvariabledata = JSON.parse(modelData['variable']);
                         var dataSet = workflowvariabledata;
                         var oldTable = $('#table_workfolwvariable').dataTable();
                         oldTable.fnClearTable();
@@ -255,7 +255,7 @@ Inspector.prototype.inspectObject = function (object) {
                         for (var i = 0; i < steps.length; i++) {
                             if(steps[i]["key"]==$("#modal_stepoutput_step").val()){
 
-                                var stepoutdata = steps[i]["output"];
+                                var stepoutdata = JSON.parse(steps[i]["output"]);
                                 var dataSet = stepoutdata;
                                 var oldTable = $('#table_stepoutput').dataTable();
                                 oldTable.fnClearTable();
@@ -311,7 +311,7 @@ Inspector.prototype.inspectObject = function (object) {
                             for (var i = 0; i < steps.length; i++) {
                                 if(steps[i]["key"]==$("#modal_stepoutput_step").val()){
 
-                                    var stepoutdata = steps[i]["output"];
+                                    var stepoutdata = JSON.parse(steps[i]["output"]);
                                     var dataSet = stepoutdata;
                                     var oldTable = $('#table_stepoutput').dataTable();
                                     oldTable.fnClearTable();
@@ -372,7 +372,7 @@ Inspector.prototype.inspectObject = function (object) {
                     var source=$('#step_criteria_source_right').val();
                     if(source == "workfolwInput"){
                         $('#modal_workflowinput').modal('show');
-                        var workflowinputdata = modelData['input'];
+                        var workflowinputdata = JSON.parse(modelData['input']);
                         var dataSet = workflowinputdata;
                         var oldTable = $('#table_workflowinput').dataTable();
                         oldTable.fnClearTable();
@@ -424,7 +424,7 @@ Inspector.prototype.inspectObject = function (object) {
                     }
                     else if(source == "workfolwVariable"){
                         $('#modal_workfolwvariable').modal('show');
-                        var workflowvariabledata = modelData['variable'];
+                        var workflowvariabledata = JSON.parse(modelData['variable']);
                         var dataSet = workflowvariabledata;
                         var oldTable = $('#table_workfolwvariable').dataTable();
                         oldTable.fnClearTable();
@@ -483,7 +483,7 @@ Inspector.prototype.inspectObject = function (object) {
                         for (var i = 0; i < steps.length; i++) {
                             if(steps[i]["key"]==$("#modal_stepoutput_step").val()){
 
-                                var stepoutdata = steps[i]["output"];
+                                var stepoutdata = JSON.parse(steps[i]["output"]);
                                 var dataSet = stepoutdata;
                                 var oldTable = $('#table_stepoutput').dataTable();
                                 oldTable.fnClearTable();
@@ -539,7 +539,7 @@ Inspector.prototype.inspectObject = function (object) {
                             for (var i = 0; i < steps.length; i++) {
                                 if(steps[i]["key"]==$("#modal_stepoutput_step").val()){
 
-                                    var stepoutdata = steps[i]["output"];
+                                    var stepoutdata = JSON.parse(steps[i]["output"]);
                                     var dataSet = stepoutdata;
                                     var oldTable = $('#table_stepoutput').dataTable();
                                     oldTable.fnClearTable();
@@ -641,7 +641,7 @@ Inspector.prototype.inspectObject = function (object) {
                         right_value: $("#step_criteria_value_right").val(),
                     }
 
-                    var newstepinput = stepData['input'];
+                    var newstepinput = JSON.parse(stepData['input']);
                     var newstepcriteria = []
                     for (var i = 0; i < newstepinput.length; i++) {
                         if (newstepinput[i]["code"] == "criteria") {
@@ -693,7 +693,7 @@ Inspector.prototype.inspectObject = function (object) {
                         }
                     }
 
-                    diagram.model.setDataProperty(stepData, "input", newstepinput);
+                    diagram.model.setDataProperty(stepData, "input", JSON.stringify(newstepinput));
 
 
                     $('#step_criteria_isnew').val("0")
@@ -759,7 +759,7 @@ Inspector.prototype.inspectObject = function (object) {
                 });
 
                 $('#step_criteria_del').click(function () {
-                    var newstepinput = stepData['input'];
+                    var newstepinput = JSON.parse(stepData['input']);
                     var newstepcriteria = []
                     for (var i = 0; i < newstepinput.length; i++) {
                         if (newstepinput[i]["code"] == "criteria") {
@@ -778,7 +778,7 @@ Inspector.prototype.inspectObject = function (object) {
                         if (newstepinput[i]["code"] == "criteria") {
                             newstepinput[i]["value"] = newstepcriteria;
 
-                            diagram.model.setDataProperty(stepData, "input", newstepinput);
+                            diagram.model.setDataProperty(stepData, "input", JSON.stringify(newstepinput));
 
                             $("#step_criteria option:selected").remove();
 
@@ -806,7 +806,7 @@ Inspector.prototype.inspectObject = function (object) {
                 $('#stepinput_others').show();
 
                 $("#step_input").empty();
-                var stepinput = stepData['input'];
+                var stepinput = JSON.parse(stepData['input']);
                 for (var i = 0; i < stepinput.length; i++) {
                     $("#step_input").append('<option value="' + stepinput[i]["code"] + '">' + stepinput[i]["name"] + '</option>')
                 }
@@ -854,7 +854,7 @@ Inspector.prototype.inspectObject = function (object) {
                         $('#step_input_value_lable').text("值");
                     }
 
-                    var newstepinput = stepData['input'];
+                    var newstepinput = JSON.parse(stepData['input']);
                     for (var i = 0; i < newstepinput.length; i++) {
                         if ($('#step_input_code').val() == newstepinput[i]["code"]) {
                             newstepinput[i]["source"] = $('#step_input_source').val();
@@ -863,11 +863,11 @@ Inspector.prototype.inspectObject = function (object) {
                     }
 
 
-                    diagram.model.setDataProperty(stepData, "input", newstepinput);
+                    diagram.model.setDataProperty(stepData, "input", JSON.stringify(newstepinput));
 
                 });
                 $('#step_input_value').change(function () {
-                    var newstepinput = stepData['input'];
+                    var newstepinput = JSON.parse(stepData['input']);
                     for (var i = 0; i < newstepinput.length; i++) {
                         if ($('#step_input_code').val() == newstepinput[i]["code"]) {
                             newstepinput[i]["value"] = $('#step_input_value').val();
@@ -876,7 +876,7 @@ Inspector.prototype.inspectObject = function (object) {
                     }
 
 
-                    diagram.model.setDataProperty(stepData, "input", newstepinput);
+                    diagram.model.setDataProperty(stepData, "input", JSON.stringify(newstepinput));
 
 
                 });
@@ -884,7 +884,7 @@ Inspector.prototype.inspectObject = function (object) {
                     var source = $('#step_input_source').val();
                     if (source == "workfolwInput") {
                         $('#modal_workflowinput').modal('show');
-                        var workflowinputdata = modelData['input'];
+                        var workflowinputdata = JSON.parse(modelData['input']);
                         var dataSet = workflowinputdata;
                         var oldTable = $('#table_workflowinput').dataTable();
                         oldTable.fnClearTable();
@@ -936,7 +936,7 @@ Inspector.prototype.inspectObject = function (object) {
 
                     } else if (source == "workfolwVariable") {
                         $('#modal_workfolwvariable').modal('show');
-                        var workflowvariabledata = modelData['variable'];
+                        var workflowvariabledata = JSON.parse(modelData['variable']);
                         var dataSet = workflowvariabledata;
                         var oldTable = $('#table_workfolwvariable').dataTable();
                         oldTable.fnClearTable();
@@ -995,7 +995,7 @@ Inspector.prototype.inspectObject = function (object) {
                         for (var i = 0; i < steps.length; i++) {
                             if (steps[i]["key"] == $("#modal_stepoutput_step").val()) {
 
-                                var stepoutdata = steps[i]["output"];
+                                var stepoutdata = JSON.parse(steps[i]["output"]);
                                 var dataSet = stepoutdata;
                                 var oldTable = $('#table_stepoutput').dataTable();
                                 oldTable.fnClearTable();
@@ -1052,7 +1052,7 @@ Inspector.prototype.inspectObject = function (object) {
                             for (var i = 0; i < steps.length; i++) {
                                 if (steps[i]["key"] == $("#modal_stepoutput_step").val()) {
 
-                                    var stepoutdata = steps[i]["output"];
+                                    var stepoutdata = JSON.parse(steps[i]["output"]);
                                     var dataSet = stepoutdata;
                                     var oldTable = $('#table_stepoutput').dataTable();
                                     oldTable.fnClearTable();
@@ -1112,14 +1112,14 @@ Inspector.prototype.inspectObject = function (object) {
 
             //步骤输出
             $("#step_output").empty();
-            var stepoutput = stepData['output'];
+            var stepoutput = JSON.parse(stepData['output']);
             for (var i = 0; i < stepoutput.length; i++) {
                 $("#step_output").append('<option value="' + stepoutput[i]["code"] + '">' + stepoutput[i]["name"] + '</option>')
             }
             $("#step_output_to").empty();
             $("#step_output_to").append('<option value="">无</option>')
 
-            var workflowvariable = modelData['variable'];
+            var workflowvariable = JSON.parse(modelData['variable']);
             for (var i = 0; i < workflowvariable.length; i++) {
                 $("#step_output_to").append('<option value="' + workflowvariable[i]["code"] + '">' + workflowvariable[i]["name"] + '</option>')
             }
@@ -1155,7 +1155,7 @@ Inspector.prototype.inspectObject = function (object) {
 
             });
             $('#step_output_to').change(function () {
-                var newstepoutput = stepData['output'];
+                var newstepoutput = JSON.parse(stepData['output']);
                 for (var i = 0; i < newstepoutput.length; i++) {
                     if ($('#step_output_code').val() == newstepoutput[i]["code"]) {
                         newstepoutput[i]["to"] = $('#step_output_to').val();
@@ -1163,11 +1163,11 @@ Inspector.prototype.inspectObject = function (object) {
                     }
                 }
 
-                diagram.model.setDataProperty(stepData, "output", newstepoutput);
+                diagram.model.setDataProperty(stepData, "output", JSON.stringify(newstepoutput));
 
             });
             $('#step_output_to_type').change(function () {
-                var newstepoutput = stepData['output'];
+                var newstepoutput = JSON.parse(stepData['output']);
                 for (var i = 0; i < newstepoutput.length; i++) {
                     if ($('#step_output_code').val() == newstepoutput[i]["code"]) {
                         newstepoutput[i]["totype"] = $('#step_output_to_type').val();
@@ -1176,7 +1176,7 @@ Inspector.prototype.inspectObject = function (object) {
                 }
 
 
-                diagram.model.setDataProperty(stepData, "output", newstepoutput);
+                diagram.model.setDataProperty(stepData, "output", JSON.stringify(newstepoutput));
 
             });
         }
@@ -1244,15 +1244,13 @@ Inspector.prototype.inspectObject = function (object) {
         $('#createuser').val(modelData['createuser']);
         $('#updatetime').val(modelData['updatetime']);
         $('#updateuser').val(modelData['updateuser']);
-        $('#longname').val(modelData['longname']);
         $('#shortname').val(modelData['shortname']);
         $('#owner').val(modelData['owner']);
         $('#icon').val(modelData['icon']);
         $('#version').val(modelData['version']);
-        $("#group").val(modelData['group']);
+        $("#group").val(JSON.parse(modelData['group']));
         $('#remark').val(modelData['remark']);
 
-        $('#longname').unbind("change");
         $('#shortname').unbind("change");
         $('#owner').unbind("change");
         $('#icon').unbind("change");
@@ -1260,11 +1258,6 @@ Inspector.prototype.inspectObject = function (object) {
         $('#group').unbind("change");
         $('#remark').unbind("change");
 
-        $('#longname').change(function () {
-            diagram.startTransaction('修改流程');
-            diagram.model.setDataProperty(modelData, "longname", $('#longname').val());
-            diagram.commitTransaction('修改流程');
-        });
         $('#shortname').change(function () {
 
             diagram.startTransaction('修改流程');
@@ -1292,7 +1285,7 @@ Inspector.prototype.inspectObject = function (object) {
         $('#group').change(function () {
 
             diagram.startTransaction('修改流程');
-            diagram.model.setDataProperty(modelData, "group", $('#group').val());
+            diagram.model.setDataProperty(modelData, "group", JSON.stringify($('#group').val()));
             diagram.commitTransaction('修改流程');
         });
         $('#remark').change(function () {
@@ -1304,7 +1297,7 @@ Inspector.prototype.inspectObject = function (object) {
 
         //流程输入
         $("#workflow_input").empty();
-        var workflowinput = modelData['input'];
+        var workflowinput = JSON.parse(modelData['input']);
         for (var i = 0; i < workflowinput.length; i++) {
             $("#workflow_input").append('<option value="' + workflowinput[i]["code"] + '">' + workflowinput[i]["name"] + '</option>')
         }
@@ -1359,7 +1352,7 @@ Inspector.prototype.inspectObject = function (object) {
                 remark: $("#workflow_input_remark").val(),
                 sort: $("#workflow_input_sort").val()
             }
-            var newinput = modelData['input'];
+            var newinput = JSON.parse(modelData['input']);
             if ($('#workflow_input_isnew').val() == "1") {
                 var exist = false;
                 for (var i = 0; i < newinput.length; i++) {
@@ -1393,7 +1386,7 @@ Inspector.prototype.inspectObject = function (object) {
             }
 
 
-            diagram.model.setDataProperty(modelData, "input", newinput);
+            diagram.model.setDataProperty(modelData, "input", JSON.stringify(newinput));
 
             $('#workflow_input_isnew').val("0")
             $('#workflow_input_code').prop("readonly", true);
@@ -1461,7 +1454,7 @@ Inspector.prototype.inspectObject = function (object) {
                     $("#workflow_input option:selected").remove();
 
 
-                    diagram.model.setDataProperty(modelData, "input", workflowinput);
+                    diagram.model.setDataProperty(modelData, "input", JSON.stringify(workflowinput));
 
 
                     $('#workflow_input_isnew').val("1")
@@ -1482,7 +1475,7 @@ Inspector.prototype.inspectObject = function (object) {
 
         //临时变量
         $("#workflow_variable").empty();
-        var workflowvariable = modelData['variable'];
+        var workflowvariable = JSON.parse(modelData['variable']);
         for (var i = 0; i < workflowvariable.length; i++) {
             $("#workflow_variable").append('<option value="' + workflowvariable[i]["code"] + '">' + workflowvariable[i]["name"] + '</option>')
         }
@@ -1532,7 +1525,7 @@ Inspector.prototype.inspectObject = function (object) {
                 remark: $("#workflow_variable_remark").val(),
                 sort: $("#workflow_variable_sort").val()
             }
-            var newvariable = modelData['variable'];
+            var newvariable = JSON.parse(modelData['variable']);
             if ($('#workflow_variable_isnew').val() == "1") {
                 var exist = false;
                 for (var i = 0; i < newvariable.length; i++) {
@@ -1566,7 +1559,7 @@ Inspector.prototype.inspectObject = function (object) {
             }
 
 
-            diagram.model.setDataProperty(modelData, "variable", newvariable);
+            diagram.model.setDataProperty(modelData, "variable", JSON.stringify(newvariable));
 
             $('#workflow_variable_isnew').val("0")
             $('#workflow_variable_code').prop("readonly", true);
@@ -1630,7 +1623,7 @@ Inspector.prototype.inspectObject = function (object) {
                     $("#workflow_variable option:selected").remove();
 
 
-                    diagram.model.setDataProperty(modelData, "variable", workflowvariable);
+                    diagram.model.setDataProperty(modelData, "variable", JSON.stringify(workflowvariable));
 
                     $('#workflow_variable_isnew').val("1")
                     $('#workflow_variable_code').prop("readonly", false);
@@ -1648,7 +1641,7 @@ Inspector.prototype.inspectObject = function (object) {
 
         //流程输出
         $("#workflow_output").empty();
-        var workflowoutput = modelData['output'];
+        var workflowoutput = JSON.parse(modelData['output']);
         for (var i = 0; i < workflowoutput.length; i++) {
             $("#workflow_output").append('<option value="' + workflowoutput[i]["code"] + '">' + workflowoutput[i]["name"] + '</option>')
         }
@@ -1684,7 +1677,7 @@ Inspector.prototype.inspectObject = function (object) {
             var source=$('#workflow_output_source').val();
             if(source == "workfolwInput"){
                 $('#modal_workflowinput').modal('show');
-                var workflowinputdata = modelData['input'];
+                var workflowinputdata = JSON.parse(modelData['input']);
                 var dataSet = workflowinputdata;
                 var oldTable = $('#table_workflowinput').dataTable();
                 oldTable.fnClearTable();
@@ -1735,7 +1728,7 @@ Inspector.prototype.inspectObject = function (object) {
 
             }else if(source == "workfolwVariable"){
                 $('#modal_workfolwvariable').modal('show');
-                var workflowvariabledata = modelData['variable'];
+                var workflowvariabledata = JSON.parse(modelData['variable']);
                 var dataSet = workflowvariabledata;
                 var oldTable = $('#table_workfolwvariable').dataTable();
                 oldTable.fnClearTable();
@@ -1793,7 +1786,7 @@ Inspector.prototype.inspectObject = function (object) {
                 for (var i = 0; i < steps.length; i++) {
                     if(steps[i]["key"]==$("#modal_stepoutput_step").val()){
 
-                        var stepoutdata = steps[i]["output"];
+                        var stepoutdata = JSON.parse(steps[i]["output"]);
                         var dataSet = stepoutdata;
                         var oldTable = $('#table_stepoutput').dataTable();
                         oldTable.fnClearTable();
@@ -1849,7 +1842,7 @@ Inspector.prototype.inspectObject = function (object) {
                     for (var i = 0; i < steps.length; i++) {
                         if(steps[i]["key"]==$("#modal_stepoutput_step").val()){
 
-                            var stepoutdata = steps[i]["output"];
+                            var stepoutdata = JSON.parse(steps[i]["output"]);
                             var dataSet = stepoutdata;
                             var oldTable = $('#table_stepoutput').dataTable();
                             oldTable.fnClearTable();
@@ -1934,7 +1927,7 @@ Inspector.prototype.inspectObject = function (object) {
                 remark: $("#workflow_output_remark").val(),
                 sort: $("#workflow_output_sort").val()
             }
-            var newoutput = modelData['output'];
+            var newoutput = JSON.parse(modelData['output']);
             if ($('#workflow_output_isnew').val() == "1") {
                 var exist = false;
                 for (var i = 0; i < newoutput.length; i++) {
@@ -1968,7 +1961,7 @@ Inspector.prototype.inspectObject = function (object) {
             }
 
 
-            diagram.model.setDataProperty(modelData, "output", newoutput);
+            diagram.model.setDataProperty(modelData, "output", JSON.stringify(newoutput));
 
             $('#workflow_output_isnew').val("0")
             $('#workflow_output_code').prop("readonly", true);
@@ -2036,7 +2029,7 @@ Inspector.prototype.inspectObject = function (object) {
                     $("#workflow_output option:selected").remove();
 
 
-                    diagram.model.setDataProperty(modelData, "output", workflowoutput);
+                    diagram.model.setDataProperty(modelData, "output", JSON.stringify(workflowoutput));
 
                     $('#workflow_output_isnew').val("1")
                     $('#workflow_output_code').prop("readonly", false);

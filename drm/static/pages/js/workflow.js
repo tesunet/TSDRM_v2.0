@@ -17,7 +17,7 @@ function loadworkflow() {
                             "LinkRelinked": showLinkLabel,
                             "undoManager.isEnabled": true,
                             "animationManager.isEnabled": false,
-                             "allowCopy": false
+                             //"allowCopy": false
                             //"isReadOnly": true
                         });
 

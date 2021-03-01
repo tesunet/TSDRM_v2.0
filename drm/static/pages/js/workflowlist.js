@@ -25,7 +25,6 @@ function getProcessDetail(id, node_type){
                     $('#createuser').val(data.createuser);
                     $('#updatetime').val(data.updatetime);
                     $('#updateuser').val(data.updateuser);
-                    $('#longname').val(data.longname);
                     $('#shortname').val(data.shortname);
                     $('#owner').val(data.owner);
                     $('#icon').val(data.icon);
@@ -137,7 +136,6 @@ function getProcessTree(){
                                         $('#createuser').val("");
                                         $('#updatetime').val("");
                                         $('#updateuser').val("");
-                                        $('#longname').val("");
                                         $('#shortname').val("");
                                         $('#owner').val("USER");
                                         $('#icon').val("");

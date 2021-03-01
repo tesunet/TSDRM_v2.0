@@ -613,6 +613,7 @@ class Job(object):
         if self.jobModel.workflowBaseInfo["language"]=="python":
             componentCode=self.jobModel.workflowBaseInfo["code"]
             try:
+                a=componentCode+1
                 exec(componentCode)
             except Exception as e:
                 self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败。'+ str(e)
