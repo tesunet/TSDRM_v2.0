@@ -27,11 +27,11 @@ logger = logging.getLogger('tasks')
 
 
 @shared_task
-def run_workflow(jobGuid,type,skipJobGuid=None):
+def run_workflow(jobGuid,type,skipJobGuid=None,userid=None):
     """
     启动任务进程
     """
-    job = Job(jobGuid)
+    job = Job(jobGuid,userid)
     if type=="start":
         #开始流程
         job.run_job()

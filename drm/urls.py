@@ -290,6 +290,7 @@ urlpatterns = [
 
     # 流程管理（新）
     url(r'^workflow/(\d+)/$', workflow, {'funid': '120'}),
+    url(r'^workflow_readonly/(\d+)/$', workflow_readonly, {'funid': '120'}),
     url(r'^workflowlist/$', workflowlist, {'funid': '120'}),
     url(r'^get_workflow_tree/$', get_workflow_tree),
     url(r'^get_workflow_detail/$', get_workflow_detail),
@@ -298,4 +299,18 @@ urlpatterns = [
     url(r'^workflow_move/$', workflow_move),
     url(r'^workflow_getdata/$', workflow_getdata),
     url(r'^workflow_draw_save/$', workflow_draw_save),
+    url(r'^workflow_instance/$', workflow_instance, {'funid': '123'}),
+    url(r'^workflow_instance_data/$', workflow_instance_data),
+    url(r'^workflow_instance_save/$', workflow_instance_save),
+    url(r'^workflow_instance_del/$', workflow_instance_del),
+    url(r'^workflow_instance_run/$', workflow_instance_run),
+    url(r'^workflow_monitor/(\d+)/$', workflow_monitor, {'funid': '124'}),
+    url(r'^workflow_monitor_getdata/$', workflow_monitor_getdata),
+    url(r'^workflow_job/$', workflow_job, {'funid': '124'}),
+    url(r'^workflow_job_data/$', workflow_job_data),
+    url(r'^workflow_job_del/$', workflow_job_del),
+    url(r'^workflow_monitor_stop/$', workflow_monitor_stop),
+    url(r'^workflow_monitor_pause/$', workflow_monitor_pause),
+    url(r'^workflow_monitor_retry/$', workflow_monitor_retry),
+    url(r'^workflow_monitor_skip/$', workflow_monitor_skip),
 ]

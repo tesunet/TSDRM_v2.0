@@ -26,14 +26,18 @@ function getProcessDetail(id, node_type){
                     $('#updatetime').val(data.updatetime);
                     $('#updateuser').val(data.updateuser);
                     $('#shortname').val(data.shortname);
-                    $('#owner').val(data.owner);
                     $('#icon').val(data.icon);
                     $('#version').val(data.version);
                     $("#group").val(data.group);
                     $("#group").select2({width: null});
                     $('#remark').val(data.remark);
 
-                    $("#leaf_link").attr('href','/workflow/'+ id.toString());
+                    if(data.owner=="USER") {
+                        $("#leaf_link").attr('href', '/workflow/' + id.toString());
+                    }
+                    else{
+                        $("#leaf_link").attr('href', '/workflow_readonly/' + id.toString());
+                    }
                 }
                 if (node_type == "NODE") {
                     $("#leafdiv").hide();
@@ -56,6 +60,7 @@ function getProcessTree(){
         url: "../get_workflow_tree/",
         data: {
             id: $('#id').val(),
+            owner:"USER"
         },
         success: function (data) {
             var status = data.status,
@@ -137,7 +142,6 @@ function getProcessTree(){
                                         $('#updatetime').val("");
                                         $('#updateuser').val("");
                                         $('#shortname').val("");
-                                        $('#owner').val("USER");
                                         $('#icon').val("");
                                         $('#version').val("");
                                         $("#group").val("");
@@ -183,18 +187,28 @@ function getProcessTree(){
                     "plugins": ["contextmenu", "dnd", "types", "role"]
                 })
                     .bind('select_node.jstree', function (event, data) {
+                        $("#node_save").show();
+                        $("#leaf_save").show();
+                        $('#shortname').prop("readonly", false);
+                        $('#icon').prop("readonly", false);
+                        $('#version').prop("readonly", false);
+                        $('#group').prop("disabled", false);
+                        $('#remark').prop("readonly", false);
+                        $('#node_remark').prop("readonly", false);
+                        $('#node_name').prop("readonly", false);
+
                         var node = data.node;
                         $('#id').val(node.id);
                         $('#pid').val(node.parent);
                         if (node.parent == "#"){
                             $("#form_div").hide();
                             $("#node_save").hide();
-                            $("#lead_save").hide();
+                            $("#leaf_save").hide();
                             $("#leaf_link").hide();
                         } else {
                             $("#form_div").show();
                             $("#node_save").show();
-                            $("#lead_save").show();
+                            $("#leaf_save").show();
                             $("#leaf_link").show();
                             getProcessDetail(node.id, node.type);
                         }
@@ -254,9 +268,79 @@ function getProcessTree(){
     });
 }
 
+function getProcessTreeSystem(){
+    $.ajax({
+        type: "POST",
+        dataType: "json",
+        url: "../get_workflow_tree/",
+        data: {
+            id: $('#id').val(),
+            owner:"SYSTEM"
+        },
+        success: function (data) {
+            var status = data.status,
+                info = data.info,
+                data = data.data;
+            if (status == 0){
+                alert(info);
+            } else {
+                $('#p_tree_system').jstree({
+                    'core': {
+                        "themes": {
+                            "responsive": false
+                        },
+                        "check_callback": true,
+                        'data': data
+                    },
+                    "types": {
+                        "NODE": {
+                            "icon": "fa fa-folder icon-state-warning icon-lg"
+                        },
+                        "LEAF": {
+                            "icon": "fa fa-file-code-o icon-state-warning icon-lg"
+                        }
+                    },
+                    "plugins": ["types", "role"]
+                })
+                    .bind('select_node.jstree', function (event, data) {
+                        var node = data.node;
+                        $('#id').val(node.id);
+                        $('#pid').val(node.parent);
+                        if (node.parent == "#"){
+                            $("#form_div").hide();
+                            $("#node_save").hide();
+                            $("#leaf_save").hide();
+                            $("#leaf_link").hide();
+                        } else {
+                            $("#form_div").show();
+                            $("#node_save").show();
+                            $("#leaf_save").show();
+                            $("#leaf_link").show();
+                            getProcessDetail(node.id, node.type);
+                        }
+                        $("#node_save").hide();
+                        $("#leaf_save").hide();
+                        $('#shortname').prop("readonly", true);
+                        $('#icon').prop("readonly", true);
+                        $('#version').prop("readonly", true);
+                        $('#group').prop("disabled", true);
+                        $('#remark').prop("readonly", true);
+                        $('#node_remark').prop("readonly", true);
+                        $('#node_name').prop("readonly", true);
+
+                    })
+            }
+            $('#p_tree_system').hide();
+        }
+    });
+}
+
 getProcessTree();
+getProcessTreeSystem();
 
-
+$('#tabcheck1_2').click(function (data){
+    $('#p_tree_system').show();
+});
 $('#node_save, #leaf_save').click(function (data){
     var save_type = $(this).prop("id");
 

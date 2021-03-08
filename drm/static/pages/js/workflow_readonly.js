@@ -4,7 +4,7 @@ function loadworkflow() {
         type: "POST",
         dataType: "JSON",
         url: "../../workflow_getdata/",
-        data: {"id":$("#id").val(),"owner":"USER"},
+        data: {"id":$("#id").val(),"owner":"SYSTEM"},
         success: function (data){
             var status = data.status;
             if (status == 1){
@@ -17,8 +17,8 @@ function loadworkflow() {
                             "LinkRelinked": showLinkLabel,
                             "undoManager.isEnabled": true,
                             "animationManager.isEnabled": false,
-                             //"allowCopy": false
-                            //"isReadOnly": true
+                            "allowCopy": false,
+                            "isReadOnly": true
                         });
 
                 function showLinkLabel(e) {
@@ -339,42 +339,10 @@ function loadworkflow() {
                         "ui-accordion-header-active": "color2"
                     },
                     activate: function (event, ui) {
-                        myPaletteSmall.requestUpdate();
-                        myPaletteTall.requestUpdate();
-                        myPaletteWide.requestUpdate();
+
                     }
                 });
 
-                // initialize the first Palette
-                myPaletteSmall =
-                    $(go.Palette, "myPaletteSmall",
-                        { // share the templates with the main Diagram
-                            nodeTemplateMap: myDiagram.nodeTemplateMap,
-                        });
-
-
-                // specify the contents of the Palette
-                myPaletteSmall.model = new go.GraphLinksModel(workflowData.controlDate);
-
-                // initialize the second Palette, of tall items
-                myPaletteTall =
-                    $(go.Palette, "myPaletteTall",
-                        { // share the templates with the main Diagram
-                            nodeTemplateMap: myDiagram.nodeTemplateMap,
-                        });
-
-                // specify the contents of the Palette
-                myPaletteTall.model = new go.GraphLinksModel(workflowData.componentDate);
-
-                // initialize the third Palette, of wide items
-                myPaletteWide =
-                    $(go.Palette, "myPaletteWide",
-                        { // share the templates with the main Diagram
-                            nodeTemplateMap: myDiagram.nodeTemplateMap,
-                        });
-
-                // specify the contents of the Palette
-                myPaletteWide.model = new go.GraphLinksModel(workflowData.subworkflowDate);
 
 
                 //DataInspector
@@ -383,44 +351,12 @@ function loadworkflow() {
             }
             else
             {
-               alert("流程不存在或无法编辑。");
+               alert("流程不存在。");
             }
         }
     });
 }
 
-function reloadworkflow() {
-    $.ajax({
-        type: "POST",
-        dataType: "JSON",
-        url: "../../workflow_getdata/",
-        data: {"id":$("#id").val(),"owner":"USER"},
-        success: function (data){
-            var status = data.status;
-            if (status == 1){
-                var workflowData=data.workflowData;
-                myDiagram.model = go.Model.fromJson(JSON.stringify(workflowData.curworkflow.content));
-
-                if (selectedObject.type=="node") {
-                    var curnode = myDiagram.findNodeForKey(selectedObject.key)
-                    myDiagram.select(curnode);
-                }
-                if (selectedObject.type=="link") {
-                    var curlinks = myDiagram.findLinksByExample({from:selectedObject.from,to:selectedObject.to});
-                    curlinks.each(function(curlink) {
-                        myDiagram.select(curlink);
-                        return false;
-                    });
-
-                }
-            }
-            else
-            {
-               alert("流程不存在或无法编辑。");
-            }
-        }
-    });
-}
 
 $(document).ready(function () {
     loadworkflow();
@@ -449,16 +385,6 @@ $(document).ready(function () {
         $('#workflow_input_value_lable').text("值");
     }
 
-    $('#workflow_input_source').change(function () {
-        if ($('#workflow_input_source').val() == "function") {
-            $('#workflow_input_value_lable').text("公式");
-        } else if ($('#workflow_input_source').val() == "input") {
-            $('#workflow_input_value_lable').text("默认值");
-        } else {
-            $('#workflow_input_value_lable').text("值");
-        }
-    })
-
     //流程输出
     if ($('#workflow_output_source').val() == "function") {
         $('#workflow_output_value_lable').text("公式");
@@ -472,63 +398,9 @@ $(document).ready(function () {
         $('#workflow_output_value_lable').text("值");
     }
 
-    $('#workflow_output_source').change(function () {
-        if ($('#workflow_output_source').val() == "function") {
-            $('#workflow_output_value_lable').text("公式");
-        } else if ($('#workflow_output_source').val() == "workfolwInput") {
-            $('#workflow_output_value_lable').text("参数名");
-        } else if ($('#workflow_output_source').val() == "workfolwVariable") {
-            $('#workflow_output_value_lable').text("变量名");
-        } else if ($('#workflow_output_source').val() == "stepOutput") {
-            $('#workflow_output_value_lable').text("步骤及参数");
-        }else {
-            $('#workflow_output_value_lable').text("值");
-        }
-    })
 
-
-    $('#save').click(function () {
-        $.ajax({
-            type: "POST",
-            dataType: "JSON",
-            url: "../../workflow_draw_save/",
-            data: {
-                content: myDiagram.model.toJson(),
-            },
-
-            success: function (data){
-                var status = data.status,
-                    info = data.info;
-                alert(info);
-                if (status == 1){
-                    reloadworkflow();
-                }
-            }
-        });
-
-    });
-    $('#load').click(function () {
-        if(myDiagram.isModified == true)
-         {
-             if (confirm("数据未保存，重新载入将丢失未保存数据，是否继续?")) {
-                reloadworkflow();
-             }
-         }
-        else
-        {
-            reloadworkflow();
-        }
-    });
-    $('#return').click(function () {
-        if(myDiagram.isModified == true)
-         {
-             if (confirm("数据未保存，返回列表将丢失未保存数据，是否继续?")) {
-                window.location.href="../../workflowlist/";
-             }
-         }
-        else{
-             window.location.href="../../workflowlist/";
-        }
+  $('#return').click(function () {
+         window.location.href="../../workflowlist/";
     });
 
 });

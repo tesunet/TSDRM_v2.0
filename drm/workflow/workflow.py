@@ -586,6 +586,7 @@ class Job(object):
             self.jobBaseInfo["state"] = "WAIT"
         else:
             self.jobBaseInfo["state"] = "DONE"
+            self.jobBaseInfo["endtime"] = datetime.datetime.now()
         print(self.jobBaseInfo["name"] + ":")
         print(self.finalOutput)
 
@@ -613,8 +614,14 @@ class Job(object):
         if self.jobModel.workflowBaseInfo["language"]=="python":
             componentCode=self.jobModel.workflowBaseInfo["code"]
             try:
-                a=componentCode+1
                 exec(componentCode)
+                if "system_state" in componentOutput and componentOutput["system_state"]=="ERROR":
+                    self.jobBaseInfo["state"] = "ERROR"
+                    if "system_log" in componentOutput:
+                        self.jobBaseInfo["log"] += componentOutput["system_log"]
+                    else:
+                        self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
+                    return
             except Exception as e:
                 self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败。'+ str(e)
                 self.jobBaseInfo["state"] = "ERROR"
@@ -634,6 +641,8 @@ class Job(object):
                         output.update({'value':componentOutput[output["code"]]})
         #将执行结果状态存入self.jobBaseInfo["state"].
         self.jobBaseInfo["state"]="DONE"
+        self.jobBaseInfo["endtime"] = datetime.datetime.now()
+
         print(self.jobBaseInfo["name"] + ":")
         print(self.finalOutput)
 
@@ -819,7 +828,7 @@ class Job(object):
         """
         if self.jobModel.workflowBaseInfo["output"] and len(self.jobModel.workflowBaseInfo["output"].strip()) > 0:
             tmpOutput = xmltodict.parse(self.jobModel.workflowBaseInfo["output"])
-            if "outputs" in tmpOutput and "output" in tmpOutput["outputs"]:
+            if "outputs" in tmpOutput and tmpOutput["outputs"] and "output" in tmpOutput["outputs"]:
                 tmpDTL = tmpOutput["outputs"]["output"]
                 # xmltodict会将只有一条记录的output转成OrderedDict，而我们需要的时list，需转化下
                 if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
@@ -828,6 +837,7 @@ class Job(object):
                 # 给步骤的finalOutput赋值
                 self.finalOutput = self._sourceToValue(self.finalOutput)
         self.jobBaseInfo["state"] = "DONE"
+        self.jobBaseInfo["endtime"] = datetime.datetime.now()
         return "DONE"
         print(self.finalOutput)
 
@@ -940,7 +950,7 @@ class Job(object):
         if self.jobModel.workflowBaseInfo["variable"] and len(self.jobModel.workflowBaseInfo["variable"].strip()) > 0:
             #从流程中获取input
             tmpVariable = xmltodict.parse(self.jobModel.workflowBaseInfo["variable"])
-            if "variables" in tmpVariable and "variable" in tmpVariable["variables"]:
+            if "variables" in tmpVariable and tmpVariable["variables"] and "variable" in tmpVariable["variables"]:
                 tmpDTL= tmpVariable["variables"]["variable"]
                 if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
                     tmpDTL = [tmpDTL]
@@ -1039,11 +1049,11 @@ class Job(object):
                         param["value"] = True
                     elif param["value"]=="False":
                         param["value"] = False
-                elif param["type"] == "json":
-                    try:
-                        param["value"] = json.loads(param["value"])
-                    except:
-                        param["value"] = None
+                # elif param["type"] == "json":
+                #     try:
+                #         param["value"] = json.loads(param["value"])
+                #     except:
+                #         param["value"] = None
             except:
                 pass
         return paramList
@@ -1117,7 +1127,7 @@ class Job(object):
 
         1.判断当前任务是否为需跳过的任务
             2.如果不是，查询子任务中暂停或出错的任务
-                3.如果子任务中存在暂停或出错的任务，调用递归函数_skip_step
+                3.如果子任务中存在暂停或出错的任务，调用递归函数skip_step
                   4.子任务返回SKIP或DONE时，说明跳过成功（SKIP为跳过的步骤返回状态，DONE为跳过的步骤的祖先节点返回状态），运行子任务后续步骤
                         5.将子任务的输出更新到父任务jobStepOutput和jobVariable并保存
                         6.运行子任务的后续步骤，直至结束或出错，结果返回给前任务状态
@@ -1139,8 +1149,8 @@ class Job(object):
             childrenJobList = self.job.children.filter(state__in=["ERROR", "PAUSE"])
             if len(childrenJobList) > 0:
                 childJob = Job(childrenJobList[0].guid)
-                # 3.如果子任务中存在暂停或出错的任务，调用递归函数_skip_step
-                curstate = childJob._skip_step(skipJobGuid)
+                # 3.如果子任务中存在暂停或出错的任务，调用递归函数skip_step
+                curstate = childJob.skip_step(skipJobGuid)
                 #4.子任务返回SKIP或DONE时，说明跳过成功（SKIP为跳过的步骤返回状态，DONE为跳过的步骤的祖先节点返回状态），运行子任务后续步骤
                 if curstate == "DONE" or curstate == "SKIP" or curstate == "WAIT":
                     xml = etree.fromstring(self.jobModel.workflowBaseInfo["content"])
@@ -1153,7 +1163,7 @@ class Job(object):
                         # 6.运行子任务的后续步骤，直至结束或出错，结果返回给前任务状态
                         self.jobBaseInfo["state"] = self._run_nextStep(curStep, childJob.finalOutput)
                     else:
-                        self.jobBaseInfo["log"] += 'error(_skip_step)步骤信息错误'
+                        self.jobBaseInfo["log"] += 'error(skip_step)步骤信息错误'
                         self.jobBaseInfo["state"] = "ERROR"
                 #7.子任务返回NONE时，直接return NONE，不修改任何数据
                 elif curstate == "NONE":
@@ -1325,7 +1335,10 @@ class Job(object):
         if len(self.finalInput)>0:
             for input in self.finalInput:
                 if input["code"]=="list":
-                    mylist = input["value"]
+                    try:
+                        mylist = json.loads(input["value"])
+                    except:
+                        mylist=[]
                     break
             # 2.循环列表存在时，列表长度为循环次数，否则从输入参数中获取总循环次数
             if mylist is not None:
@@ -1346,7 +1359,7 @@ class Job(object):
         if count is not None and number is not None and count>=number:
             isEnd =False
             if mylist is not None:
-                element = mylist[number]
+                element = mylist[number-1]
         #4.输出结果finalOutput
         if self.jobModel.workflowBaseInfo["output"] and len(self.jobModel.workflowBaseInfo["output"].strip()) > 0:
             tmpDTL = xmltodict.parse(self.jobModel.workflowBaseInfo["output"])
@@ -1373,6 +1386,7 @@ class Job(object):
         if len(loopJobList)>0:
             loopJob = Job(loopJobList[0].guid)
             loopJob.jobBaseInfo["state"] = "BREAK"
+            loopJob.jobBaseInfo["endtime"] = datetime.datetime.now()
             loopJob.save_job()
 
     #######################################################
