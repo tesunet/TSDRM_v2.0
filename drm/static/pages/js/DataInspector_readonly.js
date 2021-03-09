@@ -89,10 +89,14 @@ Inspector.prototype.inspectObject = function (object) {
                 for (var i = 0; i < stepinput.length; i++) {
                     if (stepinput[i]["code"] == "criteria") {
                         var stepcriteria = stepinput[i]["value"];
-                        try {
-                            stepcriteria = JSON.parse(stepcriteria);
-                        }catch
-                        {
+                        if(stepcriteria) {
+                            try {
+                                stepcriteria = JSON.parse(stepcriteria);
+                            } catch {
+                                stepcriteria = []
+                            }
+                        }
+                        else {
                             stepcriteria=[]
                         }
                         for (var j = 0; j < stepcriteria.length; j++) {

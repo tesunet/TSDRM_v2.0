@@ -96,10 +96,14 @@ Inspector.prototype.inspectObject = function (object) {
                 for (var i = 0; i < stepinput.length; i++) {
                     if (stepinput[i]["code"] == "criteria") {
                         var stepcriteria = stepinput[i]["value"];
-                        try {
-                            stepcriteria = JSON.parse(stepcriteria);
-                        }catch
-                        {
+                        if(stepcriteria) {
+                            try {
+                                stepcriteria = JSON.parse(stepcriteria);
+                            } catch {
+                                stepcriteria = []
+                            }
+                        }
+                        else {
                             stepcriteria=[]
                         }
                         for (var j = 0; j < stepcriteria.length; j++) {
@@ -646,16 +650,21 @@ Inspector.prototype.inspectObject = function (object) {
                     for (var i = 0; i < newstepinput.length; i++) {
                         if (newstepinput[i]["code"] == "criteria") {
                             newstepcriteria = newstepinput[i]["value"];
-                            try {
-                                newstepcriteria = JSON.parse(newstepcriteria);
+                            if(newstepcriteria) {
+                                try {
+                                    newstepcriteria = JSON.parse(newstepcriteria);
+                                } catch {
+                                    newstepcriteria = []
+                                }
                             }
-                            catch{
-                                newstepcriteria=[]
+                            else{
+                                newstepcriteria = []
                             }
                         }
                     }
                     if ($('#step_criteria_isnew').val() == "1") {
                         var exist = false;
+
                         for (var i = 0; i < newstepcriteria.length; i++) {
                             if ($('#step_criteria_name').val() == newstepcriteria[i]["name"]) {
                                 alert("参数名称已存在")
@@ -764,6 +773,16 @@ Inspector.prototype.inspectObject = function (object) {
                     for (var i = 0; i < newstepinput.length; i++) {
                         if (newstepinput[i]["code"] == "criteria") {
                             newstepcriteria = newstepinput[i]["value"];
+                            if(newstepcriteria) {
+                                try {
+                                        newstepcriteria = JSON.parse(newstepcriteria);
+                                } catch {
+                                        newstepcriteria = []
+                                }
+                            }
+                            else {
+                                newstepcriteria=[]
+                            }
                             break;
                         }
                     }
@@ -776,7 +795,7 @@ Inspector.prototype.inspectObject = function (object) {
                     }
                     for (var i = 0; i < newstepinput.length; i++) {
                         if (newstepinput[i]["code"] == "criteria") {
-                            newstepinput[i]["value"] = newstepcriteria;
+                            newstepinput[i]["value"] = JSON.stringify(newstepcriteria);
 
                             diagram.model.setDataProperty(stepData, "input", JSON.stringify(newstepinput));
 
