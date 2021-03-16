@@ -7,6 +7,9 @@ import json
 import xmltodict
 from .public import *
 import time
+import paramiko
+import os
+
 
 
 # 流程类/控件类/组件类
@@ -626,6 +629,123 @@ class Job(object):
                 self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败。'+ str(e)
                 self.jobBaseInfo["state"] = "ERROR"
                 return
+        elif self.jobModel.workflowBaseInfo["language"] == "shell":
+            componentCode = self.jobModel.workflowBaseInfo["code"]
+            # 获取脚本需要的对应参数
+            host = componentInput["inputhost"]
+            port = componentInput["inputport"]
+            username =componentInput["inputusername"]
+            password =componentInput["inputpassword"]
+            local_path =componentInput["inputlocalpath"]
+            server_path =componentInput["inputserverpath"]
+            # 将要执行的命令放入字典
+            commands = {"check_filename": "ls", "cd_catlog": "cd", "give_limit": "chmod +x", "execute_script": "./",
+                        "delete_script": "sudo rm -rf", "judge_upload": "tail -1"}
+            # 服务端的文件名根据传入的目录切割出[-1]
+            get_filename = local_path.split('\\')
+            filename = get_filename[-1]
+            # 连接linux服务端
+            try:
+                # 不细化报错，ip、端口、网络、是否安装了ssh服务并启动，直接抛出
+                transport = paramiko.Transport((host, port))
+                transport.connect(username=username, password=password)
+                sftp = paramiko.SFTPClient.from_transport(transport)
+                client = paramiko.SSHClient()
+                client._transport = transport
+            except Exception as e:
+                # print("连接服务端失败" + str(e))
+                self.jobBaseInfo["log"] += "连接服务端失败,错误类型：{0}".format(str(e))
+                self.jobBaseInfo["state"] = "ERROR"
+                return
+            else:
+                # 查看指定目录有无相同文件名的存在
+                stdin, stdout, stderr = client.exec_command(commands["check_filename"] + " " + server_path)
+                check_result = stdout.read().decode('utf-8')
+                # print(check_result)
+                recv = check_result.split("\n")
+                if filename in recv:
+                    self.jobBaseInfo["log"] += "在服务端{0}下，已存在名为{1}的文件，不允许覆盖该文件，请更换脚本名！".format(server_path, filename)
+                    self.jobBaseInfo["state"] = "ERROR"
+                    return
+                    # print('在服务端{0}下，已存在名为{1}的文件，不允许覆盖该文件，请更换脚本名！'.format(server_path, filename))
+                else:
+                    # 网络连接问题
+                    # 如何知道是否上传成功，sftp.put源码里一次IO只从本地读取32kb，最低32kb每秒，理想状态最快大约2M每秒
+                    # 采用检查文件传输后大小比较，测试发现windows与linux对比文件字节有损失少量字节，行不通
+                    # 测试使用了1000行的脚本，1w字节约100kb，大文件则放弃put传输
+                    try:
+                        sftp.put(local_path, server_path + filename)
+                        # 根据脚本字节大小制定等待时间，100kb脚本1s
+                        wait_time = int(os.path.getsize(local_path) / 102400)
+                        time.sleep(wait_time)
+                        stdin4, stdout4, stderr4 = client.exec_command(commands["judge_upload"] + " " + server_path + filename)
+                        time.sleep(1)
+                        upload_result = stdout4.read().decode("utf-8")
+                        recv_upload = upload_result.split("\n")
+                        if recv_upload[-2] == 'ehco "end"':
+                            pass
+                    except Exception as e:
+                        self.jobBaseInfo["log"] += "脚本上传失败 错误类型：{0}".format(str(e))
+                        self.jobBaseInfo["state"] = "ERROR"
+                        return
+                    else:
+                        self.jobBaseInfo["log"] += "脚本上传结束"
+                        # print("脚本上传结束")
+                        # windows下编写的的脚本dos格式需改成unix才能在linux下执行
+                        exe_cmd = r"sed -i 's/\r$//' {0}&&{0}".format(filename)
+                        stdin, stdout, stderr = client.exec_command(commands["cd_catlog"] + " " + server_path + ";" + exe_cmd)
+                        time.sleep(1)
+                        # 给脚本可执行的权限
+                        stdin1, stdout1, stderr1 = client.exec_command(commands["give_limit"] + " " + server_path + filename)
+                        time.sleep(1)
+                        # 执行脚本 根据脚本字节大小制定等待时间，100kb脚本1s
+                        self.jobBaseInfo["log"] += "脚本执行中，请等待"
+                        # print("脚本执行中，请等待")
+                        stdin2, stdout2, stderr2 = client.exec_command(commands["cd_catlog"] + " " + server_path + ";" + commands["execute_script"] + filename)
+                        execute_result = stdout2.read().decode('utf-8')
+                        # print(execute_result)
+                        wait_time = int(os.path.getsize(local_path) / 102400)
+                        time.sleep(wait_time)
+                        # 删除脚本 paramiko是带有输入和输出的黑盒无法查看到内部的运行进度,而脚本逐行执行，在脚本中末尾添加一个标志例如echo "end"，当打印出"end"即可认定执行脚本结束，从而删除
+                        recv = execute_result.split('\n')
+                        # print(recv)
+                        if len(recv) == 1:
+                            self.jobBaseInfo["log"] += "命令not found"
+                            # print("命令not found")
+                        else:
+                            if recv[-2] == "end":
+                                self.jobBaseInfo["log"] += "脚本执行结束,准备删除中..."
+                                # print('脚本执行结束,准备删除中...')
+                                time.sleep(1)
+                                while True:
+                                    stdin3, stdout3, stderr3 = client.exec_command(commands["cd_catlog"] + " " + server_path + ";" + commands["delete_script"] + " " + filename)
+                                    time.sleep(1)
+                                    stdin, stdout, stderr = client.exec_command(commands["check_filename"] + " " + server_path)
+                                    check_result = stdout.read().decode('utf-8')
+                                    time.sleep(1)
+                                    # print(check_result)
+                                    recv = check_result.split("\n")
+                                    if filename in recv:
+                                        self.jobBaseInfo["log"] += "脚本{0}{1}删除失败，请检查".format(server_path, filename)
+                                        self.jobBaseInfo["state"] = "ERROR"
+                                        return
+                                        # print("脚本{0}{1}删除失败，请检查".format(server_path, filename))
+                                    else:
+                                        sign = True #对应outputs的code，标记脚本是否执行结束
+                                        self.jobBaseInfo["log"] += "脚本{0}{1}删除成功".format(server_path, filename)
+                                        # print("脚本删除成功")
+                                        transport.close()
+                                        break
+                            else:
+                                sign = False
+                                self.jobBaseInfo["log"] += "脚本{0}{1}执行失败，请仔细检查脚本".format(server_path, filename)
+                                self.jobBaseInfo["state"] = "ERROR"
+                                return
+                                # print("脚本执行失败，请仔细检查脚本")
+                            exec(componentCode)# 查看脚本执行的最终状态,输出参数值写到componentOutput对应的键上
+                        transport.close()
+                        return
+
         #3.将componentOutput写到任务的finalOutput中
         if self.jobModel.workflowBaseInfo["output"] and len(self.jobModel.workflowBaseInfo["output"].strip()) > 0:
             tmpDTL = xmltodict.parse(self.jobModel.workflowBaseInfo["output"])
