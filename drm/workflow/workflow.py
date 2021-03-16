@@ -1017,7 +1017,7 @@ class Job(object):
         """
         汇总流程配置、实例配置、任务配置中的input参数，并根据参数source，将配置转化为实际值
 
-        1.从流程中获取input
+        1.从模型中获取input
         2.从实例中获取input
         3.从任务中获取input
         4.格式化input参数，将配置转化为实际值

@@ -310,7 +310,7 @@ function loadworkflow() {
                         $(go.Shape,  // the highlight shape, normally transparent
                             {isPanelMain: true, strokeWidth: 8, stroke: "transparent", name: "HIGHLIGHT"}),
                         $(go.Shape,  // the link path shape
-                            {isPanelMain: true, stroke: "gray", strokeWidth: 2},
+                            {isPanelMain: true, stroke: "gray", strokeWidth: 3},
                             new go.Binding("stroke", "isSelected", function (sel) {
                                 return sel ? "dodgerblue" : "gray";
                             }).ofObject()),
