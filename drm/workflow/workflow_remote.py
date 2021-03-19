@@ -94,7 +94,7 @@ class ServerByPara(object):
                 raise Exception("编码错误")
         return content
 
-    def exec_linux_cmd(self, succeedtext, linux_timeout, port=22):
+    def exec_linux_cmd(self, isComponent, linux_timeout, port=22):
         data_init = ''
         scriptResult = ''
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -122,8 +122,9 @@ class ServerByPara(object):
                     if data_init:
                         data_init = " ".join(data_init.split("\r\n"))
                     if '<scriptResult>' not in data_init or '</scriptResult>' not in data_init:
-                        exec_tag = 1
-                        log = "未知错误"
+                        if isComponent:
+                            exec_tag = 1
+                            log = "无法获取执行结果"
                         if "command not found" in data_init:  # 命令不存在
                             exec_tag = 1
                             log = "命令不存在"
@@ -143,7 +144,6 @@ class ServerByPara(object):
                     print(e)
                     exec_tag = 1
                     log = "编码错误"
-                    data_init = "编码错误"
         except socket.timeout as e:
             print("脚本执行超时")
             return {
@@ -158,7 +158,7 @@ class ServerByPara(object):
             "log": log,
         }
 
-    def exec_win_cmd(self, succeedtext):
+    def exec_win_cmd(self, isComponent):
         scriptResult = ''
         data_init = ""
         log = ""
@@ -199,17 +199,15 @@ class ServerByPara(object):
                     data_init = str(ret.std_out, encoding='gbk')
                     if data_init:
                         data_init = "".join(data_init.split("\r\n"))
-                    # for data in ret.std_out.decode().split("\r\n"):
-                    #     data_init += data
                 except Exception as e:
                     print(e)
                     exec_tag = 1
                     log = "编码错误"
-                    data_init = "编码错误"
                 else:
                     if '<scriptResult>' not in data_init or '</scriptResult>' not in data_init:
-                        exec_tag = 1
-                        log = "未知错误"
+                        if isComponent:
+                            exec_tag = 1
+                            log = "无法获取执行结果"
                     else:
                         startindex = data_init.index('<scriptResult>')
                         endindex = data_init.index('</scriptResult>')
@@ -221,17 +219,17 @@ class ServerByPara(object):
                 "log": log,
             }
 
-    def run(self, succeedtext, linux_timeout=6 * 60):
+    def run(self,isComponent=False,linux_timeout=6 * 60):
         if self.system_choice == "Linux":
-            result = self.exec_linux_cmd(succeedtext, linux_timeout)
+            result = self.exec_linux_cmd(isComponent, linux_timeout)
             if self.client:
                 self.client.close()
         elif self.system_choice == "AIX":
-            result = self.exec_linux_cmd(succeedtext, linux_timeout, port=22)
+            result = self.exec_linux_cmd(isComponent, linux_timeout, port=22)
             if self.client:
                 self.client.close()
         else:
-            result = self.exec_win_cmd(succeedtext)
+            result = self.exec_win_cmd(isComponent)
         # print(result)
         return result
 
