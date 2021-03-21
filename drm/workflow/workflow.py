@@ -613,6 +613,8 @@ class Job(object):
         for input in self.finalInput:
             componentInput[input["code"]] = input["value"]
         componentOutput = {}
+        # 获取连接远程服务器的必要参数值
+        host, user, password,  = componentInput["inputhost"], componentInput["inputusername"], componentInput["inputpassword"]
         #2.根据类型执行组件代码，目前只写了python类型。组件code中，直接把输出参数值写到componentOutput对应的键上.
         if self.jobModel.workflowBaseInfo["language"]=="python":
             componentCode=self.jobModel.workflowBaseInfo["code"]
@@ -629,194 +631,155 @@ class Job(object):
                 self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败。'+ str(e)
                 self.jobBaseInfo["state"] = "ERROR"
                 return
-        elif self.jobModel.workflowBaseInfo["language"] == "shell":
-            # 获取连接远程服务器的必要参数值
-            # 根据脚本模板的guid获取数据库的code字段内容
-            # 将{{inputparams}}参数替换成实际值，例如:if {{inputparam}} exist mkdir {{inputparam}} --> if Tesudrm exist mkdir Tesudrm
-            # 字典的值映射到需要替换的字符，所有的值都是string类型替换进去
-            host, user, password, system_choice = componentInput["inputhost"], componentInput["inputusername"], componentInput["inputpassword"], componentInput["inputsystem"]
-            script_template = TSDRMComponent.objects.filter(guid="123456-123456")
-            componentInput = dict((re.escape(k), v) for k, v in componentInput.items())
-            pattern = re.compile("|".join(componentInput.keys()))
-            # 开始替换
-            script_text = pattern.sub(lambda m: componentInput[re.escape(m.group(0))], script_template)
-            # print(script_text)
-            if componentInput["inputsystem"] == "Linux":
-                # 在linux下创建上传的目录,格式：mkdir /tmp/drm/192.168.226.130 -p
-                linux_script_path = "/tmp/drm/{inputhost}".format(**componentInput)
-                mkdir_cmd = "mkdir {linux_script_path} -p".format(**{"linux_script_path": linux_script_path})
-                # 调用workflow__remote的ServerByPara方法,执行递进创建文件夹的命令
-                mkdir_obj = workflow_remote.ServerByPara(mkdir_cmd, host, user, password, system_choice)
-                mkdir_result = mkdir_obj.run("")
-                if mkdir_result["exec_tag"] == 1:
-                    # 接收mkdir_result的json串，错误类型写到日志中，不用输出到componentOutput的键上
+        elif self.jobModel.workflowBaseInfo["language"] == "linux":
+            # 获取code字段的实际内容
+            script_template = self.jobModel.workflowBaseInfo["code"]
+            # 替换字段
+            script_replace = self.replace_all_params(script_template, componentInput)
+            linux_script_path = "/tmp/drm"
+            mkdir_cmd = "mkdir {0} -p".format(linux_script_path)
+            # 无输出的执行命令
+            mkdir_obj = workflow_remote.ServerByPara(mkdir_cmd, host, user, password, "Linux")
+            mkdir_result = mkdir_obj.run(isComponent=False)
+            if mkdir_result["exec_tag"] == 1:
+                self.jobBaseInfo["state"] = "ERROR"
+                self.jobBaseInfo["log"] += "linux远程服务器创建/tmp/drm文件夹失败。"
+                return
+            else:
+                linux_script_name = "work_for_component_{0}_{1}.sh".format(self.job.jobGuid,self.jobGuid)
+                linux_script_file = linux_script_path + "/" + linux_script_name
+                # 准备写入到项目drm/upload/script
+                script_path = os.path.join(
+                    os.path.join(
+                        os.path.join(settings.BASE_DIR, "drm"),
+                        "upload"
+                    ),
+                    "script"
+                )
+                local_file = script_path + os.sep + "{0}_local_script.sh".format(self.jobGuid)
+                try:
+                    with open(local_file, 'w') as f:
+                        f.write(script_replace)
+                except Exception as e:
                     self.jobBaseInfo["state"] = "ERROR"
-                    self.jobBaseInfo["log"] += mkdir_result["data"]
-                    # print("创建失败")
+                    self.jobBaseInfo["log"] += "Linux脚本写入本地失败：{0}。".format(e)
+                    return
                 else:
-                    if "data" in componentOutput and "log" in componentOutput and "exec_tag" in componentOutput:
-                        componentOutput["data"] = mkdir_result["data"]
-                        componentOutput["log"] = mkdir_result["log"]
-                        componentOutput["exec_tag"] = mkdir_result["exec_tag"]
-                    else:
-                        self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
-                    linux_script_name = "work_for_{inputsystem}.sh".format(**componentInput)
-                    linux_script_file = linux_script_path + "/" + linux_script_name
-                    # 准备写入到项目drm/upload/script
-                    script_path = os.path.join(
-                        os.path.join(
-                            os.path.join(settings.BASE_DIR, "drm"),
-                            "upload"
-                        ),
-                        "script"
-                    )
-                    # 以操作的当前时间命名脚本格式：20210317_151221_local_script.sh
-                    local_file = script_path + os.sep + "{0}_local_script.sh".format(time.strftime("%Y%m%d_%H%M%S", time.localtime()))
+                    # 准备上传到服务器
                     try:
-                        # 获取已经替换过参数的脚本模板
-                        # 开始往local_file写入实际的脚本内容
-                        with open(local_file,'w') as f:
-                            f.write(script_text)
-                    except Exception as e:
+                        ssh = paramiko.Transport((host, 22))
+                        ssh.connect(username=user, password=password)
+                        sftp = paramiko.SFTPClient.from_transport(ssh)
+                    except paramiko.ssh_exception.SSHException as e:
                         self.jobBaseInfo["state"] = "ERROR"
-                        self.jobBaseInfo["log"] += "Linux脚本写入本地失败：{0}。".format(e)
+                        self.jobBaseInfo["log"] += "连接服务器失败：{0}。".format(e)
                         return
-                        # print("Linux脚本写入本地失败：{0}。".format(e))
                     else:
-                        # 准备上传到服务器
                         try:
-                            ssh = paramiko.Transport((host, 22))
-                            ssh.connect(username=user, password=password)
-                            sftp = paramiko.SFTPClient.from_transport(ssh)
-                        except paramiko.ssh_exception.SSHException as e:
+                            # 开始上传
+                            sftp.put(local_file, linux_script_file)
+                        except Exception as e:
                             self.jobBaseInfo["state"] = "ERROR"
-                            self.jobBaseInfo["log"] += "连接服务器失败：{0}。".format(e)
+                            self.jobBaseInfo["log"] += "上传linux脚本文件失败：{0}。".format(e)
                             return
-                            # print("连接服务器失败：{0}。".format(e))
                         else:
-                            try:
-                                sftp.put(local_file, linux_script_file)
-                            except Exception as e:
+                            sftp.chmod(linux_script_file, int("755"))
+                            # 修改dos
+                            change_dos = r"sed -i 's/\r$//' {0}&&{0}".format(linux_script_file)
+                            dos_obj = workflow_remote.ServerByPara(change_dos, host, user, password, "Linux")
+                            dos_result = dos_obj.run(isComponent=False)
+                            if dos_result["exec_tag"] == 1:
                                 self.jobBaseInfo["state"] = "ERROR"
-                                self.jobBaseInfo["log"] += "上传linux脚本文件失败：{0}。".format(e)
+                                self.jobBaseInfo["log"] += "本地上传的脚本的dos修改失败。"
                                 return
-                                # print("上传linux脚本文件失败：{0}。".format(e))
                             else:
-                                # 给执行权限
-                                sftp.chmod(linux_script_file, int("755"))
-                                # 修改dos命令
-                                change_dos = r"sed -i 's/\r$//' {0}&&{0}".format(linux_script_file)
-                                # 执行sh脚本
+                                # 运行脚本
                                 excute_cmd = r"{0}".format(linux_script_file)
-                                dos_obj = workflow_remote.ServerByPara(change_dos, host, user, password, system_choice)
-                                dos_result = dos_obj.run("")
-                                if dos_result["exec_tag"] == 1:
-                                    # 错误json写入到conmmentoutput
-                                    # print("修改权限失败")
+                                excute_obj = workflow_remote.ServerByPara(excute_cmd, host, user, password,"Linux")
+                                excute_result = excute_obj.run(isComponent=True)
+                                if excute_result["exec_tag"] == 1:
                                     self.jobBaseInfo["state"] = "ERROR"
-                                    self.jobBaseInfo["log"] += mkdir_result["log"]
-                                else:
-                                    if "data" in componentOutput and "log" in componentOutput and "exec_tag" in componentOutput:
-                                        componentOutput["data"] = mkdir_result["data"]
-                                        componentOutput["log"] = mkdir_result["log"]
-                                        componentOutput["exec_tag"] = mkdir_result["exec_tag"]
-                                    else:
-                                        self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
-                                        return
-                                    excute_obj = workflow_remote.ServerByPara(excute_cmd, host, user, password,system_choice)
-                                    excute_result = excute_obj.run("")
-                                    if excute_result["exec_tag"] == 1:
-                                        # 错误json写入到conmmentoutput
-                                        # print("执行脚本失败")
-                                        self.jobBaseInfo["state"] = "ERROR"
-                                        self.jobBaseInfo["log"] += mkdir_result["log"]
-                                    else:
-                                        if "data" in componentOutput and "log" in componentOutput and "exec_tag" in componentOutput:
-                                            componentOutput["data"] = mkdir_result["data"]
-                                            componentOutput["log"] = mkdir_result["log"]
-                                            componentOutput["exec_tag"] = mkdir_result["exec_tag"]
-                                        else:
-                                            self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
-                                            return
-                                        sftp.remove(linux_script_file)
-                                        ssh.close()
-            elif componentInput["inputsystem"] == "Windows":
-                # 在windows下创建上传的目录,格式：mkdir C:\drm\192.168.226.130
-                windows_script_path = r"C:\drm\{inputhost}".format(**componentInput)
-                mkdir_cmd = "if not exist {windows_script_path} mkdir {windows_script_path}".format(**{"windows_script_path": windows_script_path})
-                mkdir_obj = workflow_remote.ServerByPara(mkdir_cmd, host, user, password, system_choice)
-                mkdir_result = mkdir_obj.run("")
-                if mkdir_result["exec_tag"] == 1:
-                    # 错误json串写到commentoutput
-                    self.jobBaseInfo["state"] = "ERROR"
-                    self.jobBaseInfo["log"] += mkdir_result["log"]
-                    # print("创建失败")
-                else:
-                    if "data" in componentOutput and "log" in componentOutput and "exec_tag" in componentOutput:
-                        componentOutput["data"] = mkdir_result["data"]
-                        componentOutput["log"] = mkdir_result["log"]
-                        componentOutput["exec_tag"] = mkdir_result["exec_tag"]
-                    else:
-                        self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
-                        return
-                    windows_script_name = "work_for_{inputsystem}.bat".format(**componentInput)
-                    windows_script_file = windows_script_path + r"\\" + windows_script_name
-                    # 切割bat脚本每一行的内容
-                    para_list = script_text.split("\n")
-                    for index, content in enumerate(para_list):
-                        tmp_cmd = ""
-                        if index == 0:
-                            # 逐行通过echo>>写入到新建的目录下bat文件
-                            tmp_cmd = r"""echo {0}>{1}""".format(content, windows_script_file)
-                        else:
-                            tmp_cmd = r"""echo {0}>>{1}""".format(content, windows_script_file)
-                        tmp_obj = workflow_remote.ServerByPara(tmp_cmd, host, user, password, system_choice)
-                        tmp_result = tmp_obj.run("")
-                        if tmp_result["exec_tag"] == 1:
-                            #写入错误类型
-                            self.jobBaseInfo["state"] = "ERROR"
-                            self.jobBaseInfo["log"] += mkdir_result["log"]
-                            # print("echo 失败")
-                        else:
-                            if "data" in componentOutput and "log" in componentOutput and "exec_tag" in componentOutput:
-                                componentOutput["data"] = mkdir_result["data"]
-                                componentOutput["log"] = mkdir_result["log"]
-                                componentOutput["exec_tag"] = mkdir_result["exec_tag"]
-                            else:
-                                self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
-                                return
-                            # 执行bat脚本
-                            exeute_bat = r"{0}".format(windows_script_file)
-                            # 删除bat脚本
-                            del_bat = r"del {0}".format(windows_script_file)
-                            excute_obj = workflow_remote.ServerByPara(exeute_bat, host, user, password, system_choice)
-                            excute_result = excute_obj.run("")
-                            if excute_result["exec_tag"] == 1:
-                                self.jobBaseInfo["state"] = "ERROR"
-                                self.jobBaseInfo["log"] += mkdir_result["log"]
-                                # print("执行bat失败")
-                            else:
-                                if "data" in componentOutput and "log" in componentOutput and "exec_tag" in componentOutput:
-                                    componentOutput["data"] = mkdir_result["data"]
-                                    componentOutput["log"] = mkdir_result["log"]
-                                    componentOutput["exec_tag"] = mkdir_result["exec_tag"]
-                                else:
-                                    self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
+                                    self.jobBaseInfo["log"] += "linux脚本执行失败。"
                                     return
-                                del_obj = workflow_remote.ServerByPara(del_bat, host, user, password,system_choice)
-                                del_result = del_obj.run("")
-                                if del_result["exec_tag"] == 1:
-                                    self.jobBaseInfo["state"] = "ERROR"
-                                    self.jobBaseInfo["log"] += mkdir_result["log"]
-                                    # print("删除失败")
                                 else:
-                                    if "data" in componentOutput and "log" in componentOutput and "exec_tag" in componentOutput:
-                                        componentOutput["data"] = mkdir_result["data"]
-                                        componentOutput["log"] = mkdir_result["log"]
-                                        componentOutput["exec_tag"] = mkdir_result["exec_tag"]
-                                    else:
-                                        self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
-                                        return
+                                    # 获取数据库中原本设定好的脚本应输出的所有参数(OrderedDict格式)
+                                    # 1. 得到了字典格式的db脚本输出参数，准备替换实际输出得到的json
+                                    # 2. 实际脚本输出的所有参数(json格式)
+                                    #   2.1 参数数量相同 原abc，现abd;或原abc，现abc
+                                    #   2.2 多了参数 原abc，现abcd
+                                    #   2.3 少了参数 原abc，现ab
+                                    # 3.json的值写到列表上
+                                    # 4.转化列表上的<type></type>类型
+                                    # 5.写到componentoutput上面，字典的值就是componentoutput字典的值，字典的code内容为componentoutput字典的键
+                                    db_script_params = self._get_db_script_output()
+                                    script_json = excute_result["data"]
+                                    # 调用替换函数,返回结果是列表[OrderedDict...]
+                                    paramList = self.json_value_to_orderList(script_json, db_script_params)
+                                    # 调用类型转换函数
+                                    change_result = self._changeType(paramList)
+                                    # 准备写到componentoutput
+                                    for output in change_result:
+                                        componentOutput[output["code"]] = output["value"]
+                                    # 删除脚本
+                                    sftp.remove(linux_script_file)
+                                    ssh.close()
+                                return
+        elif self.jobModel.workflowBaseInfo["language"] == "windows":
+            windows_script_path = r"C:\drm"
+            mkdir_cmd = "if not exist {0} mkdir {1}".format(windows_script_path,windows_script_path)
+            mkdir_obj = workflow_remote.ServerByPara(mkdir_cmd, host, user, password, "Windows")
+            mkdir_result = mkdir_obj.run(isComponent=False)
+            if mkdir_result["exec_tag"] == 1:
+                self.jobBaseInfo["state"] = "ERROR"
+                self.jobBaseInfo["log"] += "windows远程服务器下创建C:\drm文件失败。"
+                return
+            else:
+                windows_script_name = "work_for_{0}_{1}.bat".format(self.job.jobGuid, self.jobGuid)
+                windows_script_file = windows_script_path + r"\\" + windows_script_name
+                # 切割bat脚本每一行的内容
+                script_template = self.jobModel.workflowBaseInfo["code"]
+                script_replace = self.replace_all_params(script_template,componentInput)
+                para_list = script_replace.split("\n")
+                for index, content in enumerate(para_list):
+                    tmp_cmd = ""
+                    if index == 0:
+                        # 逐行通过echo>>写入到新建的目录下bat文件
+                        tmp_cmd = r"""echo {0}>{1}""".format(content, windows_script_file)
+                    else:
+                        tmp_cmd = r"""echo {0}>>{1}""".format(content, windows_script_file)
+                    tmp_obj = workflow_remote.ServerByPara(tmp_cmd, host, user, password, "Windows")
+                    tmp_result = tmp_obj.run(isComponent=False)
+                    if tmp_result["exec_tag"] == 1:
+                        # 写入错误类型
+                        self.jobBaseInfo["state"] = "ERROR"
+                        self.jobBaseInfo["log"] += "文件追加写入失败"
+                        return
+                    else:
+                        exeute_bat = r"{0}".format(windows_script_file)
+                        excute_obj = workflow_remote.ServerByPara(exeute_bat, host, user, password, "Windows")
+                        excute_result = excute_obj.run(isComponent=True)
+                        if excute_result["exec_tag"] == 1:
+                            self.jobBaseInfo["state"] = "ERROR"
+                            self.jobBaseInfo["log"] += "bat脚本执行失败"
+                            return
+                        else:
+                            db_script_params = self._get_db_script_output()
+                            script_json = excute_result["data"]
+                            # 调用替换函数,返回结果是列表[OrderedDict...]
+                            paramList = self.json_value_to_orderList(script_json, db_script_params)
+                            # 调用类型转换函数
+                            change_result = self._changeType(paramList)
+                            # 准备写到componentoutput
+                            for output in change_result:
+                                componentOutput[output["code"]] = output["value"]
+                            # 删除脚本
+                            del_bat = r"del {0}".format(windows_script_file)
+                            del_obj = workflow_remote.ServerByPara(del_bat, host, user, password, "Windows")
+                            del_result = del_obj.run(isComponent=False)
+                            if del_result["exec_tag"] == 1:
+                                self.jobBaseInfo["state"] = "ERROR"
+                                self.jobBaseInfo["log"] += "bat脚本删除失败"
+                            return
 
         #3.将componentOutput写到任务的finalOutput中
         if self.jobModel.workflowBaseInfo["output"] and len(self.jobModel.workflowBaseInfo["output"].strip()) > 0:
@@ -1147,6 +1110,35 @@ class Job(object):
                 if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
                     tmpDTL = [tmpDTL]
                 self.jobVariable = tmpDTL
+
+    # 替换脚本的所有{{}}参数
+    def replace_all_params(self, script_template, componentInput):
+        for key, value in componentInput.items():
+            a = "{{" + key + "}}"
+            script_template = script_template.replace(a, value)
+        return script_template
+
+    # 获取数据库配置脚本的应有的输出变量列表
+    def _get_db_script_output(self):
+        if self.jobModel.workflowBaseInfo["output"] and len(self.jobModel.workflowBaseInfo["output"].strip()) > 0:
+            tmpoutput = xmltodict.parse(self.jobModel.workflowBaseInfo["output"])
+            if "outputs" in tmpoutput and tmpoutput["outputs"] and "output" in tmpoutput["outputs"]:
+                db_script_params = tmpoutput["outputs"]["output"]
+                if str(type(db_script_params)) == "<class 'collections.OrderedDict'>":
+                    db_script_params = [db_script_params]
+                    return db_script_params
+
+    # 实际脚本输出的参数json串，替换到db的配置参数列表上
+    def json_value_to_orderList(self, script_json, db_script_params):
+        put_result = []
+        # 解码脚本返回json串
+        script_dict = json.loads(script_json)
+        for index,item in enumerate(script_dict):
+            # 索引跟键
+            if db_script_params[index]["code"] == item:
+                db_script_params[index]["value"] = script_dict[item]
+                put_result.append(put_result[index])
+        return put_result
 
     # 格式化参数
     def _sourceToValue(self, paramList,sourceNode=None):
