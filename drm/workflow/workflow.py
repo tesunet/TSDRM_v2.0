@@ -677,7 +677,6 @@ class Job(object):
                         try:
                             # 开始上传
                             sftp.put(local_file, linux_script_file)
-                            time.sleep(2)
                         except Exception as e:
                             self.jobBaseInfo["state"] = "ERROR"
                             self.jobBaseInfo["log"] += "上传linux脚本文件失败：{0}。".format(e)
