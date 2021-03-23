@@ -638,7 +638,6 @@ class Job(object):
             script_replace = self.replace_all_params(script_template, componentInput)
             linux_script_path = "/tmp/drm"
             mkdir_cmd = "mkdir {0} -p".format(linux_script_path)
-            # 无输出的执行命令
             mkdir_obj = workflow_remote.ServerByPara(mkdir_cmd, host, user, password, "Linux")
             mkdir_result = mkdir_obj.run(isComponent=False)
             if mkdir_result["exec_tag"] == 1:
@@ -646,7 +645,7 @@ class Job(object):
                 self.jobBaseInfo["log"] += "linux远程服务器创建/tmp/drm文件夹失败。"
                 return
             else:
-                linux_script_name = "work_for_component_{0}_{1}.sh".format(self.job.jobGuid,self.jobGuid)
+                linux_script_name = "work_for_component_{0}_{1}.sh".format(self.job.modelguid, self.jobGuid)
                 linux_script_file = linux_script_path + "/" + linux_script_name
                 # 准备写入到项目drm/upload/script
                 script_path = os.path.join(
@@ -678,6 +677,7 @@ class Job(object):
                         try:
                             # 开始上传
                             sftp.put(local_file, linux_script_file)
+                            time.sleep(2)
                         except Exception as e:
                             self.jobBaseInfo["state"] = "ERROR"
                             self.jobBaseInfo["log"] += "上传linux脚本文件失败：{0}。".format(e)
@@ -685,7 +685,7 @@ class Job(object):
                         else:
                             sftp.chmod(linux_script_file, int("755"))
                             # 修改dos
-                            change_dos = r"sed -i 's/\r$//' {0}&&{0}".format(linux_script_file)
+                            change_dos = r"sed -i 's/\r$//' {0}&&sed -i 's/\r$//' {0}&&sh {0}".format(linux_script_file)
                             dos_obj = workflow_remote.ServerByPara(change_dos, host, user, password, "Linux")
                             dos_result = dos_obj.run(isComponent=False)
                             if dos_result["exec_tag"] == 1:
@@ -711,15 +711,18 @@ class Job(object):
                                     # 3.json的值写到列表上
                                     # 4.转化列表上的<type></type>类型
                                     # 5.写到componentoutput上面，字典的值就是componentoutput字典的值，字典的code内容为componentoutput字典的键
+                                    self._get_db_script_output()
                                     db_script_params = self._get_db_script_output()
                                     script_json = excute_result["data"]
                                     # 调用替换函数,返回结果是列表[OrderedDict...]
                                     paramList = self.json_value_to_orderList(script_json, db_script_params)
+                                    # print(paramList)
                                     # 调用类型转换函数
                                     change_result = self._changeType(paramList)
                                     # 准备写到componentoutput
                                     for output in change_result:
                                         componentOutput[output["code"]] = output["value"]
+                                    # print(componentOutput)
                                     # 删除脚本
                                     sftp.remove(linux_script_file)
                                     ssh.close()
@@ -734,7 +737,7 @@ class Job(object):
                 self.jobBaseInfo["log"] += "windows远程服务器下创建C:\drm文件失败。"
                 return
             else:
-                windows_script_name = "work_for_{0}_{1}.bat".format(self.job.jobGuid, self.jobGuid)
+                windows_script_name = "work_for_{0}_{1}.bat".format(self.job.modelguid, self.jobGuid)
                 windows_script_file = windows_script_path + r"\\" + windows_script_name
                 # 切割bat脚本每一行的内容
                 script_template = self.jobModel.workflowBaseInfo["code"]
@@ -752,34 +755,36 @@ class Job(object):
                     if tmp_result["exec_tag"] == 1:
                         # 写入错误类型
                         self.jobBaseInfo["state"] = "ERROR"
-                        self.jobBaseInfo["log"] += "文件追加写入失败"
+                        self.jobBaseInfo["log"] += "文件追加写入失败。"
                         return
-                    else:
-                        exeute_bat = r"{0}".format(windows_script_file)
-                        excute_obj = workflow_remote.ServerByPara(exeute_bat, host, user, password, "Windows")
-                        excute_result = excute_obj.run(isComponent=True)
-                        if excute_result["exec_tag"] == 1:
-                            self.jobBaseInfo["state"] = "ERROR"
-                            self.jobBaseInfo["log"] += "bat脚本执行失败"
-                            return
-                        else:
-                            db_script_params = self._get_db_script_output()
-                            script_json = excute_result["data"]
-                            # 调用替换函数,返回结果是列表[OrderedDict...]
-                            paramList = self.json_value_to_orderList(script_json, db_script_params)
-                            # 调用类型转换函数
-                            change_result = self._changeType(paramList)
-                            # 准备写到componentoutput
-                            for output in change_result:
-                                componentOutput[output["code"]] = output["value"]
-                            # 删除脚本
-                            del_bat = r"del {0}".format(windows_script_file)
-                            del_obj = workflow_remote.ServerByPara(del_bat, host, user, password, "Windows")
-                            del_result = del_obj.run(isComponent=False)
-                            if del_result["exec_tag"] == 1:
-                                self.jobBaseInfo["state"] = "ERROR"
-                                self.jobBaseInfo["log"] += "bat脚本删除失败"
-                            return
+                exeute_bat = windows_script_file
+                excute_obj = workflow_remote.ServerByPara(exeute_bat, host, user, password, "Windows")
+                excute_result = excute_obj.run(isComponent=True)
+                print(exeute_bat)
+                print(excute_result)
+                if excute_result["exec_tag"] == 1:
+                    self.jobBaseInfo["state"] = "ERROR"
+                    self.jobBaseInfo["log"] += "bat脚本执行失败。"
+                    return
+                else:
+                    db_script_params = self._get_db_script_output()
+                    script_json = excute_result["data"]
+                    # 调用替换函数,返回结果是列表[OrderedDict...]
+                    paramList = self.json_value_to_orderList(script_json, db_script_params)
+                    # 调用类型转换函数
+                    change_result = self._changeType(paramList)
+                    # 准备写到componentoutput
+                    for output in change_result:
+                        componentOutput[output["code"]] = output["value"]
+                    # 删除脚本
+                    del_bat = r"del {0}".format(windows_script_file)
+                    del_obj = workflow_remote.ServerByPara(del_bat, host, user, password, "Windows")
+                    del_result = del_obj.run(isComponent=False)
+                    if del_result["exec_tag"] == 1:
+                        self.jobBaseInfo["state"] = "ERROR"
+                        self.jobBaseInfo["log"] += "bat脚本删除失败"
+                        return
+                    return
 
         #3.将componentOutput写到任务的finalOutput中
         if self.jobModel.workflowBaseInfo["output"] and len(self.jobModel.workflowBaseInfo["output"].strip()) > 0:
@@ -1126,19 +1131,19 @@ class Job(object):
                 db_script_params = tmpoutput["outputs"]["output"]
                 if str(type(db_script_params)) == "<class 'collections.OrderedDict'>":
                     db_script_params = [db_script_params]
-                    return db_script_params
+                return db_script_params
 
     # 实际脚本输出的参数json串，替换到db的配置参数列表上
     def json_value_to_orderList(self, script_json, db_script_params):
-        put_result = []
         # 解码脚本返回json串
         script_dict = json.loads(script_json)
         for index,item in enumerate(script_dict):
+            # print(script_dict)
+            # print(index,item)
             # 索引跟键
             if db_script_params[index]["code"] == item:
                 db_script_params[index]["value"] = script_dict[item]
-                put_result.append(put_result[index])
-        return put_result
+        return db_script_params
 
     # 格式化参数
     def _sourceToValue(self, paramList,sourceNode=None):
@@ -1583,19 +1588,19 @@ class Job(object):
         return value
 
 if __name__ == "__main__":
-    # #创建任务
+    #创建任务
     # testJob = Job()
     # jobJson = {}
     # jobJson["createuser"] = 1
-    # jobJson["name"] = '测试任务'
+    # jobJson["name"] = '测试脚本'
     # jobJson["reson"] = '测试'
-    # jobJson["type"] = 'INSTANCE'
+    # jobJson["type"] = 'COMPONENT'
     # aa = datetime.datetime.now()
-    # jobJson["modelguid"] = 'd19e3a02-44d0-11eb-b557-84fdd1a17907'
+    # jobJson["modelguid"] = '987654321'
     # jobJson["input"] = '<inputs><input><code>inputnum</code><value>1</value></input></inputs>'
     # testJob.create_job(jobJson)
 
     # get并执行任务
-    testJob = Job('')
-    testJob.run_component()
+    testJob = Job('6d24d24a-8b84-11eb-8369-a4bb6d10e0ef')
+    testJob.run_job()
 

@@ -95,8 +95,8 @@ class ServerByPara(object):
         return content
 
     def exec_linux_cmd(self, isComponent, linux_timeout, port=22):
-        data_init = ''
-        scriptResult = ''
+        data_init = ""
+        scriptResult = ""
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
             self.client.connect(hostname=self.host, username=self.user, password=self.pwd, timeout=5, port=port)
@@ -121,7 +121,7 @@ class ServerByPara(object):
                     data_init = ServerByPara.handle_codec(stdout.read())
                     if data_init:
                         data_init = " ".join(data_init.split("\r\n"))
-                    if '<scriptResult>' not in data_init or '</scriptResult>' not in data_init:
+                    if "<scriptResult>" not in data_init or "</scriptResult>" not in data_init:
                         if isComponent:
                             exec_tag = 1
                             log = "无法获取执行结果"
@@ -135,8 +135,8 @@ class ServerByPara(object):
                             exec_tag = 1
                             log = "脚本不存在"
                     else:
-                        startindex=data_init.index('<scriptResult>')
-                        endindex = data_init.index('</scriptResult>')
+                        startindex=data_init.index("<scriptResult>")
+                        endindex = data_init.index("</scriptResult>")
                         scriptResult= data_init[startindex+14:endindex]
 
 
@@ -159,7 +159,7 @@ class ServerByPara(object):
         }
 
     def exec_win_cmd(self, isComponent):
-        scriptResult = ''
+        scriptResult = ""
         data_init = ""
         log = ""
 
@@ -209,8 +209,8 @@ class ServerByPara(object):
                             exec_tag = 1
                             log = "无法获取执行结果"
                     else:
-                        startindex = data_init.index('<scriptResult>')
-                        endindex = data_init.index('</scriptResult>')
+                        startindex = data_init.index("<scriptResult>")
+                        endindex = data_init.index("</scriptResult>")
                         scriptResult = data_init[startindex + 14:endindex]
 
             return {
@@ -247,5 +247,5 @@ if __name__ == '__main__':
     #                           "192.168.184.66", "root", "password", "Linux")
     # server_obj = ServerByPara(r"echo '你好你好你好你好你好你好你好';echo '你好你好你好你好你好你好你好';echo '你好你好你好你好你好你好你好'", "192.168.184.66", "root","password", "Linux")
 
-    server_obj.run("")
+    server_obj.run()
     print(11111111111111)
