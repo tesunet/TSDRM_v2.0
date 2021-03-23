@@ -715,13 +715,11 @@ class Job(object):
                                     script_json = excute_result["data"]
                                     # 调用替换函数,返回结果是列表[OrderedDict...]
                                     paramList = self.json_value_to_orderList(script_json, db_script_params)
-                                    # print(paramList)
                                     # 调用类型转换函数
                                     change_result = self._changeType(paramList)
                                     # 准备写到componentoutput
                                     for output in change_result:
                                         componentOutput[output["code"]] = output["value"]
-                                    # print(componentOutput)
                                     # 删除脚本
                                     sftp.remove(linux_script_file)
                                     ssh.close()
@@ -759,8 +757,8 @@ class Job(object):
                 exeute_bat = windows_script_file
                 excute_obj = workflow_remote.ServerByPara(exeute_bat, host, user, password, "Windows")
                 excute_result = excute_obj.run(isComponent=True)
-                print(exeute_bat)
-                print(excute_result)
+                # print(exeute_bat)
+                # print(excute_result)
                 if excute_result["exec_tag"] == 1:
                     self.jobBaseInfo["state"] = "ERROR"
                     self.jobBaseInfo["log"] += "bat脚本执行失败。"
