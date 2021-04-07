@@ -117,6 +117,37 @@ def get_component_detail(request):
         status = 0
         info = "获取组件信息失败。"
     else:
+        input = []
+        if component.input and len(component.input.strip()) > 0:
+            tmpInput = xmltodict.parse(component.input)
+            if "inputs" in tmpInput and "input" in tmpInput["inputs"]:
+                tmpDTL = tmpInput["inputs"]["input"]
+                if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
+                    tmpDTL = [tmpDTL]
+                for curinput in tmpDTL:
+                    input.append({"code": curinput["code"], "name": curinput["name"], "type": curinput["type"],
+                                  "remark": curinput["remark"], "source": curinput["source"], "value": curinput["value"],"sort":curinput["sort"]})
+        output = []
+        if component.output and len(component.output.strip()) > 0:
+            tmpoutput = xmltodict.parse(component.output)
+            if "outputs" in tmpoutput and "output" in tmpoutput["outputs"]:
+                tmpDTL = tmpoutput["outputs"]["output"]
+                if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
+                    tmpDTL = [tmpDTL]
+                for curoutput in tmpDTL:
+                    output.append({"code": curoutput["code"], "name": curoutput["name"], "type": curoutput["type"],
+                                  "remark": curoutput["remark"], "source": curoutput["source"], "value": curoutput["value"],"sort":curoutput["sort"]})
+        variable = []
+        if component.variable and len(component.variable.strip()) > 0:
+            tmpvariable = xmltodict.parse(component.variable)
+            if "variables" in tmpvariable and "variable" in tmpvariable["variables"]:
+                tmpDTL = tmpvariable["variables"]["variable"]
+                if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
+                    tmpDTL = [tmpDTL]
+                for curvariable in tmpDTL:
+                    variable.append({"code": curvariable["code"], "name": curvariable["name"], "type": curvariable["type"],
+                                   "remark": curvariable["remark"], "value": curvariable["value"],"sort":curvariable["sort"]})
+
         data = {
             "pname": component.pnode.shortname if component.pnode else "",
             "id": component.id,
@@ -134,6 +165,9 @@ def get_component_detail(request):
             "icon": component.icon,
             "language": component.language,
             "code": component.code,
+            "input": input,
+            "output": output,
+            "variable": variable,
             "version": component.version,
             "remark": component.remark,
             "sort": component.sort,
@@ -167,6 +201,8 @@ def component_save(request):
     group = request.POST.getlist('group', [])
     icon = request.POST.get('icon', '')
     version = request.POST.get('version', '')
+    language = request.POST.get('component_language', '')
+    code = request.POST.get('script_code', '')
     remark = request.POST.get('remark', '')
 
     try:
@@ -245,6 +281,8 @@ def component_save(request):
                     componentsave.owner = "USER"
                     componentsave.icon = icon
                     componentsave.version = version
+                    componentsave.language = language
+                    componentsave.cod = code
                     componentsave.sort = sort if sort else None
                     componentsave.remark = remark
                     componentsave.type = "LEAF"
@@ -283,7 +321,8 @@ def component_save(request):
                     componentsave.icon = icon
                     componentsave.version = version
                     componentsave.remark = remark
-
+                    componentsave.language = language
+                    componentsave.code = code
                     componentsave.updatetime = datetime.datetime.now()
                     componentsave.updateuser = request.user
                     componentsave.save()
@@ -314,6 +353,8 @@ def component_save(request):
         "updatetime": updatetime,
         "createuser": createuser,
         "updateuser": updateuser,
+        "component_language": language,
+        "script_code": code
     })
 
 
@@ -574,80 +615,6 @@ def component_form_output(request):
             "output": '保存失败'
         })
 
-
-# 将db中输入参数显示在页面上
-@login_required
-def component_return_input(request):
-    request_data = json.loads(request.body.decode())["guid"]
-    componentdata = TSDRMComponent.objects.get(guid__exact=request_data).input
-    if str(type(componentdata)) == "<class 'NoneType'>":
-        return JsonResponse({
-            "status": 0,
-            "input": ""
-        })
-    else:
-        input = []
-        tmpInput = xmltodict.parse(componentdata, encoding='utf-8')
-        if "inputs" in tmpInput and "input" in tmpInput["inputs"]:
-            tmpDTL = tmpInput["inputs"]["input"]
-            if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
-                tmpDTL = [tmpDTL]
-            for curinput in tmpDTL:
-                input.append(curinput)
-        return JsonResponse({
-            "status": 1,
-            "input": input
-        })
-
-
-# 将db中临时参数显示在页面上
-@login_required
-def component_return_variable(request):
-    request_data = json.loads(request.body.decode())["guid"]
-    componentdata = TSDRMComponent.objects.get(guid__exact=request_data).variable
-    if str(type(componentdata)) == "<class 'NoneType'>":
-        return JsonResponse({
-            "status": 0,
-            "variable": ""
-        })
-    else:
-        variable = []
-        tmpvariable = xmltodict.parse(componentdata, encoding='utf-8')
-        if "variables" in tmpvariable and "variable" in tmpvariable["variables"]:
-            tmpDTL = tmpvariable["variables"]["variable"]
-            if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
-                tmpDTL = [tmpDTL]
-            for curvariable in tmpDTL:
-                variable.append(curvariable)
-        return JsonResponse({
-            "status": 1,
-            "variable": variable
-        })
-
-
-# 将db中输出参数显示在页面上
-@login_required
-def component_return_output(request):
-    request_data = json.loads(request.body.decode())["guid"]
-    componentdata = TSDRMComponent.objects.get(guid__exact=request_data).output
-    if str(type(componentdata)) == "<class 'NoneType'>":
-        return JsonResponse({
-            "status": 0,
-            "output": ""
-        })
-    else:
-        output = []
-        tmpoutput = xmltodict.parse(componentdata, encoding='utf-8')
-        if "outputs" in tmpoutput and "output" in tmpoutput["outputs"]:
-            tmpDTL = tmpoutput["outputs"]["output"]
-            if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
-                tmpDTL = [tmpDTL]
-            for curoutput in tmpDTL:
-                output.append(curoutput)
-        return JsonResponse({
-            "status": 1,
-            "output": output
-        })
 
 
 # 根据页面修改db已有的输入参数
