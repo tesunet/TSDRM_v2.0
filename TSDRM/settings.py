@@ -109,9 +109,9 @@ DATABASES = {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': "tesudrm_v2.0",
         'USER': "root",
-        'PASSWORD': "lch123456",
-        'HOST': "127.0.0.1",
-        # 'HOST': "192.168.1.66",
+        'PASSWORD': "password",
+        # 'HOST': "127.0.0.1",
+        'HOST': "192.168.1.66",
         'PORT': '3306',
     }
 }
