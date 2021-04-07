@@ -22,15 +22,25 @@ function getframework(){
                     if(data.data.commserve.net=="中断"){
                         $("#cs_net").css("color","red");
                     }
+                    else{
+                        $("#cs_net").css("color","#8e9daa");
+
+                    }
                     $('#cs_apiport').text(data.data.commserve.apiport);
                     $('#cs_apiconnect').text(data.data.commserve.apiconnect);
                     if(data.data.commserve.apiconnect=="中断"){
                         $("#cs_apiconnect").css("color","red");
                     }
+                    else{
+                        $("#cs_apiconnect").css("color","#8e9daa");
+                    }
                     $('#cs_dbname').text(data.data.commserve.dbname);
                     $('#cs_dbconnect').text(data.data.commserve.dbconnect);
                     if(data.data.commserve.dbconnect=="中断"){
                         $("#cs_dbconnect").css("color","red");
+                    }
+                    else{
+                        $("#cs_dbconnect").css("color","#8e9daa");
                     }
 
                     $('#cs_memtotal').text("获取中");
@@ -108,6 +118,7 @@ function getframework(){
 $(document).ready(function () {
     getframework();
     $("#util").change(function () {
+        $("#matable tbody").empty();
         getframework();
     });
 });
