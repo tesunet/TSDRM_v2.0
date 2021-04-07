@@ -38,7 +38,6 @@ function getComponentDetail(id, node_type){
                 $("#component_output_name").prop("readonly", true);
                 $("#component_output_type").prop("disabled", true);
                 $("#component_output_source").prop("disabled", true);
-                $("#component_output_value").prop("readonly", true);
                 $("#component_output_sort").prop("readonly", true);
                 $("#component_output_remark").prop("readonly", true);
 
@@ -88,7 +87,6 @@ function getComponentDetail(id, node_type){
                     $("#component_output_name").val('')
                     $("#component_output_source").val('')
                     $("#component_output_type").val('')
-                    $("#component_output_value").val('')
                     $("#component_output_sort").val('')
                     $("#component_output_remark").val('')
                     $("#component_variable_code").val('')
@@ -96,13 +94,14 @@ function getComponentDetail(id, node_type){
                     $("#component_variable_type").val('')
                     $("#component_variable_value").val('')
                     $("#component_variable_sort").val('')
-
                     //返回输入参数到页面上
                     $("#component_input").empty();
                     for (var i = 0; i < data.input.length; i++) {
                         $("#component_input").append('<option value="' + data.input[i]["code"] + '">' + data.input[i]["name"] + '</option>')
                     }
                     $("#component_input").click(function () {
+                        $("#component_input_add").hide()
+                        $("#component_input_save").show()
                         var selectval = $("#component_input option:selected").val();
                         for (var i = 0; i < data.input.length; i++) {
                             if (data.input[i]["code"] == selectval) {
@@ -131,6 +130,8 @@ function getComponentDetail(id, node_type){
                         $("#component_output").append('<option value="' + data.output[i]["code"] + '">' + data.output[i]["name"] + '</option>')
                     }
                     $("#component_output").click(function () {
+                        $("#component_output_add").hide()
+                        $("#component_output_save").show()
                         var selectval = $("#component_output option:selected").val();
                         for (var i = 0; i < data.output.length; i++) {
                             if (data.output[i]["code"] == selectval) {
@@ -140,7 +141,6 @@ function getComponentDetail(id, node_type){
                                 $("#component_output_source").prop("disabled", false);
                                 $("#component_output_sort").prop("readonly", false);
                                 $("#component_output_remark").prop("readonly", false);
-                                $("#component_output_value").prop("readonly", false);
 
                                 $('#component_output_code').val(data.output[i]["code"]);
                                 $('#component_output_name').val(data.output[i]["name"]);
@@ -148,7 +148,6 @@ function getComponentDetail(id, node_type){
                                 $('#component_output_source').val(data.output[i]["source"]);
                                 $('#component_output_sort').val(data.output[i]["sort"]);
                                 $('#component_output_remark').val(data.output[i]["remark"]);
-                                $('#component_output_value').val(data.output[i]["value"]);
                                 break;
                             }
                         }
@@ -159,6 +158,8 @@ function getComponentDetail(id, node_type){
                         $("#component_variable").append('<option value="' + data.variable[i]["code"] + '">' + data.variable[i]["name"] + '</option>')
                     }
                     $("#component_variable").click(function () {
+                        $("#component_variable_add").hide()
+                        $("#component_variable_save").show()
                         var selectval = $("#component_variable option:selected").val();
                         for (var i = 0; i < data.variable.length; i++) {
                             if (data.variable[i]["code"] == selectval) {
@@ -565,7 +566,6 @@ $('#node_save, #leaf_save').click(function (data){
 
 
 $(document).ready(function () {
-
     $('#component_input_save').click(function () {
         //页面获取组件输入参数
         if ($('#component_input_code').val() == "") {
@@ -761,10 +761,6 @@ $(document).ready(function () {
             alert("数据类型不能为空。")
             return
         }
-        if ($('#component_output_source').val() == "") {
-            alert("数据来源不能为空。")
-            return
-        }
         if ($("#component_output_isnew").val() == "1") {
             $("#component_output").empty();
             var outputparams = {
@@ -773,8 +769,6 @@ $(document).ready(function () {
                 code: $("#component_output_code").val(),
                 name: $("#component_output_name").val(),
                 type: $("#component_output_type").val(),
-                value: $("#component_output_value").val(),
-                source: $("#component_output_source").val(),
                 remark: $("#component_output_remark").val(),
                 sort: $("#component_output_sort").val(),
             }
@@ -806,8 +800,6 @@ $(document).ready(function () {
                 code: $("#component_output_code").val(),
                 name: $("#component_output_name").val(),
                 type: $("#component_output_type").val(),
-                value: $("#component_output_value").val(),
-                source: $("#component_output_source").val(),
                 remark: $("#component_output_remark").val(),
                 sort: $("#component_output_sort").val(),
             }
@@ -887,16 +879,12 @@ $(document).ready(function () {
         $("#component_output_code").val('');
         $("#component_output_name").val('');
         $("#component_output_type").val('');
-        $("#component_output_source").val('');
-        $("#component_output_value").val('');
         $("#component_output_sort").val('');
         $("#component_output_remark").val('');
 
         $("#component_output_code").prop("readonly", false);
         $("#component_output_name").prop("readonly", false);
         $("#component_output_type").prop("disabled", false);
-        $("#component_output_source").prop("disabled", false);
-        $("#component_output_value").prop("readonly", false);
         $("#component_output_sort").prop("readonly", false);
         $("#component_output_remark").prop("readonly", false);
     })

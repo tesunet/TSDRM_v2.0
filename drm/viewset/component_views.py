@@ -707,16 +707,12 @@ def update_output_params(output_content_xml, request_output_code):
             if i["code"] == request_output_code["code"]:
                 i["name"] = request_output_code["name"]
                 i["type"] = request_output_code["type"]
-                i["source"] = request_output_code["source"]
-                i["value"] = request_output_code["value"]
                 i["sort"] = request_output_code["sort"]
                 i["remark"] = request_output_code["remark"]
         return xml_tmp
     else:
         tmp["name"] = request_output_code["name"]
         tmp["type"] = request_output_code["type"]
-        tmp["source"] = request_output_code["source"]
-        tmp["value"] = request_output_code["value"]
         tmp["sort"] = request_output_code["sort"]
         tmp["remark"] = request_output_code["remark"]
         return xml_tmp
