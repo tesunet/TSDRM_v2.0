@@ -325,8 +325,5 @@ urlpatterns = [
     url(r'^component_form_input/$', component_form_input),
     url(r'^component_form_variable/$', component_form_variable),
     url(r'^component_form_output/$', component_form_output),
-    url(r'^component_return_input/$', component_return_input),
-    url(r'^component_return_variable/$', component_return_variable),
-    url(r'^component_return_output/$', component_return_output),
 
 ]
