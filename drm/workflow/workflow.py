@@ -613,9 +613,7 @@ class Job(object):
         for input in self.finalInput:
             componentInput[input["code"]] = input["value"]
         componentOutput = {}
-        # 获取连接远程服务器的必要参数值
-        host, user, password,  = componentInput["inputhost"], componentInput["inputusername"], componentInput["inputpassword"]
-        #2.根据类型执行组件代码，目前只写了python类型。组件code中，直接把输出参数值写到componentOutput对应的键上.
+                #2.根据类型执行组件代码，目前只写了python类型。组件code中，直接把输出参数值写到componentOutput对应的键上.
         if self.jobModel.workflowBaseInfo["language"]=="python":
             componentCode=self.jobModel.workflowBaseInfo["code"]
             try:
@@ -632,6 +630,10 @@ class Job(object):
                 self.jobBaseInfo["state"] = "ERROR"
                 return
         elif self.jobModel.workflowBaseInfo["language"] == "linux":
+            # 获取连接远程服务器的必要参数值
+            host, user, password, = componentInput["inputhost"], componentInput["inputusername"], componentInput[
+                "inputpassword"]
+
             # 获取code字段的实际内容
             script_template = self.jobModel.workflowBaseInfo["code"]
             # 替换字段
@@ -725,6 +727,10 @@ class Job(object):
                                     ssh.close()
                                 return
         elif self.jobModel.workflowBaseInfo["language"] == "windows":
+            # 获取连接远程服务器的必要参数值
+            host, user, password, = componentInput["inputhost"], componentInput["inputusername"], componentInput[
+                "inputpassword"]
+
             windows_script_path = r"C:\drm"
             mkdir_cmd = "if not exist {0} mkdir {1}".format(windows_script_path,windows_script_path)
             mkdir_obj = workflow_remote.ServerByPara(mkdir_cmd, host, user, password, "Windows")
@@ -1587,8 +1593,10 @@ class Job(object):
         jobJson = {}
         jobJson["modelguid"] = modelguid
         jobJson["type"] = type
-        jobJson["input"] = input
-        self.create_job(jobJson,self)
+        jobJson["name"] = ""
+        stepInput = {"inputs": {"input": input}}
+        jobJson["input"] = xmltodict.unparse(stepInput, encoding='utf-8')
+        self.create_job(jobJson)
         return self.run_job()
 
 
