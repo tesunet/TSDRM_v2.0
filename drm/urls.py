@@ -316,7 +316,7 @@ urlpatterns = [
     url(r'^workflow_monitor_skip/$', workflow_monitor_skip),
 
     # 组件管理
-    url(r'^component_manage/$', component_manage, {'funid': '130'}),
+    url(r'^component_manage/$', component_manage, {'funid': '125'}),
     url(r'^component_save/$', component_save),
     url(r'^component_del/$', component_del),
     url(r'^workflow_move/$', workflow_move),
