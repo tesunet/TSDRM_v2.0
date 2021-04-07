@@ -38,7 +38,7 @@
                         <input type="text" hidden id="gid" name="id">
                         <input type="text" hidden id="pid" name="pid">
                         <input type="text" hidden id="my_type" name="my_type">
-                        <div id="leafdiv" >
+                        <div hidden id="leafdiv" >
                             <div class="form-body">
                                 <div id="div_component" hidden="" class="tab " role="tabpanel" style="display: block;">
                                     <ul id="navtabs_1" class="nav nav-tabs ">
@@ -114,8 +114,8 @@
                                                     <label class="col-md-2 control-label"><span style="color:red; ">*</span>脚本类型</label>
                                                     <div class="col-md-10">
                                                         <select class="form-control" id="component_language" name="component_language">
-                                                            <option value="Python">Python</option>
-                                                            <option value="linux">Linux</option>
+                                                            <option value="python">python</option>
+                                                            <option value="linux">linux</option>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -313,25 +313,7 @@
                                                         </select>
                                                     </div>
                                                 </div>
-                                                <div class="form-group" style="margin-right:0px">
-                                                    <label class="col-md-2 control-label"><span style="color:red; ">*</span>数据来源</label>
-                                                    <div class="col-md-10">
-                                                        <select class="form-control" id="component_output_source" name="component_output_source">
-                                                            <option value="constant">常数</option>
-                                                            <option value="function">公式</option>
-                                                            <option value="componentInput">组件输入</option>
-                                                            <option value="componentVariable">组件变量</option>
-                                                            <option value="stepOutput">步骤输出</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group" style="margin-right:0px">
-                                                    <label id="component_output_value_lable" class="col-md-2 control-label">值</label>
-                                                    <div class="col-md-10">
-                                                        <input id="component_output_value" type="text" name="component_output_value" class="form-control " placeholder="">
-                                                        <div class="form-control-focus"></div>
-                                                    </div>
-                                                </div>
+
                                                 <div class="form-group" style="margin-right:0px">
                                                     <label class="col-md-2 control-label">序号</label>
                                                     <div class="col-md-10">
@@ -356,7 +338,7 @@
                                     </div>
                                 </div>
                         </div>
-                        <div id="nodediv">
+                        <div hidden id="nodediv">
                             <div class="form-body">
                                 <div class="form-group" style="margin-top:-20px">
                                     <label class="col-md-2 control-label">父节点</label>
