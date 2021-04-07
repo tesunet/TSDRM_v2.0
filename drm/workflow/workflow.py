@@ -1583,14 +1583,13 @@ class Job(object):
         return value
 
     # 执行单独流程或组件
-    def execute_workflow(self,modelguid,userid=None,type="COMPONENT",input=None):
-        stepJob = Job(userid=self.userid)
+    def execute_workflow(self,modelguid,input=None,type="COMPONENT"):
         jobJson = {}
         jobJson["modelguid"] = modelguid
         jobJson["type"] = type
         jobJson["input"] = input
-        stepJob.create_job(jobJson,self)
-        return stepJob.run_job()
+        self.create_job(jobJson,self)
+        return self.run_job()
 
 
 if __name__ == "__main__":
