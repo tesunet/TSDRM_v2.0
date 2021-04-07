@@ -757,8 +757,6 @@ class Job(object):
                 exeute_bat = windows_script_file
                 excute_obj = workflow_remote.ServerByPara(exeute_bat, host, user, password, "Windows")
                 excute_result = excute_obj.run(isComponent=True)
-                # print(exeute_bat)
-                # print(excute_result)
                 if excute_result["exec_tag"] == 1:
                     self.jobBaseInfo["state"] = "ERROR"
                     self.jobBaseInfo["log"] += "bat脚本执行失败。"

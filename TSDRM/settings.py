@@ -107,11 +107,11 @@ WSGI_APPLICATION = 'TSDRM.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': "tesudrm_v2",
+        'NAME': "tesudrm_v2.0",
         'USER': "root",
-        'PASSWORD': "password",
+        'PASSWORD': "lch123456",
         'HOST': "127.0.0.1",
-        #'HOST': "192.168.1.66",
+        # 'HOST': "192.168.1.66",
         'PORT': '3306',
     }
 }

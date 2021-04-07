@@ -9,6 +9,7 @@ from .viewset.commv_views import *
 from .viewset.report_views import *
 from .viewset.workflow_views import *
 from .viewset.test import *
+from .viewset.component_views import *
 
 
 urlpatterns = [
@@ -313,4 +314,19 @@ urlpatterns = [
     url(r'^workflow_monitor_pause/$', workflow_monitor_pause),
     url(r'^workflow_monitor_retry/$', workflow_monitor_retry),
     url(r'^workflow_monitor_skip/$', workflow_monitor_skip),
+
+    # 组件管理
+    url(r'^component_manage/$', component_manage, {'funid': '130'}),
+    url(r'^component_save/$', component_save),
+    url(r'^component_del/$', component_del),
+    url(r'^workflow_move/$', workflow_move),
+    url(r'^get_component_tree/$', get_component_tree),
+    url(r'^get_component_detail/$', get_component_detail),
+    url(r'^component_form_input/$', component_form_input),
+    url(r'^component_form_variable/$', component_form_variable),
+    url(r'^component_form_output/$', component_form_output),
+    url(r'^component_return_input/$', component_return_input),
+    url(r'^component_return_variable/$', component_return_variable),
+    url(r'^component_return_output/$', component_return_output),
+
 ]
