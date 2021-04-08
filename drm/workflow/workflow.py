@@ -11,6 +11,7 @@ import paramiko
 import os
 from . import workflow_remote
 from TSDRM import settings
+from ..remote import *
 
 # 流程类/控件类/组件类
 class WorkFlow(object):
