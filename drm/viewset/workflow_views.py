@@ -10,11 +10,9 @@ from xml.dom.minidom import Document
 ######################
 @login_required
 def workflowlist(request, funid):
-    grouplist = Group.objects.all().exclude(state='9')
     return render(request, "workflowlist.html", {
         'username': request.user.userinfo.fullname,
-        "pagefuns": getpagefuns(funid, request=request),
-        "grouplist": grouplist
+        "pagefuns": getpagefuns(funid, request=request)
     })
 
 
@@ -129,7 +127,6 @@ def get_workflow_detail(request):
             "shortname": workflow.shortname,
             "type": workflow.type,
             "owner": workflow.owner,
-            "group": [x.id for x in workflow.group.all()] ,
             "icon": workflow.icon,
             "version": workflow.version,
             "remark": workflow.remark,
@@ -231,7 +228,6 @@ def workflow_save(request):
     node_remark = request.POST.get('node_remark', '')
 
     shortname = request.POST.get('shortname', '')
-    group = request.POST.getlist('group', [])
     icon = request.POST.get('icon', '')
     version = request.POST.get('version', '')
     remark = request.POST.get('remark', '')
@@ -292,7 +288,6 @@ def workflow_save(request):
                     info = "保存失败：{0}".format(e)
                     status = 0
     else:
-        allgroup = Group.objects.exclude(state="9")
         if shortname.strip() == '':
             info = '短名称不能为空。'
             status = 0
@@ -324,14 +319,6 @@ def workflow_save(request):
                     workflowsave.save()
                     workflowsave.longname = getLongname(workflowsave)
                     workflowsave.save()
-                    workflowsave.group.clear()
-                    for groupid in group:
-                        try:
-                            groupid = int(groupid)
-                            mygroup = allgroup.get(id=groupid)
-                            workflowsave.group.add(mygroup)
-                        except ValueError:
-                            raise Http404()
 
                     select_id = workflowsave.id
                     createtime = workflowsave.createtime.strftime(
@@ -356,14 +343,6 @@ def workflow_save(request):
                     workflowsave.save()
                     workflowsave.longname = getLongname(workflowsave)
                     workflowsave.save()
-                    workflowsave.group.clear()
-                    for groupid in group:
-                        try:
-                            groupid = int(groupid)
-                            mygroup = allgroup.get(id=groupid)
-                            workflowsave.group.add(mygroup)
-                        except ValueError:
-                            raise Http404()
 
                     select_id = workflowsave.id
                     updatetime = workflowsave.updatetime.strftime(
@@ -402,16 +381,14 @@ def workflow_del(request):
 
 @login_required
 def workflow(request,offset, funid):
-    grouplist = Group.objects.all().exclude(state='9')
     return render(request, 'workflow.html',
-                  {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request),"workflowid":offset,"grouplist": grouplist})
+                  {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request),"workflowid":offset})
 
 
 @login_required
 def workflow_readonly(request,offset, funid):
-    grouplist = Group.objects.all().exclude(state='9')
     return render(request, 'workflow_readonly.html',
-                  {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request),"workflowid":offset,"grouplist": grouplist})
+                  {'username': request.user.userinfo.fullname, "pagefuns": getpagefuns(funid, request=request),"workflowid":offset})
 
 
 @login_required
@@ -570,7 +547,6 @@ def workflow_getdata(request):
                 "shortname": workflow.shortname,
                 "type": workflow.type,
                 "owner": workflow.owner,
-                "group": json.dumps([x.id for x in workflow.group.all()]),
                 "icon": workflow.icon,
                 "version": workflow.version,
                 "remark": workflow.remark,
@@ -735,7 +711,6 @@ def workflow_draw_save(request):
             info = "保存失败，流程不存在！"
         else:
             shortname = baseinfo["shortname"]
-            group = json.loads(baseinfo["group"])
             icon = baseinfo["icon"]
             version = baseinfo["version"]
             remark = baseinfo["remark"]
@@ -842,15 +817,6 @@ def workflow_draw_save(request):
                 workflowsave.save()
                 workflowsave.longname = getLongname(workflowsave)
                 workflowsave.save()
-                workflowsave.group.clear()
-                allgroup = Group.objects.exclude(state="9")
-                for groupid in group:
-                    try:
-                        groupid = int(groupid)
-                        mygroup = allgroup.get(id=groupid)
-                        workflowsave.group.add(mygroup)
-                    except ValueError:
-                        pass
 
     return JsonResponse({
         "status": status,
@@ -860,11 +826,9 @@ def workflow_draw_save(request):
 
 @login_required
 def workflow_instance(request, funid):
-    grouplist = Group.objects.all().exclude(state='9')
     return render(request, "workflow_instance.html", {
         'username': request.user.userinfo.fullname,
-        "pagefuns": getpagefuns(funid, request=request),
-        "grouplist": grouplist
+        "pagefuns": getpagefuns(funid, request=request)
     })
 
 

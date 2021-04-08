@@ -122,6 +122,7 @@ class ServerByPara(object):
                     if data_init:
                         data_init = " ".join(data_init.split("\r\n"))
                     if "<scriptResult>" not in data_init or "</scriptResult>" not in data_init:
+                        scriptResult = data_init
                         if isComponent:
                             exec_tag = 1
                             log = "无法获取执行结果"
@@ -205,6 +206,7 @@ class ServerByPara(object):
                     log = "编码错误"
                 else:
                     if '<scriptResult>' not in data_init or '</scriptResult>' not in data_init:
+                        scriptResult = data_init
                         if isComponent:
                             exec_tag = 1
                             log = "无法获取执行结果"

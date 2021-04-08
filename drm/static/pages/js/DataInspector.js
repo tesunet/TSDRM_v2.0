@@ -1266,13 +1266,11 @@ Inspector.prototype.inspectObject = function (object) {
         $('#shortname').val(modelData['shortname']);
         $('#icon').val(modelData['icon']);
         $('#version').val(modelData['version']);
-        $("#group").val(JSON.parse(modelData['group']));
         $('#remark').val(modelData['remark']);
 
         $('#shortname').unbind("change");
         $('#icon').unbind("change");
         $('#version').unbind("change");
-        $('#group').unbind("change");
         $('#remark').unbind("change");
 
         $('#shortname').change(function () {
@@ -1291,12 +1289,6 @@ Inspector.prototype.inspectObject = function (object) {
 
             diagram.startTransaction('修改流程');
             diagram.model.setDataProperty(modelData, "version", $('#version').val());
-            diagram.commitTransaction('修改流程');
-        });
-        $('#group').change(function () {
-
-            diagram.startTransaction('修改流程');
-            diagram.model.setDataProperty(modelData, "group", JSON.stringify($('#group').val()));
             diagram.commitTransaction('修改流程');
         });
         $('#remark').change(function () {

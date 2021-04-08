@@ -28,8 +28,6 @@ function getProcessDetail(id, node_type){
                     $('#shortname').val(data.shortname);
                     $('#icon').val(data.icon);
                     $('#version').val(data.version);
-                    $("#group").val(data.group);
-                    $("#group").select2({width: null});
                     $('#remark').val(data.remark);
 
                     if(data.owner=="USER") {
@@ -144,8 +142,6 @@ function getProcessTree(){
                                         $('#shortname').val("");
                                         $('#icon').val("");
                                         $('#version').val("");
-                                        $("#group").val("");
-                                        $("#group").select2({width: null});
                                         $('#remark').val("");
                                     }
                                 }
@@ -192,7 +188,6 @@ function getProcessTree(){
                         $('#shortname').prop("readonly", false);
                         $('#icon').prop("readonly", false);
                         $('#version').prop("readonly", false);
-                        $('#group').prop("disabled", false);
                         $('#remark').prop("readonly", false);
                         $('#node_remark').prop("readonly", false);
                         $('#node_name').prop("readonly", false);
@@ -323,7 +318,6 @@ function getProcessTreeSystem(){
                         $('#shortname').prop("readonly", true);
                         $('#icon').prop("readonly", true);
                         $('#version').prop("readonly", true);
-                        $('#group').prop("disabled", true);
                         $('#remark').prop("readonly", true);
                         $('#node_remark').prop("readonly", true);
                         $('#node_name').prop("readonly", true);
@@ -344,9 +338,7 @@ $('#tabcheck1_2').click(function (data){
 $('#node_save, #leaf_save').click(function (data){
     var save_type = $(this).prop("id");
 
-    var group = $('#group').val();
     var formdata = $("#p_form").serialize();
-    formdata.group=group;
 
     $.ajax({
         type: "POST",

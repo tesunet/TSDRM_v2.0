@@ -113,25 +113,6 @@
                                             <div class="form-control-focus"></div>
                                         </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label class="col-md-2 control-label">可用角色</label>
-                                        <div class="col-md-10">
-                                            <select name="group" id="group" placeholder="testt test" class="form-control select2" multiple>
-
-                                                {% for group in grouplist %}
-                                                    <option value="{{ group.id }}">{{ group.name }}</option>
-                                                {% endfor %}
-                                            </select>
-
-{#                                            <select name="group" id="group" class="form-control"  multiple>#}
-{#                                                <option value="">无</option>#}
-{#                                                {% for group in grouplist %}#}
-{#                                                    <option value="{{ group.id }}">{{ group.name }}</option>#}
-{#                                                {% endfor %}#}
-{#                                            </select>#}
-                                            <div class="form-control-focus"></div>
-                                        </div>
-                                    </div>
                                     <div class="form-group" >
                                         <label class="col-md-2 control-label"
                                                for="form_control_1">说明</label>

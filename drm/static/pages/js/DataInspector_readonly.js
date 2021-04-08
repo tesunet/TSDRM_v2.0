@@ -275,7 +275,6 @@ Inspector.prototype.inspectObject = function (object) {
         $('#shortname').val(modelData['shortname']);
         $('#icon').val(modelData['icon']);
         $('#version').val(modelData['version']);
-        $("#group").val(JSON.parse(modelData['group']));
         $('#remark').val(modelData['remark']);
 
 
