@@ -619,10 +619,10 @@ class Job(object):
             componentCode=self.jobModel.workflowBaseInfo["code"]
             try:
                 exec(componentCode)
-                if "system_state" in componentOutput and componentOutput["system_state"]=="ERROR":
+                if "state" in componentOutput and componentOutput["state"]=="failed":
                     self.jobBaseInfo["state"] = "ERROR"
-                    if "system_log" in componentOutput:
-                        self.jobBaseInfo["log"] += componentOutput["system_log"]
+                    if "log" in componentOutput:
+                        self.jobBaseInfo["log"] += componentOutput["log"]
                     else:
                         self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
                     return
@@ -699,6 +699,14 @@ class Job(object):
                                 excute_cmd = r"{0}".format(linux_script_file)
                                 excute_obj = workflow_remote.ServerByPara(excute_cmd, host, user, password,"Linux")
                                 excute_result = excute_obj.run(isComponent=True)
+
+                                # 删除脚本
+                                try:
+                                    sftp.remove(linux_script_file)
+                                    ssh.close()
+                                except:
+                                    pass
+
                                 if excute_result["exec_tag"] == 1:
                                     self.jobBaseInfo["state"] = "ERROR"
                                     self.jobBaseInfo["log"] += "linux脚本执行失败。"
@@ -723,10 +731,23 @@ class Job(object):
                                     # 准备写到componentoutput
                                     for output in change_result:
                                         componentOutput[output["code"]] = output["value"]
-                                    # 删除脚本
-                                    sftp.remove(linux_script_file)
-                                    ssh.close()
-                                return
+
+                                    # 未返回执行结果
+                                    if "state" not in componentOutput:
+                                        self.jobBaseInfo["state"] = "ERROR"
+                                        if "log" in componentOutput:
+                                            self.jobBaseInfo["log"] += componentOutput["log"]
+                                        else:
+                                            self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,未返回状态。'
+                                        return
+                                    # 返回执行结果为failed
+                                    if "state" in componentOutput and componentOutput["state"] == "failed":
+                                        self.jobBaseInfo["state"] = "ERROR"
+                                        if "log" in componentOutput:
+                                            self.jobBaseInfo["log"] += componentOutput["log"]
+                                        else:
+                                            self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
+                                        return
         elif self.jobModel.workflowBaseInfo["language"] == "windows":
             # 获取连接远程服务器的必要参数值
             host, user, password, = componentInput["inputhost"], componentInput["inputusername"], componentInput[
@@ -764,6 +785,15 @@ class Job(object):
                 exeute_bat = windows_script_file
                 excute_obj = workflow_remote.ServerByPara(exeute_bat, host, user, password, "Windows")
                 excute_result = excute_obj.run(isComponent=True)
+
+                # 删除脚本
+                try:
+                    del_bat = r"del {0}".format(windows_script_file)
+                    del_obj = workflow_remote.ServerByPara(del_bat, host, user, password, "Windows")
+                    del_result = del_obj.run(isComponent=False)
+                except:
+                    pass
+
                 if excute_result["exec_tag"] == 1:
                     self.jobBaseInfo["state"] = "ERROR"
                     self.jobBaseInfo["log"] += "bat脚本执行失败。"
@@ -778,15 +808,23 @@ class Job(object):
                     # 准备写到componentoutput
                     for output in change_result:
                         componentOutput[output["code"]] = output["value"]
-                    # 删除脚本
-                    del_bat = r"del {0}".format(windows_script_file)
-                    del_obj = workflow_remote.ServerByPara(del_bat, host, user, password, "Windows")
-                    del_result = del_obj.run(isComponent=False)
-                    if del_result["exec_tag"] == 1:
+                    # 未返回执行结果
+                    if "state" not in componentOutput:
                         self.jobBaseInfo["state"] = "ERROR"
-                        self.jobBaseInfo["log"] += "bat脚本删除失败"
+                        if "log" in componentOutput:
+                            self.jobBaseInfo["log"] += componentOutput["log"]
+                        else:
+                            self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,未返回状态。'
                         return
-                    return
+
+                    # 返回执行结果为failed
+                    if "state" in componentOutput and componentOutput["state"] == "failed":
+                        self.jobBaseInfo["state"] = "ERROR"
+                        if "log" in componentOutput:
+                            self.jobBaseInfo["log"] += componentOutput["log"]
+                        else:
+                            self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
+                        return
 
         #3.将componentOutput写到任务的finalOutput中
         if self.jobModel.workflowBaseInfo["output"] and len(self.jobModel.workflowBaseInfo["output"].strip()) > 0:

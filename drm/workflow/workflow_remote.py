@@ -121,6 +121,7 @@ class ServerByPara(object):
                     data_init = ServerByPara.handle_codec(stdout.read())
                     if data_init:
                         data_init = " ".join(data_init.split("\r\n"))
+
                     if "<scriptResult>" not in data_init or "</scriptResult>" not in data_init:
                         scriptResult = data_init
                         if isComponent:
