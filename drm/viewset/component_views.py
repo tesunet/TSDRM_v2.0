@@ -136,7 +136,7 @@ def get_component_detail(request):
                     tmpDTL = [tmpDTL]
                 for curoutput in tmpDTL:
                     output.append({"code": curoutput["code"], "name": curoutput["name"], "type": curoutput["type"],
-                                  "remark": curoutput["remark"], "source": curoutput["source"], "value": curoutput["value"],"sort":curoutput["sort"]})
+                                  "remark": curoutput["remark"], "sort":curoutput["sort"]})
         variable = []
         if component.variable and len(component.variable.strip()) > 0:
             tmpvariable = xmltodict.parse(component.variable)
