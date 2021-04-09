@@ -457,13 +457,15 @@ class KVMApi():
 
     def zfs_kvm_filesystem(self):
         # 获取所有kvm文件系统
-        try:
-            exe_cmd = r'ls /data/vmdata'.format()
-            result = self.remote_linux(exe_cmd)
-            result = [x.replace('\t', '') for x in result['data'].split(' ') if x]
-        except:
-            result = '获取文件系统失败。'
-        return result
+        exe_cmd = r'ls -l /data/vmdata'.format()
+        result = self.remote_linux(exe_cmd)
+        filesystem_list = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+        del filesystem_list[0:2]
+        end_list = self.list_of_groups(filesystem_list, 9)
+        filesystem_name = []
+        for item in end_list:
+            filesystem_name.append(item[8])
+        return filesystem_name
 
     def create_filesystem(self, filesystem):
         # 为kvm虚拟机创建文件系统
@@ -852,6 +854,39 @@ class KVMApi():
             result = '生成失败。'
         return result
 
+    def get_zpool_list(self):
+        # 获取ZFS池列表
+        exe_cmd = r'zpool list'
+        result = self.remote_linux(exe_cmd)
+        zpool_list = [x for x in result['data'].split(' ') if x]
+        end_list = self.list_of_groups(zpool_list, 10)
+        del end_list[0]
+        zpool_dict_list = []
+        for item in end_list:
+            data = {}
+            data['name'] = item[0]
+            data['size'] = item[1]
+            data['alloc'] = item[2]
+            data['free'] = item[3]
+            data['frag'] = item[5]
+            data['cap'] = item[6]
+            data['health'] = item[8]
+            zpool_dict_list.append(data)
+        return zpool_dict_list
+
+    def get_os_template(self):
+        # 获取KVM模板文件列表
+        exe_cmd = r'ls -l /home/images/os-image'
+        result = self.remote_linux(exe_cmd)
+        os_image = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+        del os_image[0:2]
+
+        end_list = self.list_of_groups(os_image, 9)
+        filesystem_name = []
+        for item in end_list:
+            filesystem_name.append(item[8])
+        return filesystem_name
+
 
 linuxserver_credit = {
     'KvmHost': '192.168.1.61',
@@ -862,9 +897,11 @@ linuxserver_credit = {
 
 ip = '192.168.1.61'
 
-# result = KVMApi(linuxserver_credit).kvm_all_list()
+# result = KVMApi(linuxserver_credit).all_kvm_name()
 # result = KVMApi(linuxserver_credit).zfs_kvm_filesystem()
 # result = KVMApi(linuxserver_credit).memory_disk_cpu_data()
-# result = KVMApi(linuxserver_credit).all_kvm_template()
-# result = LibvirtApi(ip).kvm_id('Test-1')
+# result = KVMApi(linuxserver_credit).get_os_template()
+# result = LibvirtApi(ip).kvm_state('Test-1')
+# result = LibvirtApi(ip).kvm_memory_cpu_usage()
 # print(result)
+
