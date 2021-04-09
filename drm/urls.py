@@ -301,6 +301,7 @@ urlpatterns = [
     url(r'^workflow_getdata/$', workflow_getdata),
     url(r'^workflow_draw_save/$', workflow_draw_save),
     url(r'^workflow_instance/$', workflow_instance, {'funid': '123'}),
+    url(r'^workflow_start/$', workflow_start, {'funid': '126'}),
     url(r'^workflow_instance_data/$', workflow_instance_data),
     url(r'^workflow_instance_save/$', workflow_instance_save),
     url(r'^workflow_instance_del/$', workflow_instance_del),

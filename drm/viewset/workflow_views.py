@@ -1479,3 +1479,10 @@ def getLongname(node):
         return node.shortname
     else:
         return getLongname(node.pnode) + "-" + node.shortname
+
+@login_required
+def workflow_start(request, funid):
+    return render(request, "workflow_start.html", {
+        'username': request.user.userinfo.fullname,
+        "pagefuns": getpagefuns(funid, request=request)
+    })
