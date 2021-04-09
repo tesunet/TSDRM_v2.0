@@ -192,7 +192,7 @@ def component_save(request):
 
     id = request.POST.get('id', '')
     pid = request.POST.get('pid', '')
-    type = request.POST.get('my_type', '')
+    type = request.POST.get('type', '')
     node_name = request.POST.get('node_name', '')
     node_remark = request.POST.get('node_remark', '')
     shortname = request.POST.get('shortname', '')
@@ -200,31 +200,9 @@ def component_save(request):
     code = request.POST.get('script_code', '')
     remark = request.POST.get('remark', '')
     input_arr = request.POST.get("input_arr")
-
     variable_arr = request.POST.get("variable_arr")
     output_arr = request.POST.get("output_arr")
 
-    input_params_xml = ''
-    if input_arr != '':
-        list_arr = split_input_option_value(input_arr)
-        input_dict = {"inputs": {"input": list_arr}}
-        input_params_xml = xmltodict.unparse(input_dict, encoding='utf-8')
-    else:
-        pass
-    variable_params_xml = ''
-    if variable_arr != '':
-        list_arr = split_variable_option_value(variable_arr)
-        variable_dict = {"variables": {"variable": list_arr}}
-        variable_params_xml = xmltodict.unparse(variable_dict, encoding='utf-8')
-    else:
-        pass
-    output_params_xml = ''
-    if output_arr != '':
-        list_arr = split_output_option_value(output_arr)
-        output_dict = {"outputs": {"output": list_arr}}
-        output_params_xml = xmltodict.unparse(output_dict, encoding='utf-8')
-    else:
-        pass
 
     try:
         id = int(id)
@@ -286,6 +264,28 @@ def component_save(request):
             info = '短名称不能为空。'
             status = 0
         else:
+            input_params_xml = ''
+            if input_arr != '':
+                list_arr = split_input_option_value(input_arr)
+                input_dict = {"inputs": {"input": list_arr}}
+                input_params_xml = xmltodict.unparse(input_dict, encoding='utf-8')
+            else:
+                pass
+            variable_params_xml = ''
+            if variable_arr != '':
+                list_arr = split_variable_option_value(variable_arr)
+                variable_dict = {"variables": {"variable": list_arr}}
+                variable_params_xml = xmltodict.unparse(variable_dict, encoding='utf-8')
+            else:
+                pass
+            output_params_xml = ''
+            if output_arr != '':
+                list_arr = split_output_option_value(output_arr)
+                output_dict = {"outputs": {"output": list_arr}}
+                output_params_xml = xmltodict.unparse(output_dict, encoding='utf-8')
+            else:
+                pass
+
             if id == 0:
                 try:
                     sort = 1
@@ -359,8 +359,6 @@ def component_save(request):
         "updatetime": updatetime,
         "createuser": createuser,
         "updateuser": updateuser,
-        "component_language": language,
-        "script_code": code,
     })
 
 @login_required

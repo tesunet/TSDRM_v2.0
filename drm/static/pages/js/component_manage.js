@@ -139,7 +139,7 @@ function getComponentDetail(id, node_type){
                     //返回临时变量到页面上
                     $("#component_output").empty();
                     for (var i = 0; i < data.output.length; i++) {
-                        $("#component_output").append('<option value="' + data.output[i]["code"]  +"^" + data.output[i]["name"] +"^"+data.output[i]["type"]+ "^" + data.output[i]["source"] + "^"+data.output[i]["remark"]+"^"+ data.output[i]["sort"]+"^"+data.output[i]["value"]+'">' + data.output[i]["name"] + '</option>')
+                        $("#component_output").append('<option value="' + data.output[i]["code"]  +"^" + data.output[i]["name"] +"^"+data.output[i]["type"] + "^"+data.output[i]["remark"]+"^"+ data.output[i]["sort"]+'">' + data.output[i]["name"] + '</option>')
                     }
                 }
                 if (node_type == "NODE") {
@@ -462,123 +462,117 @@ $(document).ready(function () {
     $('#p_tree_system').show();
 });
     $('#node_save, #leaf_save').click(function (data){
-    var save_type = $(this).prop("id");
-    $('#component_input').find("option:selected").attr("selected", false);
-    var inputarray = new Array();
-    var variablearray = new Array();
-    var outputarray = new Array();
-    $("#component_input option").each(function(){
-        var val = $(this).val();
-        if(val != ""){
-            inputarray.push(val);
-        }
-    })
-    $("#component_variable option").each(function(){
-        var val = $(this).val();
-        if(val != ""){
-            variablearray.push(val);
-        }
-    })
-    $("#component_output option").each(function(){
-        var val = $(this).val();
-        if(val != ""){
-            outputarray.push(val);
-        }
-    })
-
-    var input_arr = inputarray.join("##")
-    var variable_arr = variablearray.join("##")
-    var output_arr = outputarray.join("##")
-    var shortname = $("#shortname").val()
-    var component_language = $("#component_language").val()
-    var script_code = $("#script_code").val()
-    var remark = $("#remark").val()
-    var pid = $("#pid").val()
-    var id = $("#id").val()
-    var my_type = $("#my_type").val()
-    var node_name = $("#node_name").val()
-    var node_remark = $("#node_remark").val()
-
-
-    $.ajax({
-        type: "POST",
-        dataType: "JSON",
-        url: "../component_save/",
-        data: {
-            "pid":pid,
-            "id":id,
-            "type":my_type,
-            "node_name":node_name,
-            "node_remark":node_remark,
-            "shortname":shortname,
-            "input_arr":input_arr,
-            "variable_arr":variable_arr,
-            "output_arr":output_arr,
-            "component_language":component_language,
-            "script_code":script_code,
-            "remark":remark,
-        },
-        success: function (data){
-            var status = data.status,
-                info = data.info,
-                select_id = data.data,
-                createtime = data.createtime,
-                updatetime = data.updatetime,
-                createuser = data.createuser,
-                updateuser = data.updateuser,
-                component_language = data.component_language,
-                script_code = data.script_code;
-            if (status == 1){
-                if ($("#id").val() == "0") {
-                    if (save_type == "node_save"){
-
-                        $('#p_tree').jstree('create_node', $("#pid").val(), {
-                            "text": $("#node_name").val(),
-                            "id": select_id,
-                            "type": "NODE",
-                        }, "last", false, false);
-                    } else {
-                        $('#createtime').val(createtime);
-                        $('#updatetime').val(updatetime);
-                        $('#createuser').val(createuser);
-                        $('#updateuser').val(updateuser);
-                        $('#component_language').val(component_language);
-                        $('#script_code').val(script_code);
-                        $("#leaf_link").show();
-                        $("#leaf_link").attr('href','/workflow/'+ select_id.toString());
-                        $('#p_tree').jstree('create_node', $("#pid").val(), {
-                            "text": $("#shortname").val(),
-                            "id": select_id,
-                            "type": "LEAF",
-                        }, "last", false, false);
-                    }
-
-                    $("#id").val(select_id);
-                    $('#title').text($("#shortname").val());
-                    $('#p_tree').jstree('deselect_all');
-                    $('#p_tree').jstree('select_node', $("#id").val(), true);
-                } else {
-                    var curnode = $('#p_tree').jstree('get_node', $("#id").val());
-                    var name = "";
-                    if (save_type == "node_save"){
-
-                        name = $("#node_name").val();
-                    } else {
-                        $('#updatetime').val(updatetime);
-                        $('#updateuser').val(updateuser);
-                        name = $('#shortname').val();
-                    }
-                    var newtext = curnode.text.replace(curnode.text, name);
-                    curnode.text = newtext;
-                    $('#p_tree').jstree('set_text', $("#id").val(), newtext);
-                    $('#title').text(newtext);
-
-                }
+        var save_type = $(this).prop("id");
+        var inputarray = new Array();
+        var variablearray = new Array();
+        var outputarray = new Array();
+        $("#component_input option").each(function(){
+            var val = $(this).val();
+            if(val != ""){
+                inputarray.push(val);
             }
-            alert(info);
-        }
+        })
+        $("#component_variable option").each(function(){
+            var val = $(this).val();
+            if(val != ""){
+                variablearray.push(val);
+            }
+        })
+        $("#component_output option").each(function(){
+            var val = $(this).val();
+            if(val != ""){
+                outputarray.push(val);
+            }
+        })
+
+        var input_arr = inputarray.join("##")
+        var variable_arr = variablearray.join("##")
+        var output_arr = outputarray.join("##")
+        var shortname = $("#shortname").val()
+        var component_language = $("#component_language").val()
+        var script_code = $("#script_code").val()
+        var remark = $("#remark").val()
+        var pid = $("#pid").val()
+        var id = $("#id").val()
+        var my_type = $("#my_type").val()
+        var node_name = $("#node_name").val()
+        var node_remark = $("#node_remark").val()
+
+
+        $.ajax({
+            type: "POST",
+            dataType: "JSON",
+            url: "../component_save/",
+            data: {
+                "pid":pid,
+                "id":id,
+                "type":my_type,
+                "node_name":node_name,
+                "node_remark":node_remark,
+                "shortname":shortname,
+                "input_arr":input_arr,
+                "variable_arr":variable_arr,
+                "output_arr":output_arr,
+                "component_language":component_language,
+                "script_code":script_code,
+                "remark":remark,
+            },
+            success: function (data){
+                var status = data.status,
+                    info = data.info,
+                    select_id = data.data,
+                    createtime = data.createtime,
+                    updatetime = data.updatetime,
+                    createuser = data.createuser,
+                    updateuser = data.updateuser,
+                    component_language = data.component_language,
+                    script_code = data.script_code;
+                if (status == 1){
+                    if ($("#id").val() == "0") {
+                        if (save_type == "node_save"){
+
+                            $('#p_tree').jstree('create_node', $("#pid").val(), {
+                                "text": $("#node_name").val(),
+                                "id": select_id,
+                                "type": "NODE",
+                            }, "last", false, false);
+                        } else {
+                            $('#createtime').val(createtime);
+                            $('#updatetime').val(updatetime);
+                            $('#createuser').val(createuser);
+                            $('#updateuser').val(updateuser);
+                            $('#p_tree').jstree('create_node', $("#pid").val(), {
+                                "text": $("#shortname").val(),
+                                "id": select_id,
+                                "type": "LEAF",
+                            }, "last", false, false);
+                        }
+
+                        $("#id").val(select_id);
+                        $('#title').text($("#shortname").val());
+                        $('#p_tree').jstree('deselect_all');
+                        $('#p_tree').jstree('select_node', $("#id").val(), true);
+                    } else {
+                        var curnode = $('#p_tree').jstree('get_node', $("#id").val());
+                        var name = "";
+                        if (save_type == "node_save"){
+
+                            name = $("#node_name").val();
+                        } else {
+                            $('#updatetime').val(updatetime);
+                            $('#updateuser').val(updateuser);
+                            name = $('#shortname').val();
+                        }
+                        var newtext = curnode.text.replace(curnode.text, name);
+                        curnode.text = newtext;
+                        $('#p_tree').jstree('set_text', $("#id").val(), newtext);
+                        $('#title').text(newtext);
+                    }
+                }
+                alert(info);
+            }
+        });
     });
-});
 
     $('#component_input_save').click(function () {
         //页面获取组件输入参数
@@ -611,7 +605,7 @@ $(document).ready(function () {
                 var val_splitarray=array[i].split("^")
                 code_array.push(val_splitarray[0])
             }
-            var judge_result = judgeMember(code_array,$("#component_input_code").val())
+            var judge_result = judgeMember(code_array,$component_output_save("#component_input_code").val())
             if (judge_result=="exist"){
                 alert("已存在参数名")
                 return
@@ -645,6 +639,7 @@ $(document).ready(function () {
             }
 
         }
+        alert("修改成功，点击保存后生效。")
     });
     //点新增后在点确定
     $('#component_variable_save').click(function () {
@@ -686,8 +681,8 @@ $(document).ready(function () {
                 var remark = $("#component_variable_remark").val();
                 var sort = $("#component_variable_sort").val();
                 var value = $("#component_variable_value").val();
-                $("#component_variable").append('<option value="' + code + "^" + name + "^" + type + "^" + "^" + remark + "^" + sort+ "^" + value +'">' + name + '</option>');
-                $("#component_variable").find("option[value='"+ code + "^" + name + "^" + type + "^" + "^" + remark + "^" + sort+ "^" + value +"']").attr("selected", true);
+                $("#component_variable").append('<option value="' + code + "^" + name + "^" + type + "^" + remark + "^" + sort+ "^" + value +'">' + name + '</option>');
+                $("#component_variable").find("option[value='"+ code + "^" + name + "^" + type + "^" + remark + "^" + sort+ "^" + value +"']").attr("selected", true);
                 $("#component_variable_code").prop("readonly",value=true)
                 $("#component_variable_isnew").val("0")
             }
@@ -701,12 +696,13 @@ $(document).ready(function () {
                 var remark = $("#component_variable_remark").val();
                 var sort = $("#component_variable_sort").val();
                 var value = $("#component_variable_value").val();
-                $("#component_variable option:selected").val(code+"^"+name+"^"+type+"^"+"^"+remark+"^"+sort+"^"+value)
+                $("#component_variable option:selected").val(code+"^"+name+"^"+type+"^"+remark+"^"+sort+"^"+value)
                 $("#component_variable option:selected").text(name)
                 $("#component_variable").val()
             }
 
         }
+        alert("修改成功，点击保存后生效。")
 });
     //点新增后在点确定
     $('#component_output_save').click(function () {
@@ -746,8 +742,8 @@ $(document).ready(function () {
                 var type = $("#component_output_type").val();
                 var remark = $("#component_output_remark").val();
                 var sort = $("#component_output_sort").val();
-                $("#component_output").append('<option value="' + code + "^" + name + "^" + type + "^" + "^" + remark + "^" + sort+ "^" +'">' + name + '</option>');
-                $("#component_output").find("option[value='"+ code + "^" + name + "^" + type + "^" + "^" + remark + "^" + sort+ "^" +"']").attr("selected", true);
+                $("#component_output").append('<option value="' + code + "^" + name + "^" + type + "^" + remark + "^" + sort+ '">' + name + '</option>');
+                $("#component_output").find("option[value='"+ code + "^" + name + "^" + type + "^" + remark + "^" + sort+ "']").attr("selected", true);
                 $("#component_output_code").prop("readonly",value=true)
                 $("#component_output_isnew").val("0")
             }
@@ -760,12 +756,13 @@ $(document).ready(function () {
                 var type = $("#component_output_type").val();
                 var remark = $("#component_output_remark").val();
                 var sort = $("#component_output_sort").val();
-                $("#component_output option:selected").val(code+"^"+name+"^"+type+"^"+"^"+remark+"^"+sort)
+                $("#component_output option:selected").val(code+"^"+name+"^"+type+"^"+remark+"^"+sort)
                 $("#component_output option:selected").text(name)
                 $("#component_output").val()
             }
 
         }
+        alert("修改成功，点击保存后生效。")
 });
     //删除选中的输入参数(删除选中的option)
     $('#component_input_del').click(function () {
@@ -900,139 +897,148 @@ $(document).ready(function () {
     });
     //展示输入详细参数信息
     $("#component_input").click(function () {
-        $("#component_input_del").show();
-        $("#component_input_isnew").val()=="0";
-        $("#component_input_code").prop("readonly", true);
-        $("#component_input_name").prop("readonly", false);
-        $("#component_input_type").prop("disabled", false);
-        $("#component_input_source").prop("disabled", false);
-        $("#component_input_sort").prop("readonly", false);
-        $("#component_input_remark").prop("readonly", false);
-        $("#component_input_value").prop("readonly", false);
-        $("#component_input_add").show()
-        $("#component_input_save").show()
         var selectval = $("#component_input option:selected").val();
-        var spilt_params = selectval.split("^")
-        if (spilt_params[0]=="null"){
-            $("#component_input_code").val("")
-        }else {
-            $("#component_input_code").val(spilt_params[0])
-        }
-        if (spilt_params[1]=="null"){
-            $("#component_input_name").val("")
-        }else {
-            $("#component_input_name").val(spilt_params[1])
-        }
-        if (spilt_params[2]=="null"){
-            $("#component_input_type").val("")
-        }else {
-            $("#component_input_type").val(spilt_params[2])
-        }
-        if (spilt_params[3]=="null"){
-            $("#component_input_source").val("")
-        }else {
-            $("#component_input_source").val(spilt_params[3])
-        }
-        if (spilt_params[4]=="null"){
-            $("#component_input_remark").val("")
-        }else {
-            $("#component_input_remark").val(spilt_params[4])
-        }
-        if (spilt_params[5]=="null"){
-            $("#component_input_sort").val("")
-        }else {
-            $("#component_input_sort").val(spilt_params[5])
-        }
-        if (spilt_params[6]=="null"){
-            $("#component_input_value").val("")
-        }else {
-            $("#component_input_value").val(spilt_params[6])
+        if(selectval) {
+            $("#component_input_del").show();
+            $("#component_input_isnew").val() == "0";
+            $("#component_input_code").prop("readonly", true);
+            $("#component_input_name").prop("readonly", false);
+            $("#component_input_type").prop("disabled", false);
+            $("#component_input_source").prop("disabled", false);
+            $("#component_input_sort").prop("readonly", false);
+            $("#component_input_remark").prop("readonly", false);
+            $("#component_input_value").prop("readonly", false);
+            $("#component_input_add").show()
+            $("#component_input_save").show()
+
+            var spilt_params = selectval.split("^")
+            if (spilt_params[0] == "null") {
+                $("#component_input_code").val("")
+            } else {
+                $("#component_input_code").val(spilt_params[0])
+            }
+            if (spilt_params[1] == "null") {
+                $("#component_input_name").val("")
+            } else {
+                $("#component_input_name").val(spilt_params[1])
+            }
+            if (spilt_params[2] == "null") {
+                $("#component_input_type").val("")
+            } else {
+                $("#component_input_type").val(spilt_params[2])
+            }
+            if (spilt_params[3] == "null") {
+                $("#component_input_source").val("")
+            } else {
+                $("#component_input_source").val(spilt_params[3])
+            }
+            if (spilt_params[4] == "null") {
+                $("#component_input_remark").val("")
+            } else {
+                $("#component_input_remark").val(spilt_params[4])
+            }
+            if (spilt_params[5] == "null") {
+                $("#component_input_sort").val("")
+            } else {
+                $("#component_input_sort").val(spilt_params[5])
+            }
+            if (spilt_params[6] == "null") {
+                $("#component_input_value").val("")
+            } else {
+                $("#component_input_value").val(spilt_params[6])
+            }
         }
 
     })
     //展示临时变量详细参数信息
     $("#component_variable").click(function () {
-        $("#component_variable_del").show();
-        $("#component_variable_isnew").val()=="0"
-        $("#component_variable_code").prop("readonly", true);
-        $("#component_variable_name").prop("readonly", false);
-        $("#component_variable_type").prop("disabled", false);
-        $("#component_variable_sort").prop("readonly", false);
-        $("#component_variable_remark").prop("readonly", false);
-        $("#component_variable_value").prop("readonly", false);
-        $("#component_variable_add").show()
-        $("#component_variable_save").show()
         var selectval = $("#component_variable option:selected").val();
-        var spilt_params = selectval.split("^")
-        if (spilt_params[0]=="null"){
-            $("#component_variable_code").val("")
-        }else {
-            $("#component_variable_code").val(spilt_params[0])
-        }
-        if (spilt_params[1]=="null"){
-            $("#component_variable_name").val("")
-        }else {
-            $("#component_variable_name").val(spilt_params[1])
-        }
-        if (spilt_params[2]=="null"){
-            $("#component_variable_type").val("")
-        }else {
-            $("#component_variable_type").val(spilt_params[2])
-        }
-        if (spilt_params[3]=="null"){
-            $("#component_variable_remark").val("")
-        }else {
-            $("#component_variable_remark").val(spilt_params[3])
-        }
-        if (spilt_params[4]=="null"){
-            $("#component_variable_sort").val("")
-        }else {
-            $("#component_variable_sort").val(spilt_params[4])
-        }
-        if (spilt_params[5]=="null"){
-            $("#component_variable_value").val("")
-        }else {
-            $("#component_variable_value").val(spilt_params[5])
+        if(selectval) {
+            $("#component_variable_del").show();
+            $("#component_variable_isnew").val() == "0"
+            $("#component_variable_code").prop("readonly", true);
+            $("#component_variable_name").prop("readonly", false);
+            $("#component_variable_type").prop("disabled", false);
+            $("#component_variable_sort").prop("readonly", false);
+            $("#component_variable_remark").prop("readonly", false);
+            $("#component_variable_value").prop("readonly", false);
+            $("#component_variable_add").show()
+            $("#component_variable_save").show()
+
+            var spilt_params = selectval.split("^")
+            if (spilt_params[0] == "null") {
+                $("#component_variable_code").val("")
+            } else {
+                $("#component_variable_code").val(spilt_params[0])
+            }
+            if (spilt_params[1] == "null") {
+                $("#component_variable_name").val("")
+            } else {
+                $("#component_variable_name").val(spilt_params[1])
+            }
+            if (spilt_params[2] == "null") {
+                $("#component_variable_type").val("")
+            } else {
+                $("#component_variable_type").val(spilt_params[2])
+            }
+            if (spilt_params[3] == "null") {
+                $("#component_variable_remark").val("")
+            } else {
+                $("#component_variable_remark").val(spilt_params[3])
+            }
+            if (spilt_params[4] == "null") {
+                $("#component_variable_sort").val("")
+            } else {
+                $("#component_variable_sort").val(spilt_params[4])
+            }
+            if (spilt_params[5] == "null") {
+                $("#component_variable_value").val("")
+            } else {
+                $("#component_variable_value").val(spilt_params[5])
+            }
         }
 
     })
     //展示输出详细信息
     $("#component_output").click(function () {
-        $("#component_output_del").show();
-        $("#component_output_isnew").val()=="0";
-        $("#component_output_code").prop("readonly", true);
-        $("#component_output_name").prop("readonly", false);
-        $("#component_output_type").prop("disabled", false);
-        $("#component_output_sort").prop("readonly", false);
-        $("#component_output_remark").prop("readonly", false);
-        $("#component_output_add").show()
-        $("#component_output_save").show()
         var selectval = $("#component_output option:selected").val();
-        var spilt_params = selectval.split("^")
-        if (spilt_params[0]=="null"){
-            $("#component_output_code").val("")
-        }else {
-            $("#component_output_code").val(spilt_params[0])
-        }
-        if (spilt_params[1]=="null"){
-            $("#component_output_name").val("")
-        }else {
-            $("#component_output_name").val(spilt_params[1])
-        }
-        if (spilt_params[2]=="null"){
-            $("#component_output_type").val("")
-        }else {
-            $("#component_output_type").val(spilt_params[2])
-        }
-        if (spilt_params[3]=="null"){
-            $("#component_output_remark").val("")
-        }else {
-            $("#component_output_remark").val(spilt_params[3])
-        }
-        if (spilt_params[4]=="null"){
-            $("#component_output_sort").val("")
-        }else {
-            $("#component_output_sort").val(spilt_params[4])
+        if(selectval) {
+            $("#component_output_del").show();
+            $("#component_output_isnew").val() == "0";
+            $("#component_output_code").prop("readonly", true);
+            $("#component_output_name").prop("readonly", false);
+            $("#component_output_type").prop("disabled", false);
+            $("#component_output_sort").prop("readonly", false);
+            $("#component_output_remark").prop("readonly", false);
+            $("#component_output_add").show()
+            $("#component_output_save").show()
+
+            var spilt_params = selectval.split("^")
+            if (spilt_params[0] == "null") {
+                $("#component_output_code").val("")
+            } else {
+                $("#component_output_code").val(spilt_params[0])
+            }
+            if (spilt_params[1] == "null") {
+                $("#component_output_name").val("")
+            } else {
+                $("#component_output_name").val(spilt_params[1])
+            }
+            if (spilt_params[2] == "null") {
+                $("#component_output_type").val("")
+            } else {
+                $("#component_output_type").val(spilt_params[2])
+            }
+            if (spilt_params[3] == "null") {
+                $("#component_output_remark").val("")
+            } else {
+                $("#component_output_remark").val(spilt_params[3])
+            }
+            if (spilt_params[4] == "null") {
+                $("#component_output_sort").val("")
+            } else {
+                $("#component_output_sort").val(spilt_params[4])
+            }
         }
     })
 })
