@@ -319,11 +319,10 @@ urlpatterns = [
     url(r'^component_manage/$', component_manage, {'funid': '125'}),
     url(r'^component_save/$', component_save),
     url(r'^component_del/$', component_del),
-    url(r'^workflow_move/$', workflow_move),
+    url(r'^component_move/$', component_move),
     url(r'^get_component_tree/$', get_component_tree),
     url(r'^get_component_detail/$', get_component_detail),
-    url(r'^component_form_input/$', component_form_input),
-    url(r'^component_form_variable/$', component_form_variable),
-    url(r'^component_form_output/$', component_form_output),
+
+
 
 ]

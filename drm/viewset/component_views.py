@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Max
 from xml.dom.minidom import Document
 from django.http import JsonResponse
-import copy
+from .workflow_views import getLongname
 
 
 # 组件管理
@@ -193,17 +193,38 @@ def component_save(request):
     id = request.POST.get('id', '')
     pid = request.POST.get('pid', '')
     type = request.POST.get('my_type', '')
-
     node_name = request.POST.get('node_name', '')
     node_remark = request.POST.get('node_remark', '')
-
     shortname = request.POST.get('shortname', '')
-    group = request.POST.getlist('group', [])
-    icon = request.POST.get('icon', '')
-    version = request.POST.get('version', '')
     language = request.POST.get('component_language', '')
     code = request.POST.get('script_code', '')
     remark = request.POST.get('remark', '')
+    input_arr = request.POST.get("input_arr")
+
+    variable_arr = request.POST.get("variable_arr")
+    output_arr = request.POST.get("output_arr")
+
+    input_params_xml = ''
+    if input_arr != '':
+        list_arr = split_input_option_value(input_arr)
+        input_dict = {"inputs": {"input": list_arr}}
+        input_params_xml = xmltodict.unparse(input_dict, encoding='utf-8')
+    else:
+        pass
+    variable_params_xml = ''
+    if variable_arr != '':
+        list_arr = split_variable_option_value(variable_arr)
+        variable_dict = {"variables": {"variable": list_arr}}
+        variable_params_xml = xmltodict.unparse(variable_dict, encoding='utf-8')
+    else:
+        pass
+    output_params_xml = ''
+    if output_arr != '':
+        list_arr = split_output_option_value(output_arr)
+        output_dict = {"outputs": {"output": list_arr}}
+        output_params_xml = xmltodict.unparse(output_dict, encoding='utf-8')
+    else:
+        pass
 
     try:
         id = int(id)
@@ -242,7 +263,7 @@ def component_save(request):
 
                     select_id = componentsave.id
                 except Exception as e:
-                    info = "保存失败：{0}".format(e)
+                    info = "保存失败：{0}1".format(e)
                     status = 0
             else:
                 # 修改
@@ -258,10 +279,9 @@ def component_save(request):
 
                     select_id = componentsave.id
                 except Exception as e:
-                    info = "保存失败：{0}".format(e)
+                    info = "保存失败：{0}2".format(e)
                     status = 0
     else:
-        allgroup = Group.objects.exclude(state="9")
         if shortname.strip() == '':
             info = '短名称不能为空。'
             status = 0
@@ -279,9 +299,10 @@ def component_save(request):
                     componentsave.guid = uuid.uuid1()
                     componentsave.shortname = shortname
                     componentsave.owner = "USER"
-                    componentsave.icon = icon
-                    componentsave.version = version
                     componentsave.language = language
+                    componentsave.input = input_params_xml
+                    componentsave.variable = variable_params_xml
+                    componentsave.output = output_params_xml
                     componentsave.cod = code
                     componentsave.sort = sort if sort else None
                     componentsave.remark = remark
@@ -296,13 +317,6 @@ def component_save(request):
                     componentsave.longname = getLongname(componentsave)
                     componentsave.save()
                     componentsave.group.clear()
-                    for groupid in group:
-                        try:
-                            groupid = int(groupid)
-                            mygroup = allgroup.get(id=groupid)
-                            componentsave.group.add(mygroup)
-                        except ValueError:
-                            raise Http404()
 
                     select_id = componentsave.id
                     createtime = componentsave.createtime.strftime(
@@ -318,31 +332,23 @@ def component_save(request):
                 try:
                     componentsave = TSDRMComponent.objects.get(id=id)
                     componentsave.shortname = shortname
-                    componentsave.icon = icon
-                    componentsave.version = version
                     componentsave.remark = remark
                     componentsave.language = language
                     componentsave.code = code
+                    componentsave.input = input_params_xml
+                    componentsave.variable = variable_params_xml
+                    componentsave.output = output_params_xml
                     componentsave.updatetime = datetime.datetime.now()
                     componentsave.updateuser = request.user
                     componentsave.save()
                     componentsave.longname = getLongname(componentsave)
                     componentsave.save()
-                    componentsave.group.clear()
-                    for groupid in group:
-                        try:
-                            groupid = int(groupid)
-                            mygroup = allgroup.get(id=groupid)
-                            componentsave.group.add(mygroup)
-                        except ValueError:
-                            raise Http404()
-
                     select_id = componentsave.id
                     updatetime = componentsave.updatetime.strftime(
                         '%Y-%m-%d %H:%M:%S') if componentsave.updatetime else '',
                     updateuser = request.user.userinfo.fullname
                 except Exception as e:
-                    info = "保存失败：{0}".format(e)
+                    info = "保存失败：{0}3".format(e)
                     status = 0
 
     return JsonResponse({
@@ -354,9 +360,77 @@ def component_save(request):
         "createuser": createuser,
         "updateuser": updateuser,
         "component_language": language,
-        "script_code": code
+        "script_code": code,
     })
 
+@login_required
+def component_move(request):
+    id = request.POST.get('id', '')
+    parent = request.POST.get('parent', '')
+    old_parent = request.POST.get('old_parent', '')
+    position = request.POST.get('position', '')
+    old_position = request.POST.get('old_position', '')
+    try:
+        id = int(id)  # 节点 id
+        parent = int(parent)  # 目标位置父节点 pnode_id
+        position = int(position)  # 目标位置
+        old_parent = int(old_parent)  # 起点位置父节点 pnode_id
+        old_position = int(old_position)  # 起点位置
+    except:
+        return HttpResponse("0")
+    # sort = position + 1 sort从1开始
+
+    # 起始节点下方 所有节点  sort -= 1
+    old_component_parent = TSDRMComponent.objects.get(id=old_parent)
+    old_sort = old_position + 1
+    old_components = TSDRMComponent.objects.exclude(state="9").filter(pnode=old_component_parent).filter(sort__gt=old_sort)
+
+    # 目标节点下方(包括该节点) 所有节点 sort += 1
+    component_parent = TSDRMComponent.objects.get(id=parent)
+    sort = position + 1
+    components = TSDRMComponent.objects.exclude(state=9).exclude(id=id).filter(pnode=component_parent).filter(sort__gte=sort)
+
+    my_component = TSDRMComponent.objects.get(id=id)
+
+    # 判断目标父节点是否为叶子，若为叶子无法挪动
+    if component_parent.type != "NODE":
+        return HttpResponse("组件")
+    else:
+        # 目标父节点下所有节点 除了自身 组件名称都不得相同 否则重名
+        component_same = TSDRMComponent.objects.exclude(state="9").exclude(id=id).filter(pnode=component_parent).filter(
+            shortname=my_component.shortname)
+
+        if component_same:
+            return HttpResponse("重名")
+        else:
+            for old_component in old_components:
+                try:
+                    old_component.sort -= 1
+                    old_component.save()
+                except:
+                    pass
+            for component in components:
+                try:
+                    component.sort += 1
+                    component.save()
+                except:
+                    pass
+
+            # 该节点位置变动
+            try:
+                my_component.pnode = component_parent
+                my_component.sort = sort
+                my_component.save()
+                my_component.longname = getLongname(my_component)
+                my_component.save()
+            except:
+                pass
+
+            # 起始 结束 点不在同一节点下 写入父节点名称与ID ?
+            if parent != old_parent:
+                return HttpResponse(component_parent.shortname + "^" + str(component_parent.id))
+            else:
+                return HttpResponse("0")
 
 @login_required
 def component_del(request):
@@ -374,359 +448,38 @@ def component_del(request):
     else:
         return HttpResponse(0)
 
+# 拆解input的option的value信息
+def split_input_option_value(arr_string):
+    list_double = []
+    list_params = []
+    a_list = arr_string.split("##")
+    for i in a_list:
+        i_list = i.split("^")
+        list_double.append(i_list)
+    for i in list_double:
+        list_params.append({"code": i[0], "name": i[1], "type": i[2], "source": i[3], "remark": i[4], "sort": i[5], "value": i[6]})
+    return list_params
 
-def getLongname(node):
-    if node.pnode is None:
-        return node.shortname
-    else:
-        return getLongname(node.pnode) + "-" + node.shortname
+# 拆解variable的option的value信息
+def split_variable_option_value(arr_string):
+    list_double = []
+    list_params = []
+    a_list = arr_string.split("##")
+    for i in a_list:
+        i_list = i.split("^")
+        list_double.append(i_list)
+    for i in list_double:
+        list_params.append({"code": i[0], "name": i[1], "type": i[2], "remark": i[3], "sort": i[4], "value": i[5]})
+    return list_params
 
-
-# 从页面获取输入的参数和要修改的参数
-@login_required
-def component_form_input(request):
-    if request.method == "POST":
-        request_data = json.loads(request.body.decode())
-        try:
-            component_input_content = TSDRMComponent.objects.get(guid__exact=request_data["guid"])
-            component_input_values = TSDRMComponent.objects.filter(guid__exact=request_data["guid"]).values("input")
-        except Exception as e:
-            return JsonResponse({
-                "status": 4,
-                "input": str(e)
-            })
-        else:
-            if request_data["isnew"] == "0":
-                input_content_xml = component_input_values[0]["input"]
-                request_copy = copy.deepcopy(request_data)
-                request_copy.pop("guid")
-                request_copy.pop("isnew")
-                update_Orderdict = update_input_params(input_content_xml, request_copy)
-                if str(update_Orderdict) == "a bytes-like object is required, not 'NoneType'":
-                    return JsonResponse({
-                        "status": 4,
-                        "input": "没有参数信息，请新增后再来修改"
-                    })
-                else:
-                    xml_return_db = xmltodict.unparse(update_Orderdict)
-                    component_input_content.input = xml_return_db
-                    component_input_content.save()
-                    return JsonResponse({
-                        "status": 2,
-                        "input": "修改成功"
-                    })
-            else:
-                input_content_xml = component_input_values[0]["input"]
-                if str(type(input_content_xml)) == "<class 'str'>":
-                    input_orderdict = xmltodict.parse(input_content_xml, encoding='utf-8')
-                    if "inputs" in input_orderdict and "input" in input_orderdict["inputs"]:
-                        tmpDTL = input_orderdict["inputs"]["input"]
-                        if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
-                            tmpDTL = [tmpDTL]
-                        code_list = []
-                        for curinput in tmpDTL:
-                            code_list.append(curinput["code"])
-                        if request_data["code"] in code_list:
-                            return JsonResponse({
-                                "status": 3,
-                                "input": "参数名已存在,无法继续添加"
-                            })
-                        else:
-                            request_copy = copy.deepcopy(request_data)
-                            request_copy.pop("guid")
-                            request_copy.pop("isnew")
-                            xml_return_db = xmltodict.unparse(append_input_params(component_input_content.input, request_copy), encoding='utf-8')
-                            component_input_content.input = xml_return_db
-                            component_input_content.save()
-                            return JsonResponse({
-                                "status": 1,
-                                "input": '保存成功'
-                            })
-                else:
-                    request_copy = copy.deepcopy(request_data)
-                    request_copy.pop("guid")
-                    request_copy.pop("isnew")
-                    xml_return_db = xmltodict.unparse({"inputs": {"input": request_copy}}, encoding='utf-8')
-                    component_input_content.input = xml_return_db
-                    component_input_content.save()
-                    return JsonResponse({
-                        "status": 1,
-                        "input": '保存成功'
-                    })
-    else:
-        return JsonResponse({
-            "status": 0,
-            "input": '保存失败'
-        })
-
-
-# 从页面获取新增输入的参数和要修改的参数
-@login_required
-def component_form_variable(request):
-    if request.method == "POST":
-        request_data = json.loads(request.body.decode())
-        try:
-            component_variable_content = TSDRMComponent.objects.get(guid__exact=request_data["guid"])
-            component_variable_values = TSDRMComponent.objects.filter(guid__exact=request_data["guid"]).values("variable")
-        except Exception as e:
-            return JsonResponse({
-                "status": 4,
-                "variable": e
-            })
-        else:
-            if request_data["isnew"] == "0":
-                variable_content_xml = component_variable_values[0]["variable"]
-                request_copy = copy.deepcopy(request_data)
-                request_copy.pop("guid")
-                request_copy.pop("isnew")
-                update_Orderdict = update_variable_params(variable_content_xml, request_copy)
-                if str(update_Orderdict) == "a bytes-like object is required, not 'NoneType'":
-                    return JsonResponse({
-                        "status": 4,
-                        "variable": "没有参数信息，请新增后再来修改"
-                    })
-                else:
-                    xml_return_db = xmltodict.unparse(update_Orderdict)
-                    component_variable_content.input = xml_return_db
-                    component_variable_content.save()
-                    return JsonResponse({
-                        "status": 2,
-                        "variable": "修改成功"
-                    })
-            else:
-                variable_content_xml = component_variable_values[0]["variable"]
-                if str(type(variable_content_xml)) == "<class 'str'>":
-                    variable_orderdict = xmltodict.parse(variable_content_xml, encoding='utf-8')
-                    if "variables" in variable_orderdict and "variable" in variable_orderdict["variables"]:
-                        tmpDTL = variable_orderdict["variables"]["variable"]
-                        if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
-                            tmpDTL = [tmpDTL]
-                        code_list = []
-                        for curvariable in tmpDTL:
-                            code_list.append(curvariable["code"])
-                        if request_data["code"] in code_list:
-                            return JsonResponse({
-                                "status": 3,
-                                "variable": "参数名已存在,无法继续添加"
-                            })
-                        else:
-                            request_copy = copy.deepcopy(request_data)
-                            request_copy.pop("guid")
-                            request_copy.pop("isnew")
-                            xml_return_db = xmltodict.unparse(append_variable_params(component_variable_content.variable, request_copy), encoding='utf-8')
-                            component_variable_content.variable = xml_return_db
-                            component_variable_content.save()
-                            return JsonResponse({
-                                "status": 1,
-                                "variable": '保存成功'
-                            })
-                else:
-                    request_copy = copy.deepcopy(request_data)
-                    request_copy.pop("guid")
-                    request_copy.pop("isnew")
-                    xml_return_db = xmltodict.unparse({"variables": {"variable": request_copy}}, encoding='utf-8')
-                    component_variable_content.variable = xml_return_db
-                    component_variable_content.save()
-                    return JsonResponse({
-                        "status": 1,
-                        "variable": '保存成功'
-                    })
-    else:
-        return JsonResponse({
-            "status": 0,
-            "variable": '保存失败'
-        })
-
-
-# 从页面获取输入的参数和要修改的参数
-@login_required
-def component_form_output(request):
-    if request.method == "POST":
-        request_data = json.loads(request.body.decode())
-        try:
-            component_output_content = TSDRMComponent.objects.get(guid__exact=request_data["guid"])
-            component_output_values = TSDRMComponent.objects.filter(guid__exact=request_data["guid"]).values("output")
-        except Exception as e:
-            return JsonResponse({
-                "status": 4,
-                "output": e
-            })
-        else:
-            if request_data["isnew"] == "0":
-                output_content_xml = component_output_values[0]["output"]
-                request_copy = copy.deepcopy(request_data)
-                request_copy.pop("guid")
-                request_copy.pop("isnew")
-                update_Orderdict = update_output_params(output_content_xml, request_copy)
-                if str(update_Orderdict) == "a bytes-like object is required, not 'NoneType'":
-                    return JsonResponse({
-                        "status": 4,
-                        "output": "没有参数信息，请新增后再来修改"
-                    })
-                else:
-                    xml_return_db = xmltodict.unparse(update_Orderdict)
-                    component_output_content.input = xml_return_db
-                    component_output_content.save()
-                    return JsonResponse({
-                        "status": 2,
-                        "output": "修改成功"
-                    })
-            else:
-                output_content_xml = component_output_values[0]["output"]
-                if str(type(output_content_xml)) == "<class 'str'>":
-                    output_orderdict = xmltodict.parse(output_content_xml, encoding='utf-8')
-                    if "outputs" in output_orderdict and "output" in output_orderdict["outputs"]:
-                        tmpDTL = output_orderdict["outputs"]["output"]
-                        if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
-                            tmpDTL = [tmpDTL]
-                        code_list = []
-                        for curoutput in tmpDTL:
-                            code_list.append(curoutput["code"])
-                        if request_data["code"] in code_list:
-                            return JsonResponse({
-                                "status": 3,
-                                "output": "参数名已存在,无法继续添加"
-                            })
-                        else:
-                            request_copy = copy.deepcopy(request_data)
-                            request_copy.pop("guid")
-                            request_copy.pop("isnew")
-                            xml_return_db = xmltodict.unparse(append_output_params(component_output_content.output, request_copy), encoding='utf-8')
-                            component_output_content.output = xml_return_db
-                            component_output_content.save()
-                            return JsonResponse({
-                                "status": 1,
-                                "output": '保存成功'
-                            })
-                else:
-                    request_copy = copy.deepcopy(request_data)
-                    request_copy.pop("guid")
-                    request_copy.pop("isnew")
-                    xml_return_db = xmltodict.unparse({"outputs": {"output": request_copy}}, encoding='utf-8')
-                    component_output_content.output = xml_return_db
-                    component_output_content.save()
-                    return JsonResponse({
-                        "status": 1,
-                        "output": '保存成功'
-                    })
-    else:
-        return JsonResponse({
-            "status": 0,
-            "output": '保存失败'
-        })
-
-
-
-# 根据页面修改db已有的输入参数
-def update_input_params(input_content_xml, request_input_code):
-    try:
-        xml_tmp = xmltodict.parse(input_content_xml, encoding='utf-8')
-    except Exception as e:
-        return e
-    else:
-        tmp = xml_tmp["inputs"]["input"]
-        if input_content_xml.count("<input>") > 1:
-            for i in tmp:
-                if i["code"] == request_input_code["code"]:
-                    i["name"] = request_input_code["name"]
-                    i["type"] = request_input_code["type"]
-                    i["source"] = request_input_code["source"]
-                    i["value"] = request_input_code["value"]
-                    i["sort"] = request_input_code["sort"]
-                    i["remark"] = request_input_code["remark"]
-            return xml_tmp
-        else:
-            tmp["name"] = request_input_code["name"]
-            tmp["type"] = request_input_code["type"]
-            tmp["source"] = request_input_code["source"]
-            tmp["value"] = request_input_code["value"]
-            tmp["sort"] = request_input_code["sort"]
-            tmp["remark"] = request_input_code["remark"]
-            return xml_tmp
-
-
-# 根据页面添加输入参数到db
-def append_input_params(dbxml, request_dict):
-    dict_xml = xmltodict.parse(xmltodict.unparse({"input": request_dict}, encoding='utf-8'))
-    xml_tmp = xmltodict.parse(dbxml, encoding='utf-8')
-    if dbxml.count("<input>") > 1:
-        xml_tmp["inputs"]["input"].append(dict_xml['input'])
-    else:
-        list_input = [xml_tmp['inputs']['input']]
-        list_input.append(dict_xml['input'])
-        xml_tmp['inputs']['input'] = list_input
-    return xml_tmp
-
-
-# 根据页面修改db已有的临时变量参数
-def update_variable_params(variable_content_xml, request_variable_code):
-    try:
-        xml_tmp = xmltodict.parse(variable_content_xml, encoding='utf-8')
-    except Exception as e:
-        return e
-    tmp = xml_tmp["variables"]["variable"]
-    if variable_content_xml.count("<variable>") > 1:
-        for i in tmp:
-            if i["code"] == request_variable_code["code"]:
-                i["name"] = request_variable_code["name"]
-                i["type"] = request_variable_code["type"]
-                i["value"] = request_variable_code["value"]
-                i["sort"] = request_variable_code["sort"]
-                i["remark"] = request_variable_code["remark"]
-        return xml_tmp
-    else:
-        tmp["name"] = request_variable_code["name"]
-        tmp["type"] = request_variable_code["type"]
-        tmp["value"] = request_variable_code["value"]
-        tmp["sort"] = request_variable_code["sort"]
-        tmp["remark"] = request_variable_code["remark"]
-        return xml_tmp
-
-
-# 根据页面添加输入参数到db
-def append_variable_params(dbxml, request_dict):
-    dict_xml = xmltodict.parse(xmltodict.unparse({"variable": request_dict}, encoding='utf-8'))
-    xml_tmp = xmltodict.parse(dbxml, encoding='utf-8')
-    if dbxml.count("<variable>") > 1:
-        xml_tmp["variables"]["variable"].append(dict_xml['variable'])
-    else:
-        list_variable = [xml_tmp['variables']['variable']]
-        list_variable.append(dict_xml['variable'])
-        xml_tmp['variables']['variable'] = list_variable
-    return xml_tmp
-
-# 根据页面修改db已有的输出变量参数
-def update_output_params(output_content_xml, request_output_code):
-    try:
-        xml_tmp = xmltodict.parse(output_content_xml, encoding='utf-8')
-    except Exception as e:
-        return e
-    tmp = xml_tmp["outputs"]["output"]
-    if output_content_xml.count("<output>") > 1:
-        for i in tmp:
-            if i["code"] == request_output_code["code"]:
-                i["name"] = request_output_code["name"]
-                i["type"] = request_output_code["type"]
-                i["sort"] = request_output_code["sort"]
-                i["remark"] = request_output_code["remark"]
-        return xml_tmp
-    else:
-        tmp["name"] = request_output_code["name"]
-        tmp["type"] = request_output_code["type"]
-        tmp["sort"] = request_output_code["sort"]
-        tmp["remark"] = request_output_code["remark"]
-        return xml_tmp
-
-
-# 根据页面添加输出参数到db
-def append_output_params(dbxml, request_dict):
-    dict_xml = xmltodict.parse(xmltodict.unparse({"output": request_dict}, encoding='utf-8'))
-    xml_tmp = xmltodict.parse(dbxml, encoding='utf-8')
-    if dbxml.count("<output>") > 1:
-        xml_tmp["outputs"]["output"].append(dict_xml['output'])
-    else:
-        list_output = [xml_tmp['outputs']['output']]
-        list_output.append(dict_xml['output'])
-        xml_tmp['outputs']['output'] = list_output
-    return xml_tmp
-
+# 拆解variable的option的value信息
+def split_output_option_value(arr_string):
+    list_double = []
+    list_params = []
+    a_list = arr_string.split("##")
+    for i in a_list:
+        i_list = i.split("^")
+        list_double.append(i_list)
+    for i in list_double:
+        list_params.append({"code": i[0], "name": i[1], "type": i[2], "remark": i[3], "sort": i[4]})
+    return list_params

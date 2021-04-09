@@ -74,8 +74,12 @@ function getComponentDetail(id, node_type){
                     $('#remark').val(data.remark);
 
                     $("#component_input_save").hide()
+                    $("#component_input_del").hide()
                     $("#component_output_save").hide()
+                    $("#component_output_del").hide()
                     $("#component_variable_save").hide()
+                    $("#component_variable_del").hide()
+
                     $("#component_input_code").val('')
                     $("#component_input_name").val('')
                     $("#component_input_source").val('')
@@ -83,107 +87,60 @@ function getComponentDetail(id, node_type){
                     $("#component_input_value").val('')
                     $("#component_input_sort").val('')
                     $("#component_input_remark").val('')
+
                     $("#component_output_code").val('')
                     $("#component_output_name").val('')
                     $("#component_output_source").val('')
                     $("#component_output_type").val('')
                     $("#component_output_sort").val('')
                     $("#component_output_remark").val('')
+
                     $("#component_variable_code").val('')
                     $("#component_variable_name").val('')
                     $("#component_variable_type").val('')
                     $("#component_variable_value").val('')
                     $("#component_variable_sort").val('')
+
+                    $("#component_input_code").prop("readonly", true);
+                    $("#component_input_name").prop("readonly", true);
+                    $("#component_input_type").prop("disabled", true);
+                    $("#component_input_source").prop("disabled", true);
+                    $("#component_input_sort").prop("readonly", true);
+                    $("#component_input_remark").prop("readonly", true);
+                    $("#component_input_value").prop("readonly", true);
+
+                    $("#component_variable_code").prop("readonly", true);
+                    $("#component_variable_name").prop("readonly", true);
+                    $("#component_variable_type").prop("disabled", true);
+
+                    $("#component_variable_sort").prop("readonly", true);
+                    $("#component_variable_remark").prop("readonly", true);
+                    $("#component_variable_value").prop("readonly", true);
+
+                    $("#component_output_code").prop("readonly", true);
+                    $("#component_output_name").prop("readonly", true);
+                    $("#component_output_type").prop("disabled", true);
+                    $("#component_output_sort").prop("readonly", true);
+                    $("#component_output_remark").prop("readonly", true);
+
+
                     //返回输入参数到页面上
-                    $("#component_input").empty();
+                    $("#component_input").empty()
                     for (var i = 0; i < data.input.length; i++) {
-                        $("#component_input").append('<option value="' + data.input[i]["code"] + '">' + data.input[i]["name"] + '</option>')
+                        $("#component_input").append('<option value="' + data.input[i]["code"]  +"^" + data.input[i]["name"] +"^"+data.input[i]["type"]+ "^" + data.input[i]["source"] + "^"+data.input[i]["remark"]+"^"+ data.input[i]["sort"]+"^"+data.input[i]["value"]+'">' + data.input[i]["name"] + '</option>')
                     }
-                    $("#component_input").click(function () {
-                        $("#component_input_add").hide()
-                        $("#component_input_save").show()
-                        var selectval = $("#component_input option:selected").val();
-                        for (var i = 0; i < data.input.length; i++) {
-                            if (data.input[i]["code"] == selectval) {
-                                $("#component_input_code").prop("readonly", true);
-                                $("#component_input_name").prop("readonly", false);
-                                $("#component_input_type").prop("disabled", false);
-                                $("#component_input_source").prop("disabled", false);
-                                $("#component_input_sort").prop("readonly", false);
-                                $("#component_input_remark").prop("readonly", false);
-                                $("#component_input_value").prop("readonly", false);
 
-                                $('#component_input_code').val(data.input[i]["code"]);
-                                $('#component_input_name').val(data.input[i]["name"]);
-                                $('#component_input_type').val(data.input[i]["type"]);
-                                $('#component_input_source').val(data.input[i]["source"]);
-                                $('#component_input_sort').val(data.input[i]["sort"]);
-                                $('#component_input_remark').val(data.input[i]["remark"]);
-                                $('#component_input_value').val(data.input[i]["value"]);
-                                break;
-                            }
-                        }
-                    })
                     //返回输出参数到页面上
-                    $("#component_output").empty();
-                    for (var i = 0; i < data.output.length; i++) {
-                        $("#component_output").append('<option value="' + data.output[i]["code"] + '">' + data.output[i]["name"] + '</option>')
-                    }
-                    $("#component_output").click(function () {
-                        $("#component_output_add").hide()
-                        $("#component_output_save").show()
-                        var selectval = $("#component_output option:selected").val();
-                        for (var i = 0; i < data.output.length; i++) {
-                            if (data.output[i]["code"] == selectval) {
-                                $("#component_output_code").prop("readonly", true);
-                                $("#component_output_name").prop("readonly", false);
-                                $("#component_output_type").prop("disabled", false);
-                                $("#component_output_source").prop("disabled", false);
-                                $("#component_output_sort").prop("readonly", false);
-                                $("#component_output_remark").prop("readonly", false);
-
-                                $('#component_output_code').val(data.output[i]["code"]);
-                                $('#component_output_name').val(data.output[i]["name"]);
-                                $('#component_output_type').val(data.output[i]["type"]);
-                                $('#component_output_source').val(data.output[i]["source"]);
-                                $('#component_output_sort').val(data.output[i]["sort"]);
-                                $('#component_output_remark').val(data.output[i]["remark"]);
-                                break;
-                            }
-                        }
-                    })
-                    //返回临时变量到页面上
                     $("#component_variable").empty();
                     for (var i = 0; i < data.variable.length; i++) {
-                        $("#component_variable").append('<option value="' + data.variable[i]["code"] + '">' + data.variable[i]["name"] + '</option>')
+                        $("#component_variable").append('<option value="' + data.variable[i]["code"]  +"^" + data.variable[i]["name"] +"^"+data.variable[i]["type"]+ "^" + data.variable[i]["remark"]+"^"+ data.variable[i]["sort"]+"^"+data.variable[i]["value"]+'">' + data.variable[i]["name"] + '</option>')
                     }
-                    $("#component_variable").click(function () {
-                        $("#component_variable_add").hide()
-                        $("#component_variable_save").show()
-                        var selectval = $("#component_variable option:selected").val();
-                        for (var i = 0; i < data.variable.length; i++) {
-                            if (data.variable[i]["code"] == selectval) {
-                                $("#component_variable_code").prop("readonly", true);
-                                $("#component_variable_name").prop("readonly", false);
-                                $("#component_variable_type").prop("disabled", false);
-                                $("#component_variable_source").prop("disabled", false);
-                                $("#component_variable_sort").prop("readonly", false);
-                                $("#component_variable_remark").prop("readonly", false);
-                                $("#component_variable_value").prop("readonly", false);
 
-                                $('#component_variable_code').val(data.variable[i]["code"]);
-                                $('#component_variable_name').val(data.variable[i]["name"]);
-                                $('#component_variable_type').val(data.variable[i]["type"]);
-                                $('#component_variable_source').val(data.variable[i]["source"]);
-                                $('#component_variable_sort').val(data.variable[i]["sort"]);
-                                $('#component_variable_remark').val(data.variable[i]["remark"]);
-                                $('#component_variable_value').val(data.variable[i]["value"]);
-                                break;
-                            }
-                        }
-                    })
-
-
+                    //返回临时变量到页面上
+                    $("#component_output").empty();
+                    for (var i = 0; i < data.output.length; i++) {
+                        $("#component_output").append('<option value="' + data.output[i]["code"]  +"^" + data.output[i]["name"] +"^"+data.output[i]["type"]+ "^" + data.output[i]["source"] + "^"+data.output[i]["remark"]+"^"+ data.output[i]["sort"]+"^"+data.output[i]["value"]+'">' + data.output[i]["name"] + '</option>')
+                    }
                 }
                 if (node_type == "NODE") {
                     $("#leafdiv").hide();
@@ -283,15 +240,20 @@ function getComponentTree(){
                                         $("#pname").val(obj.text);
 
                                         $('#guid').val("");
+                                        document.getElementById("component_input").options.length = 0;
+                                        document.getElementById("component_variable").options.length = 0;
+                                        document.getElementById("component_output").options.length = 0;
                                         $('#createtime').val("");
                                         $('#createuser').val("");
                                         $('#updatetime').val("");
                                         $('#updateuser').val("");
                                         $('#shortname').val("");
+                                        $('#component_language').val("");
+                                        $('#script_code').val("");
                                         $('#icon').val("");
                                         $('#version').val("");
-                                        $("component_language").val("");
-                                        $("script_code").val("");
+                                        $("#component_language").val("");
+                                        $("#script_code").val("");
                                         $("#group").val("");
                                         $("#group").select2({width: null});
                                         $('#remark').val("");
@@ -483,25 +445,79 @@ function getComponentTreeSystem(){
     });
 }
 
+function judgeMember(arr,value){
+    for(var i = 0; i < arr.length; i++){
+        if(value == arr[i]){
+            return "exist";
+        }
+    }
+    return "not exist";
+}
+
 getComponentTree();
 getComponentTreeSystem();
 
-$('#tabcheck1_-2').click(function (data){
+$(document).ready(function () {
+    $('#tabcheck1_-2').click(function (data){
     $('#p_tree_system').show();
 });
-
-$('#node_save, #leaf_save').click(function (data){
+    $('#node_save, #leaf_save').click(function (data){
     var save_type = $(this).prop("id");
+    $('#component_input').find("option:selected").attr("selected", false);
+    var inputarray = new Array();
+    var variablearray = new Array();
+    var outputarray = new Array();
+    $("#component_input option").each(function(){
+        var val = $(this).val();
+        if(val != ""){
+            inputarray.push(val);
+        }
+    })
+    $("#component_variable option").each(function(){
+        var val = $(this).val();
+        if(val != ""){
+            variablearray.push(val);
+        }
+    })
+    $("#component_output option").each(function(){
+        var val = $(this).val();
+        if(val != ""){
+            outputarray.push(val);
+        }
+    })
 
-    var group = $('#group').val();
-    var formdata = $("#p_form").serialize();
-    formdata.group=group;
+    var input_arr = inputarray.join("##")
+    var variable_arr = variablearray.join("##")
+    var output_arr = outputarray.join("##")
+    var shortname = $("#shortname").val()
+    var component_language = $("#component_language").val()
+    var script_code = $("#script_code").val()
+    var remark = $("#remark").val()
+    var pid = $("#pid").val()
+    var id = $("#id").val()
+    var my_type = $("#my_type").val()
+    var node_name = $("#node_name").val()
+    var node_remark = $("#node_remark").val()
+
 
     $.ajax({
         type: "POST",
         dataType: "JSON",
         url: "../component_save/",
-        data: formdata,
+        data: {
+            "pid":pid,
+            "id":id,
+            "type":my_type,
+            "node_name":node_name,
+            "node_remark":node_remark,
+            "shortname":shortname,
+            "input_arr":input_arr,
+            "variable_arr":variable_arr,
+            "output_arr":output_arr,
+            "component_language":component_language,
+            "script_code":script_code,
+            "remark":remark,
+        },
         success: function (data){
             var status = data.status,
                 info = data.info,
@@ -510,8 +526,8 @@ $('#node_save, #leaf_save').click(function (data){
                 updatetime = data.updatetime,
                 createuser = data.createuser,
                 updateuser = data.updateuser,
-                component_language = data.language,
-                script_code= data.code;
+                component_language = data.component_language,
+                script_code = data.script_code;
             if (status == 1){
                 if ($("#id").val() == "0") {
                     if (save_type == "node_save"){
@@ -526,10 +542,10 @@ $('#node_save, #leaf_save').click(function (data){
                         $('#updatetime').val(updatetime);
                         $('#createuser').val(createuser);
                         $('#updateuser').val(updateuser);
-                        $("#component_language").val(component_language);
-                        $("#script_code").val(script_code);
+                        $('#component_language').val(component_language);
+                        $('#script_code').val(script_code);
                         $("#leaf_link").show();
-                        $("#leaf_link").attr('href','/component/'+ select_id.toString());
+                        $("#leaf_link").attr('href','/workflow/'+ select_id.toString());
                         $('#p_tree').jstree('create_node', $("#pid").val(), {
                             "text": $("#shortname").val(),
                             "id": select_id,
@@ -564,8 +580,6 @@ $('#node_save, #leaf_save').click(function (data){
     });
 });
 
-
-$(document).ready(function () {
     $('#component_input_save').click(function () {
         //页面获取组件输入参数
         if ($('#component_input_code').val() == "") {
@@ -576,92 +590,65 @@ $(document).ready(function () {
             alert("参数名称不能为空。")
             return
         }
-        if ($('#component_input_type').val() == "") {
+        if ($('#component_input_type').val() == null) {
             alert("数据类型不能为空。")
             return
         }
-        if ($('#component_input_source').val() == "") {
+        if ($('#component_input_source').val() == null) {
             alert("数据来源不能为空。")
             return
         }
         if ($("#component_input_isnew").val() == "1") {
-            $("#component_input").empty();
-            var inputparams = {
-                guid: $("#guid").val(),
-                isnew: $("#component_input_isnew").val(),
-                code: $("#component_input_code").val(),
-                name: $("#component_input_name").val(),
-                type: $("#component_input_type").val(),
-                value: $("#component_input_value").val(),
-                source: $("#component_input_source").val(),
-                remark: $("#component_input_remark").val(),
-                sort: $("#component_input_sort").val(),
-            }
-            $.ajax({
-                url: "../component_form_input/",
-                data: JSON.stringify(inputparams),
-                type: "POST",
-                data_type: "JSON",
-                contentType: "application/json",
-                headers: {"X-CSRFToken": $('[name="csrfmiddlewaretoken"]').val()},
-                success: function (data) {
-                    console.log(inputparams)
-                    if (data.status == 1) {
-                        alert(data.input)
-                        // location.reload()
-
-                    } else if (data.status == 3) {
-                        alert(data.input)
-                        // location.reload()
-                    } else {
-                        alert(data.input)
-                        // location.reload()
-                    }
-                },
-                error: function (data) {
-                    alert("请求错误")
-                    location.reload()
+            var array = new Array();
+            $("#component_input option").each(function(){
+                var val = $(this).val();
+                if(val != ""){
+                    array.push(val);
                 }
             })
-        } else if ($("#component_input_isnew").val() == "0") {
-            var inputparams = {
-                guid: $("#guid").val(),
-                isnew: $("#component_input_isnew").val(),
-                code: $("#component_input_code").val(),
-                name: $("#component_input_name").val(),
-                type: $("#component_input_type").val(),
-                value: $("#component_input_value").val(),
-                source: $("#component_input_source").val(),
-                remark: $("#component_input_remark").val(),
-                sort: $("#component_input_sort").val(),
+            var code_array = new Array();
+            for (var i=0;i<array.length;i++){
+                var val_splitarray=array[i].split("^")
+                code_array.push(val_splitarray[0])
             }
-            $.ajax({
-                url: "../component_form_input/",
-                data: JSON.stringify(inputparams),
-                type: "POST",
-                data_type: "JSON",
-                contentType: "application/json",
-                headers: {"X-CSRFToken": $('[name="csrfmiddlewaretoken"]').val()},
-                success: function (data) {
-                    if (data.status == 2) {
-                        alert(data.input)
-
-                    } else {
-                        alert(data.input)
-
-                    }
-
-                },
-                error: function (data) {
-                    alert("请求失败")
-                }
-            })
+            var judge_result = judgeMember(code_array,$("#component_input_code").val())
+            if (judge_result=="exist"){
+                alert("已存在参数名")
+                return
+            }else{
+                var code = $("#component_input_code").val();
+                var name = $("#component_input_name").val();
+                var type = $("#component_input_type").val();
+                var source = $("#component_input_source").val();
+                var remark = $("#component_input_remark").val();
+                var sort = $("#component_input_sort").val();
+                var value = $("#component_input_value").val();
+                $("#component_input").append('<option value="' + code + "^" + name + "^" + type + "^" + source + "^" + remark + "^" + sort+ "^" + value +'">' + name + '</option>');
+                $("#component_input").find("option[value='"+ code + "^" + name + "^" + type + "^" + source + "^" + remark + "^" + sort+ "^" + value +"']").attr("selected", true);
+                $("#component_input_code").prop("readonly",value=true)
+                $("#component_input_isnew").val("0")
+            }
+        }else{
+            var selectval = $("#component_input option:selected").val();
+            var spilt_params = selectval.split("^")
+            if ($("#component_input_code").val()==spilt_params[0]){
+                var code = $("#component_input_code").val();
+                var name = $("#component_input_name").val();
+                var type = $("#component_input_type").val();
+                var source = $("#component_input_source").val();
+                var remark = $("#component_input_remark").val();
+                var sort = $("#component_input_sort").val();
+                var value = $("#component_input_value").val();
+                $("#component_input option:selected").val(code+"^"+name+"^"+type+"^"+source+"^"+remark+"^"+sort+"^"+value)
+                $("#component_input option:selected").text(name)
+                $("#component_input").val()
+            }
 
         }
-
-    })
-    //点新增后在点保存
+    });
+    //点新增后在点确定
     $('#component_variable_save').click(function () {
+
         //页面获取组件输入参数
         if ($('#component_variable_code').val() == "") {
             alert("参数编码不能为空。")
@@ -671,82 +658,57 @@ $(document).ready(function () {
             alert("参数名称不能为空。")
             return
         }
-        if ($('#component_variable_type').val() == "") {
+        if ($('#component_variable_type').val() == null) {
             alert("数据类型不能为空。")
             return
         }
-        if ($('#component_variable_source').val() == "") {
-            alert("数据来源不能为空。")
-            return
-        }
         if ($("#component_variable_isnew").val() == "1") {
-            $("#component_variable").empty();
-            var variableparams = {
-                guid: $("#guid").val(),
-                isnew: $("#component_variable_isnew").val(),
-                code: $("#component_variable_code").val(),
-                name: $("#component_variable_name").val(),
-                type: $("#component_variable_type").val(),
-                value: $("#component_variable_value").val(),
-                remark: $("#component_variable_remark").val(),
-                sort: $("#component_variable_sort").val(),
-            }
-            $.ajax({
-                url: "../component_form_variable/",
-                data: JSON.stringify(variableparams),
-                type: "POST",
-                data_type: "JSON",
-                contentType: "application/json",
-                headers: {"X-CSRFToken": $('[name="csrfmiddlewaretoken"]').val()},
-                success: function (data) {
-                    console.log(variableparams)
-                    if (data.status == 1) {
-                        alert(data.variable)
-                    } else if (data.status == 3) {
-                        alert(data.variable)
-                    } else {
-                        alert(data.variable)
-                    }
-                },
-                error: function (data) {
-                    alert("请求错误")
+            var array = new Array();
+            $("#component_variable option").each(function(){
+                var val = $(this).val();
+                if(val != ""){
+                    array.push(val);
                 }
             })
-        } else if ($("#component_variable_isnew").val() == "0") {
-            var variableparams = {
-                guid: $("#guid").val(),
-                isnew: $("#component_variable_isnew").val(),
-                code: $("#component_variable_code").val(),
-                name: $("#component_variable_name").val(),
-                type: $("#component_variable_type").val(),
-                value: $("#component_variable_value").val(),
-                remark: $("#component_variable_remark").val(),
-                sort: $("#component_variable_sort").val(),
+            var code_array = new Array();
+            for (var i=0;i<array.length;i++){
+                var val_splitarray=array[i].split("^")
+                code_array.push(val_splitarray[0])
             }
-            $.ajax({
-                url: "../component_form_variable/",
-                data: JSON.stringify(variableparams),
-                type: "POST",
-                data_type: "JSON",
-                contentType: "application/json",
-                headers: {"X-CSRFToken": $('[name="csrfmiddlewaretoken"]').val()},
-                success: function (data) {
-                    if (data.status == 2) {
-                        alert(data.variable)
-                    } else {
-                        alert(data.variable)
-                    }
-
-                },
-                error: function (data) {
-                    alert("请求失败")
-                }
-            })
+            var judge_result = judgeMember(code_array,$("#component_variable_code").val())
+            if (judge_result=="exist"){
+                alert("已存在参数名")
+                return
+            }else{
+                var code = $("#component_variable_code").val();
+                var name = $("#component_variable_name").val();
+                var type = $("#component_variable_type").val();
+                var remark = $("#component_variable_remark").val();
+                var sort = $("#component_variable_sort").val();
+                var value = $("#component_variable_value").val();
+                $("#component_variable").append('<option value="' + code + "^" + name + "^" + type + "^" + "^" + remark + "^" + sort+ "^" + value +'">' + name + '</option>');
+                $("#component_variable").find("option[value='"+ code + "^" + name + "^" + type + "^" + "^" + remark + "^" + sort+ "^" + value +"']").attr("selected", true);
+                $("#component_variable_code").prop("readonly",value=true)
+                $("#component_variable_isnew").val("0")
+            }
+        }else{
+            var selectval = $("#component_variable option:selected").val();
+            var spilt_params = selectval.split("^")
+            if ($("#component_variable_code").val()==spilt_params[0]){
+                var code = $("#component_variable_code").val();
+                var name = $("#component_variable_name").val();
+                var type = $("#component_variable_type").val();
+                var remark = $("#component_variable_remark").val();
+                var sort = $("#component_variable_sort").val();
+                var value = $("#component_variable_value").val();
+                $("#component_variable option:selected").val(code+"^"+name+"^"+type+"^"+"^"+remark+"^"+sort+"^"+value)
+                $("#component_variable option:selected").text(name)
+                $("#component_variable").val()
+            }
 
         }
-
-    })
-    //点新增后在点保存
+});
+    //点新增后在点确定
     $('#component_output_save').click(function () {
         //页面获取组件输入参数
         if ($('#component_output_code').val() == "") {
@@ -757,81 +719,127 @@ $(document).ready(function () {
             alert("参数名称不能为空。")
             return
         }
-        if ($('#component_output_type').val() == "") {
+        if ($('#component_output_type').val() == null) {
             alert("数据类型不能为空。")
             return
         }
         if ($("#component_output_isnew").val() == "1") {
-            $("#component_output").empty();
-            var outputparams = {
-                guid: $("#guid").val(),
-                isnew: $("#component_output_isnew").val(),
-                code: $("#component_output_code").val(),
-                name: $("#component_output_name").val(),
-                type: $("#component_output_type").val(),
-                remark: $("#component_output_remark").val(),
-                sort: $("#component_output_sort").val(),
-            }
-            $.ajax({
-                url: "../component_form_output/",
-                data: JSON.stringify(outputparams),
-                type: "POST",
-                data_type: "JSON",
-                contentType: "application/json",
-                headers: {"X-CSRFToken": $('[name="csrfmiddlewaretoken"]').val()},
-                success: function (data) {
-                    console.log(outputparams)
-                    if (data.status == 1) {
-                        alert(data.output)
-                    } else if (data.status == 3) {
-                        alert(data.output)
-                    } else {
-                        alert(data.output)
-                    }
-                },
-                error: function (data) {
-                    alert("请求错误")
+            var array = new Array();
+            $("#component_output option").each(function(){
+                var val = $(this).val();
+                if(val != ""){
+                    array.push(val);
                 }
             })
-        } else if ($("#component_output_isnew").val() == "0") {
-            var outputparams = {
-                guid: $("#guid").val(),
-                isnew: $("#component_output_isnew").val(),
-                code: $("#component_output_code").val(),
-                name: $("#component_output_name").val(),
-                type: $("#component_output_type").val(),
-                remark: $("#component_output_remark").val(),
-                sort: $("#component_output_sort").val(),
+            var code_array = new Array();
+            for (var i=0;i<array.length;i++){
+                var val_splitarray=array[i].split("^")
+                code_array.push(val_splitarray[0])
             }
-            $.ajax({
-                url: "../component_form_output/",
-                data: JSON.stringify(outputparams),
-                type: "POST",
-                data_type: "JSON",
-                contentType: "application/json",
-                headers: {"X-CSRFToken": $('[name="csrfmiddlewaretoken"]').val()},
-                success: function (data) {
-                    if (data.status == 2) {
-                        alert(data.output)
-                    } else {
-                        alert(data.output)
-                    }
-
-                },
-                error: function (data) {
-                    alert("请求失败")
-                }
-            })
+            var judge_result = judgeMember(code_array,$("#component_output_code").val())
+            if (judge_result=="exist"){
+                alert("已存在参数名")
+                return
+            }else{
+                var code = $("#component_output_code").val();
+                var name = $("#component_output_name").val();
+                var type = $("#component_output_type").val();
+                var remark = $("#component_output_remark").val();
+                var sort = $("#component_output_sort").val();
+                $("#component_output").append('<option value="' + code + "^" + name + "^" + type + "^" + "^" + remark + "^" + sort+ "^" +'">' + name + '</option>');
+                $("#component_output").find("option[value='"+ code + "^" + name + "^" + type + "^" + "^" + remark + "^" + sort+ "^" +"']").attr("selected", true);
+                $("#component_output_code").prop("readonly",value=true)
+                $("#component_output_isnew").val("0")
+            }
+        }else{
+            var selectval = $("#component_output option:selected").val();
+            var spilt_params = selectval.split("^")
+            if ($("#component_output_code").val()==spilt_params[0]){
+                var code = $("#component_output_code").val();
+                var name = $("#component_output_name").val();
+                var type = $("#component_output_type").val();
+                var remark = $("#component_output_remark").val();
+                var sort = $("#component_output_sort").val();
+                $("#component_output option:selected").val(code+"^"+name+"^"+type+"^"+"^"+remark+"^"+sort)
+                $("#component_output option:selected").text(name)
+                $("#component_output").val()
+            }
 
         }
-
-    })
-    //点新增后在点保存
+});
+    //删除选中的输入参数(删除选中的option)
+    $('#component_input_del').click(function () {
+        var cof=window.confirm("确认删除该参数?");
+        if (cof==true){
+            var selectval = $("#component_input option:selected").val();
+            $("#component_input").find("option[value='"+ selectval+"']").remove();
+            $("#component_input_code").val('')
+            $("#component_input_name").val('')
+            $("#component_input_source").val('')
+            $("#component_input_type").val('')
+            $("#component_input_value").val('')
+            $("#component_input_sort").val('')
+            $("#component_input_remark").val('')
+            $("#component_input_code").prop("readonly", true);
+            $("#component_input_name").prop("readonly", true);
+            $("#component_input_type").prop("disabled", true);
+            $("#component_input_source").prop("disabled", true);
+            $("#component_input_sort").prop("readonly", true);
+            $("#component_input_remark").prop("readonly", true);
+            $("#component_input_value").prop("readonly", true);
+        }else{
+            return
+        }
+    });
+    //删除选中的输入参数(删除选中的option)
+    $('#component_variable_del').click(function () {
+        var cof=window.confirm("确认删除该参数?");
+        if (cof==true){
+            var selectval = $("#component_variable option:selected").val();
+            $("#component_variable").find("option[value='"+ selectval+"']").remove();
+            $("#component_variable_code").val('')
+            $("#component_variable_name").val('')
+            $("#component_variable_type").val('')
+            $("#component_variable_value").val('')
+            $("#component_variable_sort").val('')
+            $("#component_variable_remark").val('')
+            $("#component_variable_code").prop("readonly", true);
+            $("#component_variable_name").prop("readonly", true);
+            $("#component_variable_type").prop("disabled", true);
+            $("#component_variable_sort").prop("readonly", true);
+            $("#component_variable_remark").prop("readonly", true);
+            $("#component_variable_value").prop("readonly", true);
+        }else{
+            return
+        }
+    });
+    //删除选中的输入参数(删除选中的option)
+    $('#component_output_del').click(function () {
+        var cof=window.confirm("确认删除该参数?");
+        if (cof==true){
+            var selectval = $("#component_output option:selected").val();
+            $("#component_output").find("option[value='"+ selectval+"']").remove();
+            $("#component_output_code").val('')
+            $("#component_output_name").val('')
+            $("#component_output_type").val('')
+            $("#component_output_sort").val('')
+            $("#component_output_remark").val('')
+            $("#component_output_code").prop("readonly", true);
+            $("#component_output_name").prop("readonly", true);
+            $("#component_output_type").prop("disabled", true);
+            $("#component_output_sort").prop("readonly", true);
+            $("#component_output_remark").prop("readonly", true);
+        }else{
+            return
+        }
+    });
+    //点新增后在点确定
     $("#component_input_add").click(function () {
         $("#component_input_save").show()
-        $("#component_input").empty()
+        $("#component_input_del").show()
+        //点击确定后取消选中状态
+        $('#component_input').find("option:selected").attr("selected", false);
         $("#component_input_isnew").val("1")
-        $("#component_input").unbind("click")
         $("#component_input_code").val('');
         $("#component_input_name").val('');
         $("#component_input_type").val('');
@@ -847,13 +855,14 @@ $(document).ready(function () {
         $("#component_input_value").prop("readonly", false);
         $("#component_input_sort").prop("readonly", false);
         $("#component_input_remark").prop("readonly", false);
-        })
-    //点新增后在点保存
+        });
+    //点新增后在点确定
     $("#component_variable_add").click(function () {
         $("#component_variable_save").show()
-        $("#component_variable").empty()
+        $("#component_variable_del").show()
+        //点击确定后取消选中状态
+        $('#component_variable').find("option:selected").attr("selected", false);
         $("#component_variable_isnew").val("1")
-        $("#component_variable").unbind("click")
         $("#component_variable_code").val('');
         $("#component_variable_name").val('');
         $("#component_variable_type").val('');
@@ -869,13 +878,14 @@ $(document).ready(function () {
         $("#component_variable_value").prop("readonly", false);
         $("#component_variable_sort").prop("readonly", false);
         $("#component_variable_remark").prop("readonly", false);
-    })
-    //点新增后在点保存
+    });
+    //点新增后在点确定
     $("#component_output_add").click(function () {
-        $("#component_output").empty()
         $("#component_output_save").show()
+        $("#component_output_del").show()
+        //点击确定后取消选中状态
+        $('#component_output').find("option:selected").attr("selected", false);
         $("#component_output_isnew").val("1")
-        $("#component_output").unbind("click")
         $("#component_output_code").val('');
         $("#component_output_name").val('');
         $("#component_output_type").val('');
@@ -887,9 +897,142 @@ $(document).ready(function () {
         $("#component_output_type").prop("disabled", false);
         $("#component_output_sort").prop("readonly", false);
         $("#component_output_remark").prop("readonly", false);
+    });
+    //展示输入详细参数信息
+    $("#component_input").click(function () {
+        $("#component_input_del").show();
+        $("#component_input_isnew").val()=="0";
+        $("#component_input_code").prop("readonly", true);
+        $("#component_input_name").prop("readonly", false);
+        $("#component_input_type").prop("disabled", false);
+        $("#component_input_source").prop("disabled", false);
+        $("#component_input_sort").prop("readonly", false);
+        $("#component_input_remark").prop("readonly", false);
+        $("#component_input_value").prop("readonly", false);
+        $("#component_input_add").show()
+        $("#component_input_save").show()
+        var selectval = $("#component_input option:selected").val();
+        var spilt_params = selectval.split("^")
+        if (spilt_params[0]=="null"){
+            $("#component_input_code").val("")
+        }else {
+            $("#component_input_code").val(spilt_params[0])
+        }
+        if (spilt_params[1]=="null"){
+            $("#component_input_name").val("")
+        }else {
+            $("#component_input_name").val(spilt_params[1])
+        }
+        if (spilt_params[2]=="null"){
+            $("#component_input_type").val("")
+        }else {
+            $("#component_input_type").val(spilt_params[2])
+        }
+        if (spilt_params[3]=="null"){
+            $("#component_input_source").val("")
+        }else {
+            $("#component_input_source").val(spilt_params[3])
+        }
+        if (spilt_params[4]=="null"){
+            $("#component_input_remark").val("")
+        }else {
+            $("#component_input_remark").val(spilt_params[4])
+        }
+        if (spilt_params[5]=="null"){
+            $("#component_input_sort").val("")
+        }else {
+            $("#component_input_sort").val(spilt_params[5])
+        }
+        if (spilt_params[6]=="null"){
+            $("#component_input_value").val("")
+        }else {
+            $("#component_input_value").val(spilt_params[6])
+        }
+
     })
+    //展示临时变量详细参数信息
+    $("#component_variable").click(function () {
+        $("#component_variable_del").show();
+        $("#component_variable_isnew").val()=="0"
+        $("#component_variable_code").prop("readonly", true);
+        $("#component_variable_name").prop("readonly", false);
+        $("#component_variable_type").prop("disabled", false);
+        $("#component_variable_sort").prop("readonly", false);
+        $("#component_variable_remark").prop("readonly", false);
+        $("#component_variable_value").prop("readonly", false);
+        $("#component_variable_add").show()
+        $("#component_variable_save").show()
+        var selectval = $("#component_variable option:selected").val();
+        var spilt_params = selectval.split("^")
+        if (spilt_params[0]=="null"){
+            $("#component_variable_code").val("")
+        }else {
+            $("#component_variable_code").val(spilt_params[0])
+        }
+        if (spilt_params[1]=="null"){
+            $("#component_variable_name").val("")
+        }else {
+            $("#component_variable_name").val(spilt_params[1])
+        }
+        if (spilt_params[2]=="null"){
+            $("#component_variable_type").val("")
+        }else {
+            $("#component_variable_type").val(spilt_params[2])
+        }
+        if (spilt_params[3]=="null"){
+            $("#component_variable_remark").val("")
+        }else {
+            $("#component_variable_remark").val(spilt_params[3])
+        }
+        if (spilt_params[4]=="null"){
+            $("#component_variable_sort").val("")
+        }else {
+            $("#component_variable_sort").val(spilt_params[4])
+        }
+        if (spilt_params[5]=="null"){
+            $("#component_variable_value").val("")
+        }else {
+            $("#component_variable_value").val(spilt_params[5])
+        }
 
+    })
+    //展示输出详细信息
+    $("#component_output").click(function () {
+        $("#component_output_del").show();
+        $("#component_output_isnew").val()=="0";
+        $("#component_output_code").prop("readonly", true);
+        $("#component_output_name").prop("readonly", false);
+        $("#component_output_type").prop("disabled", false);
+        $("#component_output_sort").prop("readonly", false);
+        $("#component_output_remark").prop("readonly", false);
+        $("#component_output_add").show()
+        $("#component_output_save").show()
+        var selectval = $("#component_output option:selected").val();
+        var spilt_params = selectval.split("^")
+        if (spilt_params[0]=="null"){
+            $("#component_output_code").val("")
+        }else {
+            $("#component_output_code").val(spilt_params[0])
+        }
+        if (spilt_params[1]=="null"){
+            $("#component_output_name").val("")
+        }else {
+            $("#component_output_name").val(spilt_params[1])
+        }
+        if (spilt_params[2]=="null"){
+            $("#component_output_type").val("")
+        }else {
+            $("#component_output_type").val(spilt_params[2])
+        }
+        if (spilt_params[3]=="null"){
+            $("#component_output_remark").val("")
+        }else {
+            $("#component_output_remark").val(spilt_params[3])
+        }
+        if (spilt_params[4]=="null"){
+            $("#component_output_sort").val("")
+        }else {
+            $("#component_output_sort").val(spilt_params[4])
+        }
+    })
 })
-
-
-

@@ -35,7 +35,7 @@
                 </div>
                 <div class="portlet-body form">
                     <form class="form-horizontal" id="p_form">{% csrf_token %}
-                        <input type="text" hidden id="gid" name="id">
+                        <input type="text" hidden id="id" name="id">
                         <input type="text" hidden id="pid" name="pid">
                         <input type="text" hidden id="my_type" name="my_type">
                         <div hidden id="leafdiv" >
@@ -61,7 +61,7 @@
                                             <div hidden="" class="form-group" style="margin-right:0px">
                                                 <label class="col-md-2 control-label">GUID</label>
                                                 <div class="col-md-10">
-                                                    <input hidden="hidden" type="text" id="id"id="id" name="id" value="{{componentid}}">
+                                                    <input hidden="hidden" type="text" id="cid"id="cid" name="cid" value="{{componentid}}">
                                                     <input hidden="hidden" type="text" id="error" name="error" value="{{error}}">
                                                     <input hidden="hidden" type="text" id="componentData" name="componentData" value="{{componentData}}">
                                                     <input  id="guid" type="text" name="guid" class="form-control " placeholder="">
@@ -134,9 +134,6 @@
                                                     </div>
                                                 </div>
 
-                                                <div class="form-actions noborder" style="margin-top:-20px;text-align:center">
-                                        <button type="button" id="leaf_save" name="leaf_save" class="btn blue">保存</button>
-                                                </div>
 
                                             </div>
                                             <div class="tab-pane fade" id="tab_1_2">
@@ -207,9 +204,10 @@
                                                     </div>
                                                 </div>
 
-                                                <div class="form-actions noborder" style="margin-top:-20px;text-align:center">
-                                                    <button type="button" id="component_input_add" name="component_input_add" class="btn green">新增</button>
-                                                    <button type="button" id="component_input_save" name="component_input_save" class="btn green">确定</button>
+                                                <div class="form-actions noborder" style="margin-top:-15px;text-align:center">
+                                                    <button type="button" id="component_input_add" name="component_input_add" class="btn green btn-sm">新增</button>
+                                                    <button type="button" id="component_input_del" name="component_input_del" class="btn green btn-sm">删除</button>
+                                                    <button type="button" id="component_input_save" name="component_input_save" class="btn green btn-sm">确定</button>
                                                 </div>
 
 
@@ -238,7 +236,7 @@
                                                 <div class="form-group" style="margin-right:0px">
                                                     <label class="col-md-2 control-label"><span style="color:red; ">*</span>数据类型</label>
                                                     <div class="col-md-10">
-                                                        <select class="form-control" id="component_variable_type" name="component_variable_type" 1010="">
+                                                        <select class="form-control" id="component_variable_type" name="component_variable_type">
                                                             <option value="string">字符串(string)</option>
                                                             <option value="int">整数(int)</option>
                                                             <option value="decimal">小数(decimal)</option>
@@ -271,9 +269,10 @@
                                                         <div class="form-control-focus"></div>
                                                     </div>
                                                 </div>
-                                                <div class="form-actions noborder" style="margin-top:-20px;text-align:center">
-                                                    <button type="button" id="component_variable_add" name="component_input_add" class="btn green">新增</button>
-                                                    <button type="button" id="component_variable_save" name="component_variable_save" class="btn green">确定</button>
+                                                <div class="form-actions noborder" style="margin-top:-15px;text-align:center">
+                                                    <button type="button" id="component_variable_add" name="component_input_add" class="btn green btn-sm">新增</button>
+                                                    <button type="button" id="component_variable_del" name="component_variable_del" class="btn green btn-sm">删除</button>
+                                                    <button type="button" id="component_variable_save" name="component_variable_save" class="btn green btn-sm">确定</button>
                                                 </div>
 
                                             </div>
@@ -328,14 +327,18 @@
                                                         <div class="form-control-focus"></div>
                                                     </div>
                                                 </div>
-                                                <div class="form-actions noborder" style="margin-top:-20px;text-align:center">
-                                                    <button type="button" id="component_output_add" name="component_input_add" class="btn green">新增</button>
-                                                    <button type="button" id="component_output_save" name="component_output_save" class="btn green">确定</button>
+                                                <div class="form-actions noborder" style="margin-top:-15px;text-align:center">
+                                                    <button type="button" id="component_output_add" name="component_input_add" class="btn green btn-sm">新增</button>
+                                                    <button type="button" id="component_output_del" name="component_output_del" class="btn green btn-sm">删除</button>
+                                                    <button type="button" id="component_output_save" name="component_output_save" class="btn green btn-sm">确定</button>
                                                 </div>
 
                                             </div>
                                         </div>
                                     </div>
+                                <div class="form-actions noborder" style="margin-top:-20px;text-align:center">
+                                    <button type="button" id="leaf_save" name="leaf_save" class="btn blue">保存</button>
+                                </div>
                                 </div>
                         </div>
                         <div hidden id="nodediv">
