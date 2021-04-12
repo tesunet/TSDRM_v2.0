@@ -1061,3 +1061,192 @@ def funmove(request):
                 return HttpResponse(pfun.name + "^" + str(pfun.id))
             else:
                 return HttpResponse("0")
+
+
+
+######################
+#     字典管理        #
+######################
+def dictindex(request, funid):
+    if request.user.is_authenticated():
+        alldict = DictIndex.objects.order_by("sort").exclude(state="9")
+        return render(request, 'dict.html',
+                      {'username': request.user.userinfo.fullname,
+                       "alldict": alldict, "pagefuns": getpagefuns(funid,request)})
+    else:
+        return HttpResponseRedirect("/login")
+
+
+@login_required
+def dictdel(request):
+    if 'dictid' in request.POST:
+        result = ""
+        dictid = request.POST.get('dictid', '')
+        try:
+            dictid = int(dictid.replace("dict_", ""))
+        except:
+            raise Http404()
+        alldict = DictIndex.objects.filter(id=dictid)
+        if (len(alldict) > 0):
+            dictsave = alldict[0]
+            dictsave.state = "9"
+            dictsave.save()
+            result = "删除成功。"
+        else:
+            result = '字典不存在。'
+        return HttpResponse(result)
+
+
+@login_required
+def dictlistdel(request):
+    if 'listid' in request.POST:
+        result = ""
+        listid = request.POST.get('listid', '')
+        try:
+            listid = int(listid.replace("list_", ""))
+        except:
+            raise Http404()
+        alllist = DictList.objects.filter(id=listid)
+        if (len(alllist) > 0):
+            listsave = alllist[0]
+            listsave.state = "9"
+            listsave.save()
+            result = "删除成功。"
+        else:
+            result = '条目不存在。'
+        return HttpResponse(result)
+
+
+@login_required
+def dictselect(request):
+    if request.method == 'GET':
+        result = []
+        dictid = request.GET.get('dictid', '')
+        try:
+            dictid = int(dictid.replace("dict_", ""))
+        except:
+            raise Http404()
+        alldict = DictIndex.objects.get(id=dictid)
+        allDictList = DictList.objects.order_by("sort").filter(dictindex=alldict).exclude(state="9")
+        if (len(allDictList) > 0):
+            for dict_list in allDictList:
+                result.append(
+                    {"id": dict_list.id, "name": dict_list.name, "sort": dict_list.sort, "remark": dict_list.remark, "content": dict_list.content})
+        return HttpResponse(json.dumps(result))
+
+
+@login_required
+def dictsave(request):
+    if 'dictid' in request.POST:
+        result = {}
+        dictid = request.POST.get('dictid', '')
+        dictname = request.POST.get('dictname', '')
+        dictsort = request.POST.get('dictsort', '')
+        dictremark = request.POST.get('dictremark', '')
+        try:
+            dictsort = int(dictsort)
+        except:
+            dictsort = 999999
+        try:
+            dictid = int(dictid.replace("dict_", ""))
+        except:
+            raise Http404()
+        if dictname.strip() == '':
+            result["res"] = '字典名称不能为空。'
+        else:
+            if dictid == 0:
+                alldict = DictIndex.objects.filter(
+                    name=dictname).exclude(state="9")
+                if (len(alldict) > 0):
+                    result["res"] = dictname + '已存在。'
+                else:
+                    dictsave = DictIndex()
+                    dictsave.name = dictname
+                    dictsave.sort = dictsort
+                    dictsave.remark = dictremark
+                    dictsave.save()
+                    dictsave = DictIndex.objects.filter(
+                        name=dictname).exclude(state="9")
+                    result["res"] = "新增成功。"
+                    result["data"] = dictsave[0].id
+            else:
+                alldict = DictIndex.objects.filter(
+                    name=dictname).exclude(id=dictid).exclude(state="9")
+                if (len(alldict) > 0):
+                    result["res"] = dictname + '已存在。'
+                else:
+                    try:
+                        dictsave = DictIndex.objects.get(id=dictid)
+                        dictsave.name = dictname
+                        dictsave.sort = dictsort
+                        dictsave.remark = dictremark
+                        dictsave.save()
+                        result["res"] = "修改成功。"
+                    except:
+                        result["res"] = "修改失败。"
+        return HttpResponse(json.dumps(result))
+
+
+@login_required
+def dictlistsave(request):
+    if 'dictid' in request.POST:
+        result = {}
+
+        listid = request.POST.get('listid', '')
+        dictid = request.POST.get('dictid', '')
+        listname = request.POST.get('listname', '')
+        listsort = request.POST.get('listsort', '')
+        listremark = request.POST.get('listremark', '')
+        listcontent = request.POST.get('listcontent', '')
+
+        try:
+            listsort = int(listsort)
+        except:
+            listsort = 999999
+        try:
+            dictid = int(dictid.replace("dict_", ""))
+        except:
+            raise Http404()
+        try:
+            listid = int(listid.replace("list_", ""))
+        except:
+            raise Http404()
+        if listname.strip() == '':
+            result["res"] = '条目名称不能为空。'
+        else:
+            alldict = DictIndex.objects.get(id=dictid)
+            if listid == 0:
+
+                alllist = DictList.objects.filter(
+                    name=listname, dictindex=alldict).exclude(state="9")
+                if (len(alllist) > 0):
+                    result["res"] = listname + '已存在。'
+                else:
+                    listsave = DictList()
+                    listsave.dictindex = alldict
+                    listsave.name = listname
+                    listsave.sort = listsort
+                    listsave.remark = listremark
+                    listsave.content = listcontent
+                    listsave.save()
+                    listsave = DictList.objects.filter(
+                        name=listname, dictindex=alldict).exclude(state="9")
+                    result["res"] = "新增成功。"
+                    result["data"] = listsave[0].id
+            else:
+                alllist = DictList.objects.filter(name=listname).filter(dictindex=alldict).exclude(id=listid).exclude(
+                    state="9")
+                if (len(alllist) > 0):
+                    result["res"] = listname + '已存在。'
+                else:
+                    try:
+                        listsave = DictList.objects.get(id=listid)
+                        listsave.name = listname
+                        listsave.sort = listsort
+                        listsave.remark = listremark
+                        listsave.content = listcontent
+                        listsave.save()
+                        result["res"] = "修改成功。"
+                    except:
+                        result["res"] = "修改失败。"
+        return HttpResponse(json.dumps(result))

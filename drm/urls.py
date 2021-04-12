@@ -68,6 +68,13 @@ urlpatterns = [
     url(r'^get_all_process_tree/$', get_all_process_tree),
     url(r'^group_save_process_tree/$', group_save_process_tree),
 
+    # 字典维护
+    url(r'^dict/$', dictindex, {'funid': '127'}),
+    url(r'^dictsave/$', dictsave),
+    url(r'^dictselect/$', dictselect),
+    url(r'^dictlistsave/$', dictlistsave),
+    url(r'^dictdel/$', dictdel),
+    url(r'^dictlistdel/$', dictlistdel),
 
     # 工具管理
     url(r'^util_manage/$', util_manage, {'funid': '88'}),
