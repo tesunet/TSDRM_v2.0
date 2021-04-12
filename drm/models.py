@@ -42,6 +42,23 @@ class UserInfo(models.Model):
     forgetpassword = models.CharField("修改密码地址", blank=True, null=True, max_length=50)
 
 
+# 字典管理
+class DictIndex(models.Model):
+    name = models.CharField("字典名称", max_length=100)
+    remark = models.TextField("备注", blank=True, null=True)
+    sort = models.IntegerField("排序", blank=True, null=True)
+    state = models.CharField("状态", blank=True, max_length=20)
+
+
+class DictList(models.Model):
+    dictindex = models.ForeignKey(DictIndex)
+    name = models.CharField("条目名称", max_length=100)
+    remark = models.TextField("备注", blank=True, null=True)
+    sort = models.IntegerField("排序", blank=True, null=True)
+    state = models.CharField("状态", blank=True, max_length=20)
+    content = models.TextField("内容", blank=True, null=True)
+
+
 # 客户端管理
 class Target(models.Model):
     client_id = models.IntegerField("终端client_id", blank=True, null=True)
