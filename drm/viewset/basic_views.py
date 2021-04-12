@@ -599,11 +599,11 @@ def getpagefuns(funid, request=""):
 @login_required
 def index(request, funid):
     if request.user.is_authenticated():
-
-        newJob = Job(userid=request.user.id)
-        print(newJob.execute_workflow('237139f0-9768-11eb-9e74-84fdd1a17907', input=[{"code":"subject","value":"测试邮件"},{"code":"text","value":"邮件内容"},{"code":"to","value":'["huangzx@tesunet.com.cn"]'}]))
-
-
+        #
+        # newJob = Job(userid=request.user.id)
+        # print(newJob.execute_workflow('237139f0-9768-11eb-9e74-84fdd1a17907', input=[{"code":"subject","value":"测试邮件"},{"code":"text","value":"邮件内容"},{"code":"to","value":'["huangzx@tesunet.com.cn"]'}]))
+        #
+        #
 
         request.session['funlist'] = custom_personal_fun_list(request.user.is_superuser, request.user.userinfo.id)
         # 最新操作

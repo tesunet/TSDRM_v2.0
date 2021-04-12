@@ -105,17 +105,17 @@ class ServerByPara(object):
             return {
                 "exec_tag": 1,
                 "data": "连接服务器失败 {0}".format(e),
-                "log": "连接服务器失败",
+                "message": "连接服务器失败",
             }
         try:
             stdin, stdout, stderr = self.client.exec_command(self.cmd, get_pty=True, timeout=linux_timeout)
             if stderr.read():
                 exec_tag = 1
                 data_init = ServerByPara.handle_codec(stderr.read())
-                log = ""
+                message = ""
             else:
                 exec_tag = 0
-                log = ""
+                message = ""
 
                 try:
                     data_init = ServerByPara.handle_codec(stdout.read())
@@ -126,16 +126,16 @@ class ServerByPara(object):
                         scriptResult = data_init
                         if isComponent:
                             exec_tag = 1
-                            log = "无法获取执行结果"
+                            message = "无法获取执行结果"
                         if "command not found" in data_init:  # 命令不存在
                             exec_tag = 1
-                            log = "命令不存在"
+                            message = "命令不存在"
                         elif "syntax error" in data_init:  # 语法错误
                             exec_tag = 1
-                            log = "语法错误"
+                            message = "语法错误"
                         elif "No such file or directory" in data_init:  # 脚本不存在
                             exec_tag = 1
-                            log = "脚本不存在"
+                            message = "脚本不存在"
                     else:
                         startindex=data_init.index("<scriptResult>")
                         endindex = data_init.index("</scriptResult>")
@@ -145,25 +145,25 @@ class ServerByPara(object):
                 except Exception as e:
                     print(e)
                     exec_tag = 1
-                    log = "编码错误"
+                    message = "编码错误"
         except socket.timeout as e:
             print("脚本执行超时")
             return {
                 "exec_tag": 1,
                 "data": scriptResult,
-                "log": "脚本执行超时",
+                "message": "脚本执行超时",
             }
 
         return {
             "exec_tag": exec_tag,
             "data": scriptResult,
-            "log": log,
+            "message": message,
         }
 
     def exec_win_cmd(self, isComponent):
         scriptResult = ""
         data_init = ""
-        log = ""
+        message = ""
 
         try:
             s = Session(self.host, auth=(self.user, self.pwd))
@@ -172,20 +172,20 @@ class ServerByPara(object):
             if type(e) == WinRMOperationTimeoutError:
                 print("脚本执行超时")
                 exec_tag = 1
-                log = "脚本执行超时 {0}".format(e)
+                message = "脚本执行超时 {0}".format(e)
             elif type(e) in [ConnectionError, WinRMTransportError]:
                 print("连接windows失败")
                 exec_tag = 1
-                log = "连接windows失败 {0}".format(e)
+                message = "连接windows失败 {0}".format(e)
             else:
                 print("执行windows脚本发生异常错误")
                 exec_tag = 1
-                log = "执行windows脚本发生异常错误 {0}".format(e)
+                message = "执行windows脚本发生异常错误 {0}".format(e)
 
             return {
                 "exec_tag": exec_tag,
                 "data": scriptResult,
-                "log": log,
+                "message": message,
             }
         else:
             if ret.std_err:
@@ -193,7 +193,7 @@ class ServerByPara(object):
                 exec_tag = 1
                 # for data in ret.std_err.decode().split("\r\n"):
                 #     data_init += data
-                log = ""
+                message = ""
             else:
                 exec_tag = 0
 
@@ -204,13 +204,13 @@ class ServerByPara(object):
                 except Exception as e:
                     print(e)
                     exec_tag = 1
-                    log = "编码错误"
+                    message = "编码错误"
                 else:
                     if '<scriptResult>' not in data_init or '</scriptResult>' not in data_init:
                         scriptResult = data_init
                         if isComponent:
                             exec_tag = 1
-                            log = "无法获取执行结果"
+                            message = "无法获取执行结果"
                     else:
                         startindex = data_init.index("<scriptResult>")
                         endindex = data_init.index("</scriptResult>")
@@ -219,7 +219,7 @@ class ServerByPara(object):
             return {
                 "exec_tag": exec_tag,
                 "data": scriptResult,
-                "log": log,
+                "message": message,
             }
 
     def run(self,isComponent=False,linux_timeout=6 * 60):

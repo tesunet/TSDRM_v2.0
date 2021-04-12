@@ -620,8 +620,8 @@ class Job(object):
                 exec(componentCode)
                 if "state" not in componentOutput or componentOutput["state"]=="failed":
                     self.jobBaseInfo["state"] = "ERROR"
-                    if "log" in componentOutput:
-                        self.jobBaseInfo["log"] += componentOutput["log"]
+                    if "message" in componentOutput:
+                        self.jobBaseInfo["log"] += componentOutput["message"]
                     else:
                         self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
                     return
@@ -734,16 +734,16 @@ class Job(object):
                                     # 未返回执行结果
                                     if "state" not in componentOutput:
                                         self.jobBaseInfo["state"] = "ERROR"
-                                        if "log" in componentOutput:
-                                            self.jobBaseInfo["log"] += componentOutput["log"]
+                                        if "message" in componentOutput:
+                                            self.jobBaseInfo["log"] += componentOutput["message"]
                                         else:
                                             self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,未返回状态。'
                                         return
                                     # 返回执行结果为failed
                                     if "state" in componentOutput and componentOutput["state"] == "failed":
                                         self.jobBaseInfo["state"] = "ERROR"
-                                        if "log" in componentOutput:
-                                            self.jobBaseInfo["log"] += componentOutput["log"]
+                                        if "message" in componentOutput:
+                                            self.jobBaseInfo["log"] += componentOutput["message"]
                                         else:
                                             self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
                                         return
@@ -810,8 +810,8 @@ class Job(object):
                     # 未返回执行结果
                     if "state" not in componentOutput:
                         self.jobBaseInfo["state"] = "ERROR"
-                        if "log" in componentOutput:
-                            self.jobBaseInfo["log"] += componentOutput["log"]
+                        if "message" in componentOutput:
+                            self.jobBaseInfo["log"] += componentOutput["message"]
                         else:
                             self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,未返回状态。'
                         return
@@ -819,8 +819,8 @@ class Job(object):
                     # 返回执行结果为failed
                     if "state" in componentOutput and componentOutput["state"] == "failed":
                         self.jobBaseInfo["state"] = "ERROR"
-                        if "log" in componentOutput:
-                            self.jobBaseInfo["log"] += componentOutput["log"]
+                        if "message" in componentOutput:
+                            self.jobBaseInfo["log"] += componentOutput["message"]
                         else:
                             self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
                         return
@@ -838,6 +838,10 @@ class Job(object):
                 for output in self.finalOutput:
                     if output["code"] in componentOutput:
                         output.update({'value':componentOutput[output["code"]]})
+
+        if "message" in componentOutput and componentOutput!="":
+            self.jobBaseInfo["log"] += componentOutput["message"]
+
         #将执行结果状态存入self.jobBaseInfo["state"].
         self.jobBaseInfo["state"]="DONE"
         self.jobBaseInfo["endtime"] = datetime.datetime.now()
