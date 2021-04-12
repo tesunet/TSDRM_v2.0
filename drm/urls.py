@@ -10,7 +10,7 @@ from .viewset.report_views import *
 from .viewset.workflow_views import *
 from .viewset.test import *
 from .viewset.component_views import *
-
+from .viewset.cloud_views import *
 
 urlpatterns = [
     url(r'^test/$', test),
