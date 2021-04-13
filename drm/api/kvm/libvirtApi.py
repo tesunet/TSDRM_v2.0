@@ -1,5 +1,5 @@
 #! /usr/bin/python
-import libvirt
+#import libvirt
 import time
 from xml.etree import ElementTree
 from drm import remote
