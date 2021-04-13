@@ -254,17 +254,16 @@ function getkvmtree() {
                                             }
                                         }
 
-                                        var mem_cpu_data = data.data.kvm_cpu_mem_data;
-                                        var disk_data = data.data.kvm_disk_data;
+                                        var kvm_diskcpumemory_data = data.data.kvm_diskcpumemory_data;
                                         if ($("#kvm_state").val() == '运行中' || $("#kvm_state").val() == '暂停') {
-                                            $('#kvm_memory_space input').eq(0).val(mem_cpu_data["mem_usage"].toFixed(0)).trigger('change');
-                                            $('#kvm_memory_space h4').eq(1).text(mem_cpu_data["mem_used"] + "/" + mem_cpu_data["mem_total"] + " GB");
-                                            if (mem_cpu_data["cpu_usage"] < 0.5) {
+                                            $('#kvm_memory_space input').eq(0).val(kvm_diskcpumemory_data["mem_usage"].toFixed(0)).trigger('change');
+                                            $('#kvm_memory_space h4').eq(1).text(kvm_diskcpumemory_data["mem_used"] + "/" + kvm_diskcpumemory_data["mem_total"] + " GB");
+                                            if (kvm_diskcpumemory_data["cpu_usage"] < 0.5) {
                                                 $('#kvm_cpu_space input').eq(0).val(1).trigger('change');
                                             } else {
-                                                $('#kvm_cpu_space input').eq(0).val(mem_cpu_data["cpu_usage"].toFixed(0)).trigger('change');
+                                                $('#kvm_cpu_space input').eq(0).val(kvm_diskcpumemory_data["cpu_usage"].toFixed(0)).trigger('change');
                                             }
-                                            $('#kvm_cpu_space h4').eq(1).text(mem_cpu_data["cpu_usage"] + " %")
+                                            $('#kvm_cpu_space h4').eq(1).text(kvm_diskcpumemory_data["cpu_usage"] + " %")
                                         }
 
                                         if ($("#kvm_state").val() == '关闭') {
@@ -274,8 +273,8 @@ function getkvmtree() {
                                             $('#kvm_cpu_space h4').eq(1).text('0' + " %");
                                         }
 
-                                        $('#kvm_disk_space input').eq(0).val(disk_data["disk_usage"]).trigger('change');
-                                        $('#kvm_disk_space h4').eq(1).text(disk_data["disk_used"] + "/" + disk_data["disk_total"] + " GB");
+                                        $('#kvm_disk_space input').eq(0).val(kvm_diskcpumemory_data["disk_usage"]).trigger('change');
+                                        $('#kvm_disk_space h4').eq(1).text(kvm_diskcpumemory_data["disk_used"] + "/" + kvm_diskcpumemory_data["disk_total"] + " GB");
                                     } else {
                                         alert(data.data);
                                         $("#loading2").hide();
