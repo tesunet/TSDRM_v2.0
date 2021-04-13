@@ -1,45 +1,20 @@
-# 流程配置：场景配置、脚本配置、流程配置、主机配置
+# 客户端管理
 from django.shortcuts import render
-from django.http import HttpResponseRedirect, Http404, HttpResponse, JsonResponse
 from TSDRM import settings
-
-from .commv_views import *
 from .basic_views import getpagefuns
 from django.contrib.auth.decorators import login_required
-
-from ..remote import ServerByPara
-from ..api.kvm import libvirtApi
-
-
-######################
-# 宿主机IP，用户名、密码
-######################
-def kvm_credit_data(utils_id):
-    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
-    content = utils_kvm_info[0].content
-    util_type = utils_kvm_info[0].util_type
-    kvm_credit = get_credit_info(content, util_type.upper())
-    return kvm_credit
+from ..models import UtilsManage
 
 
 ######################
 # 客户端管理
 ######################
+
 @login_required
 def client_manage(request, funid):
-    # kvm虚拟化平台
-    util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
-    utils_kvm_list = []
-    for utils in util_manage:
-        utils_kvm_list.append({
-            "id": utils.id,
-            "code": utils.code,
-            "name": utils.name,
-        })
     return render(request, 'client_manage.html',
                   {'username': request.user.userinfo.fullname,
                    "pagefuns": getpagefuns(funid, request=request),
-                   "utils_kvm_list": utils_kvm_list,
                    "is_superuser": request.user.is_superuser
                    })
 

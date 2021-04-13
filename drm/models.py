@@ -99,8 +99,7 @@ class Origin(models.Model):
 class HostsManage(models.Model):
     host_ip = models.CharField("主机IP", blank=True, null=True, max_length=50)
     host_name = models.CharField("主机名称", blank=True, null=True, max_length=256)
-    os = models.CharField("系统", blank=True, null=True, max_length=50)
-    type = models.CharField("连接类型", blank=True, null=True, max_length=20)
+    host_type = models.CharField("主机类型", blank=True, null=True, max_length=50)
     username = models.CharField("用户名", blank=True, null=True, max_length=50)
     password = models.CharField("密码", blank=True, null=True, max_length=50)
     state = models.CharField("状态", blank=True, null=True, max_length=20)
@@ -109,6 +108,14 @@ class HostsManage(models.Model):
     nodetype = models.CharField("节点类型", blank=True, null=True, max_length=20)
     sort = models.IntegerField("排序", blank=True, null=True)
     remark = models.TextField("节点/客户端说明", null=True, default="")
+
+
+class HostsProtection(models.Model):
+    hostsmanage = models.ForeignKey(HostsManage, blank=True, null=True, verbose_name="客户端")
+    protectiontype = models.CharField("保护类型", blank=True, null=True, max_length=50)
+    subtype = models.CharField("保子类型", blank=True, null=True, max_length=50)
+    info = models.TextField("保护相关信息", null=True, default="<root></root>")
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
 
 
 class CvClient(models.Model):
