@@ -445,9 +445,14 @@ def kvm_manage(request, funid):
                    })
 
 
-def get_kvm_copy_node(utils_id, parent, kvm_credit):
+def get_kvm_copy_node(utils_id, parent, kvm_credit, finalOutput):
     datas = []
-    children = libvirtApi.KVMApi(kvm_credit).kvm_include_copy_list(parent)  # 副本虚拟机
+    children = []
+    for i in finalOutput:
+        if i['code'] == 'kvmlistonlycopy':
+            for name in i['value']:
+                if parent + '@' in name['name']:
+                    children = i['value']
     for child in children:
         data = dict()
         data['state'] = {'opened': 'True'}
@@ -468,7 +473,7 @@ def get_kvm_copy_node(utils_id, parent, kvm_credit):
     return datas
 
 
-def get_kvm_node(utils_id, parent, kvm_credit, children):
+def get_kvm_node(utils_id, parent, kvm_credit, children, finalOutput):
     nodes = []
     for child in children:
         node = dict()
@@ -488,7 +493,7 @@ def get_kvm_node(utils_id, parent, kvm_credit, children):
         node['ip'] = kvm_credit['KvmHost']
 
         # 获取三级菜单：实例虚拟机
-        node["children"] = get_kvm_copy_node(utils_id, child['name'], kvm_credit)
+        node["children"] = get_kvm_copy_node(utils_id, child['name'], kvm_credit, finalOutput)
         nodes.append(node)
     return nodes
 
@@ -512,12 +517,40 @@ def get_kvm_tree(request):
         }
         root['kvm_credit'] = kvm_credit
         # 获取kvm模板文件
-        kvm_template = libvirtApi.KVMApi(kvm_credit).all_kvm_template()
-        root['kvm_template'] = kvm_template
+        kvm_template_guid = '0f298100-9b31-11eb-849b-000c29921d27'
+        kvm_template_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
+                {"code": "username", "value": kvm_credit['KvmUser']},
+                {"code": "password", "value": kvm_credit['KvmPasswd']}]
+        newJob = Job(userid=request.user.id)
+        state = newJob.execute_workflow(kvm_template_guid, input=kvm_template_input)
+        if state == 'NOTEXIST':
+            return JsonResponse({
+                "ret": 0,
+                "data": "组件不存在，请于管理员联系。",
+            })
+        else:
+            for i in newJob.finalOutput:
+                if i['code'] == 'templatefile':
+                    root['kvm_template'] = i['value']
         root['type'] = 'ROOT'
         # 循环二级菜单：虚拟机
-        children = libvirtApi.KVMApi(kvm_credit).kvm_exclude_copy_list()
-        root["children"] = get_kvm_node(utils.id, utils.code, kvm_credit, children)
+        children = []
+        kvm_list_guid = '73c5e79c-979a-11eb-ac18-000c29921d27'
+        kvm_list_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
+                 {"code": "username", "value": kvm_credit['KvmUser']},
+                 {"code": "password", "value": kvm_credit['KvmPasswd']}]
+        newJob = Job(userid=request.user.id)
+        state = newJob.execute_workflow(kvm_list_guid, input=kvm_list_input)
+        if state == 'NOTEXIST':
+            return JsonResponse({
+                "ret": 0,
+                "data": "组件不存在，请于管理员联系。",
+            })
+        else:
+            for i in newJob.finalOutput:
+                if i['code'] == 'kvmlistexcludecopy':
+                    children = i['value']
+        root["children"] = get_kvm_node(utils.id, utils.code, kvm_credit, children, newJob.finalOutput)
         tree_data.append(root)
     return JsonResponse({
         "ret": 1,
