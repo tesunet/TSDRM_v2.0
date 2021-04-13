@@ -178,7 +178,7 @@ def kvm_copy_create(request):
         # 拼接路径
         filesystem = 'data/vmdata/' + kvm_machine        # data/vmdata/CentOS-7
         snapshotname = filesystem + '@' + snapshot_name  # data/vmdata/CentOS-7@2020-07-28
-        filesystemname = filesystem + '-' + copy_name    # data/vmdata/CentOS-7-2020-07-28
+        filesystemname = filesystem + ':' + copy_name    # data/vmdata/CentOS-7:2020-07-28
         copyname = kvm_machine + '@' + copy_name         # CentOS-7@2020-07-28
         try:
             kvm_exist = []
@@ -275,7 +275,7 @@ def kvm_copy_del(request):
     kvm_credit = kvm_credit_data(utils_id)
     utils_ip = kvm_credit['KvmHost']
     filesystem_snapshot = 'data/vmdata/' + name         # data/vmdata/CentOS-7@test2    快照
-    filesystem = filesystem_snapshot.replace('@', '-')  # data/vmdata/CentOS-7-test2    文件系统
+    filesystem = filesystem_snapshot.replace('@', ':')  # data/vmdata/CentOS-7:test2    文件系统
     try:
         # ①删除虚拟机
         result_info = libvirtApi.LibvirtApi(utils_ip).kvm_undefine(state, name)
@@ -334,7 +334,7 @@ def kvm_power_on(request):
         utils_ip = kvm_credit['KvmHost']
         # 拼接路径
         filesystem = 'data/vmdata/' + copy_name     # data/vmdata/CentOS-7@2020-09-14
-        filesystem = filesystem.replace('@', '-')   # data/vmdata/CentOS-7-2020-09-14
+        filesystem = filesystem.replace('@', ':')   # data/vmdata/CentOS-7:2020-09-14
         try:
             result_info = libvirtApi.KVMApi(kvm_credit).guestmount(kvm_machine, filesystem)
             if result_info == '挂载成功。':
@@ -731,7 +731,7 @@ def kvm_delete(request):
     utils_ip = kvm_credit['KvmHost']
     # 拼接路径
     filesystem_snapshot = 'data/vmdata/' + name         # data/vmdata/CentOS-7@test2    快照
-    filesystem = filesystem_snapshot.replace('@', '-')  # data/vmdata/CentOS-7-test2    文件系统
+    filesystem = filesystem_snapshot.replace('@', ':')  # data/vmdata/CentOS-7:test2    文件系统
     try:
         # ①删除虚拟机
         result_info = libvirtApi.LibvirtApi(utils_ip).kvm_undefine(name, state)
