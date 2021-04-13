@@ -1632,6 +1632,15 @@ class Job(object):
 
     # 执行单独流程或组件
     def execute_workflow(self,modelguid,input=None,type="COMPONENT"):
+        workflowmodel = None
+        if type == "WORKFLOW":
+            workflowmodel = TSDRMWorkflow.objects.exclude(state="9").filter(guid=modelguid)
+        if type == "CONTROL":
+            workflowmodel = TSDRMControl.objects.exclude(state="9").filter(guid=modelguid)
+        if type == "COMPONENT":
+            workflowmodel = TSDRMComponent.objects.exclude(state="9").filter(guid=modelguid)
+        if not workflowmodel or len(workflowmodel)<=0:
+            return "NOTEXIST"
         jobJson = {}
         jobJson["modelguid"] = modelguid
         jobJson["type"] = type
