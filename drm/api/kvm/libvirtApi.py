@@ -462,6 +462,7 @@ class KVMApi():
         filesystem_list = [x.replace('\t', '') for x in result['data'].split(' ') if x]
         del filesystem_list[0:2]
         end_list = self.list_of_groups(filesystem_list, 9)
+        print(end_list)
         filesystem_name = []
         for item in end_list:
             filesystem_name.append(item[8])
@@ -526,7 +527,7 @@ class KVMApi():
         return result
 
     def zfs_clone_snapshot(self, snapshot_name, filesystem_name):
-        # 克隆快照：zfs clone tank/kvm_1@2020-08-20 tank/kvm_1@2020-08-20
+        # 克隆快照：zfs clone data/vmdata/Test-2@2021-04-10 data/vmdata/Test-2:ZFS-clone1
         try:
             exe_cmd = r'zfs clone {0} {1}'.format(snapshot_name, filesystem_name)
             result = self.remote_linux(exe_cmd)
@@ -547,7 +548,7 @@ class KVMApi():
         """
         try:
             exe_cmd = r'cat /etc/libvirt/qemu/{0}.xml'.format(kvm_machine)
-            snapshot_clone_name = snapshotname.replace('@', '-')
+            snapshot_clone_name = snapshotname.replace('@', ':')
             kvm_disk_path = '/' + snapshot_clone_name + '/' + kvm_machine + '.qcow2'
             result = self.remote_linux(exe_cmd)
             # 解析xml文件找出要修改的name、uuid、disk_path、mac、cpu、memory
@@ -887,6 +888,96 @@ class KVMApi():
             filesystem_name.append(item[8])
         return filesystem_name
 
+    def hostdata(self):
+        exe_cmd = r'df'
+        result = self.remote_linux(exe_cmd)
+        disk_info = [x for x in result['data'].split(' ') if x]
+        del disk_info[0:6]
+        list_of_group = zip(*(iter(disk_info),) * 6)
+        end_list = [list(i) for i in list_of_group]
+        count = len(disk_info) % 6
+        end_list.append(disk_info[-count:]) if count != 0 else end_list
+        disk_info_list = []
+        for item in end_list:
+            data = {}
+            data['name'] = item[0]
+            data['total'] = item[1]
+            data['used'] = item[2]
+            data['mount'] = item[5]
+            disk_info_list.append(data)
+        total = 0
+        used = 0
+        for i in disk_info_list:
+            if i['mount'] == '/' or i['mount'] == '/data' or i['mount'] == '/boot':
+                total += int(i['total'])
+                used += int(i['used'])
+        disk_usage = round(used / total * 100, 2)
+
+        exe_cmd = r"top -n1 | awk '/Cpu/{print $2}'"
+        result = self.remote_linux(exe_cmd)
+        cpu_usage = float(result['data'])
+
+        exe_cmd = r"cat /etc/centos-release"
+        result = self.remote_linux(exe_cmd)
+        os = result['data'].strip()
+
+        exe_cmd = r'cat /proc/cpuinfo | grep "processor"| wc -l'
+        result = self.remote_linux(exe_cmd)
+        cpu_count = result['data']
+
+        exe_cmd = r"hostname"
+        result = self.remote_linux(exe_cmd)
+        hostname = result['data'].strip()
+
+        exe_cmd = r"head /proc/meminfo"
+        result = self.remote_linux(exe_cmd)
+        mem_info = [x for x in result['data'].split(' ') if x]
+        list_of_group = zip(*(iter(mem_info),) * 3)
+        end_list = [list(i) for i in list_of_group]
+        count = len(mem_info) % 3
+        end_list.append(mem_info[-count:]) if count != 0 else end_list
+
+        mem_total = int(end_list[0][1])
+        mem_free = int(end_list[1][1])
+        mem_buffers = int(end_list[3][1])
+        mem_cached = int(end_list[4][1])
+
+        free_mem = mem_free + mem_buffers + mem_cached
+        used_mem = mem_total - free_mem
+        memory_usage = round(100 * used_mem / mem_total, 2)
+        free_mem = mem_free + mem_buffers + mem_cached
+
+        diskcpumemory = {
+            'disk_total': round(total / 1024 / 1024, 2),
+            'disk_used': round(used / 1024 / 1024, 2),
+            'disk_usage': disk_usage,
+            'cpu_usage': cpu_usage,
+            'os': os,
+            'mem_total': round(mem_total / 1024 / 1024, 2),
+            'mem_used': round(used_mem / 1024 / 1024, 2),
+            'memory_usage': memory_usage,
+            'cpu_count': cpu_count,
+            'hostname': hostname
+        }
+        return diskcpumemory
+
+    def get_zfs_snapshot_list(self):
+        # 获取KVM模板文件列表
+        exe_cmd = r'zfs list -t snapshot'
+        result = self.remote_linux(exe_cmd)
+        snapshot_list = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+        del snapshot_list[0:5]
+
+        end_list = self.list_of_groups(snapshot_list, 5)
+        filesystem_name = []
+        for item in end_list:
+            data = {}
+            data['name'] = item[0]
+            data['used'] = item[1]
+            data['refer'] = item[3]
+            filesystem_name.append(data)
+        return filesystem_name
+
 
 linuxserver_credit = {
     'KvmHost': '192.168.1.61',
@@ -900,8 +991,8 @@ ip = '192.168.1.61'
 # result = KVMApi(linuxserver_credit).all_kvm_name()
 # result = KVMApi(linuxserver_credit).zfs_kvm_filesystem()
 # result = KVMApi(linuxserver_credit).memory_disk_cpu_data()
-# result = KVMApi(linuxserver_credit).get_os_template()
-# result = LibvirtApi(ip).kvm_state('Test-1')
-# result = LibvirtApi(ip).kvm_memory_cpu_usage()
+# result = KVMApi(linuxserver_credit).get_zfs_snapshot_list()
+# result = LibvirtApi(ip).kvm_id('Test-2')
+# result = LibvirtApi(ip).mem_cpu_hostname_info()
 # print(result)
 
