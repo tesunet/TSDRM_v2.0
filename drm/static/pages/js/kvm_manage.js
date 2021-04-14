@@ -184,8 +184,6 @@ function getkvmtree() {
                                         $("#kvm_hostname").val(data.data.hostname);
                                         $("#kvm_password").val(data.data.password);
                                         if (type == 'KVM') {
-                                            $("#kvm_undefine").hide();
-                                            $("#kvm_clone").hide();
                                             if ($("#kvm_ip").val() == '' && $("#kvm_hostname").val() == '') {
                                             $("#kvm_power_div").show();
                                             $("#kvm_task_div").hide();
@@ -220,7 +218,6 @@ function getkvmtree() {
                                         }
                                         if (type == 'COPY') {
                                             $("#kvm_undefine").hide();
-                                            $("#kvm_clone").hide();
                                             if ($("#kvm_ip").val() == '' && $("#kvm_hostname").val() == '') {
                                                 $("#kvm_power_div").show();
                                                 $("#kvm_task_div").hide();
@@ -351,7 +348,6 @@ $(document).ready(function () {
                     $("#form_div").show();
 
                     if (type == 'KVM') {
-                        $("#kvm_undefine").hide();
                         if ($("#kvm_ip").val() == '' && $("#kvm_hostname").val() == '') {
                         $("#kvm_power_div").show();
                         $("#kvm_task_div").hide();
@@ -386,7 +382,6 @@ $(document).ready(function () {
                     }
                     if (type == 'COPY') {
                         $("#kvm_undefine").hide();
-                        $("#kvm_clone").hide();
                         if ($("#kvm_ip").val() == '' && $("#kvm_hostname").val() == '') {
                             $("#kvm_power_div").show();
                             $("#kvm_task_div").hide();
@@ -693,11 +688,15 @@ $(document).ready(function () {
                         kvm_state: $("#kvm_state").val(),
                     },
                 success: function (data) {
-                    var myres = data["res"];
-                    if (myres == "删除成功。") {
-                        location.reload()
+                    if (data.ret == 0) {
+                        alert(data.data)
+                    } else {
+                        var myres = data["data"];
+                        if (myres == "删除成功。") {
+                            getkvmtree();
+                        }
+                        alert(myres);
                     }
-                    alert(myres);
                 },
                 error: function (e) {
                     alert("删除失败，请于管理员联系。");
@@ -723,20 +722,23 @@ $(document).ready(function () {
             data:
                 {
                     utils_id: $("#utils_id").val(),
-                    kvm_name_old: $("#kvm_name_old").val(),
-                    kvm_name_new: $("#kvm_name_new").val(),
-                    kvm_state: $("#kvm_state").val(),
+                    kvm_name: $("#kvm_name_old").val(),
+                    kvm_clone_name: $("#kvm_name_new").val(),
                 },
             success: function (data) {
-                var myres = data["res"];
-                if (myres == "克隆成功。") {
+                if (data.ret == 0) {
+                    alert(data.data);
+                    $('#loading1').hide();
+                    $('#kvm_clone_div').show();
+                } else {
+                    var myres = data["data"];
+                    if (myres == "克隆成功。") {
+                        getkvmtree();
+                    }
+                    alert(myres);
                     $('#loading1').hide();
                     $('#static01').modal('hide');
-                    location.reload()
                 }
-                alert(myres);
-                $('#loading1').hide();
-                $('#kvm_clone_div').show();
             },
             error: function (e) {
                 alert("页面出现错误，请于管理员联系。");
@@ -854,45 +856,45 @@ $(document).ready(function () {
                 {
                     utils_id: $("#utils_id").val(),
                     kvm_name: $("#kvm_name").val(),
-                    kvm_state: $("#kvm_state").val(),
                     kvm_ip: $("#alter_ip").val(),
                     kvm_hostname: $("#alter_hostname").val(),
                     kvm_password: $("#alter_password").val(),
-
                 },
             success: function (data) {
-                var myres = data["res"];
-                if (myres == "给电成功。") {
+                if (data.ret == 0) {
+                    alert(data.data);
                     $('#loading4').hide();
-                    $('#static03').hide();
-                    $('#ip_hostname_div').hide();
-                    var kvm_id = data["kvm_id"];
-                    var kvm_ip = data["ip"];
-                    var kvm_hostname = data["hostname"];
-                    var kvm_password = data["password"];
+                    $('#ip_hostname_div').show();
+                } else {
+                    var myres = data["data"];
+                    if (myres == "激活成功。") {
+                        var kvm_id = data["kvm_id"];
+                        var kvm_ip = data["ip"];
+                        var kvm_hostname = data["hostname"];
+                        var kvm_password = data["password"];
 
-                    $('#kvm_state').val('运行中');
-                    $('#kvm_id').val(kvm_id);
-                    $("#kvm_ip").val(kvm_ip);
-                    $("#kvm_hostname").val(kvm_hostname);
-                    $("#kvm_password").val(kvm_password);
+                        $('#kvm_state').val('运行中');
+                        $('#kvm_id').val(kvm_id);
+                        $("#kvm_ip").val(kvm_ip);
+                        $("#kvm_hostname").val(kvm_hostname);
+                        $("#kvm_password").val(kvm_password);
 
-                    //重新获取kvm虚拟机的cpu、内存使用信息
-                    get_kvm_task_data();
+                        //重新获取kvm虚拟机的cpu、内存使用信息
+                        get_kvm_task_data();
 
-                    //设置节点图标：开机、关机状态
-                    var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
-                    var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:red; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:green; height:24px;'></span> ");
-                    $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
+                        //设置节点图标：开机、关机状态
+                        var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
+                        var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:red; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:green; height:24px;'></span> ");
+                        $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
 
-                    // 完成给电后重新设置虚拟机的id和状态
-                    curnode.data.id = kvm_id;
-                    curnode.data.state = '运行中';
-
+                        // 完成激活后重新设置虚拟机的id和状态
+                        curnode.data.id = kvm_id;
+                        curnode.data.state = '运行中';
+                    }
+                    alert(myres);
+                    $('#loading4').hide();
+                    $('#static03').modal('hide');
                 }
-                alert(myres);
-                $('#loading4').hide();
-                $('#ip_hostname_div').show();
             },
             error: function (e) {
                 alert("页面出现错误，请于管理员联系。");

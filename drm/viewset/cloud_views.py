@@ -435,6 +435,7 @@ def kvm_shutdown(request):
                     kvm_id = i['value']
     except Exception as e:
         print(e)
+        ret = 0
         data = '关闭成功。'
     return JsonResponse({
         'ret': ret,
@@ -478,6 +479,7 @@ def kvm_suspend(request):
                     kvm_id = i['value']
     except Exception as e:
         print(e)
+        ret = 0
         data = '暂停失败。'
     return JsonResponse({
         'ret': ret,
@@ -521,6 +523,7 @@ def kvm_resume(request):
                     kvm_id = i['value']
     except Exception as e:
         print(e)
+        ret = 0
         data = '唤醒失败。'
     return JsonResponse({
         'ret': ret,
@@ -564,6 +567,7 @@ def kvm_reboot(request):
                     kvm_id = i['value']
     except Exception as e:
         print(e)
+        ret = 0
         data = '重启失败。'
     return JsonResponse({
         'ret': ret,
@@ -572,88 +576,102 @@ def kvm_reboot(request):
     })
 
 
+# 执行组件、删除KVM虚拟机
+# 步骤：删除虚拟机 + 删除文件系统 + 删除本地数据库数据
 @login_required
 def kvm_delete(request):
-    # 删除副本：删除虚拟机 + 删除文件系统 + 删除快照 + 删除本地数据库数据
-    result = {}
     utils_id = request.POST.get("utils_id", "")
-    name = request.POST.get("kvm_name", "")
-    state = request.POST.get("kvm_state", "")
+    kvm_name = request.POST.get("kvm_name", "")
+    ret = 1
     try:
         utils_id = int(utils_id)
     except:
         pass
     kvm_credit = kvm_credit_data(utils_id)
-    utils_ip = kvm_credit['KvmHost']
-    # 拼接路径
-    filesystem_snapshot = 'data/vmdata/' + name         # data/vmdata/CentOS-7@test2    快照
-    filesystem = filesystem_snapshot.replace('@', ':')  # data/vmdata/CentOS-7:test2    文件系统
     try:
-        # ①删除虚拟机
-        result_info = libvirtApi.LibvirtApi(utils_ip).kvm_undefine(name, state)
-        if result_info == '取消定义成功。':
-            # ②删除文件系统
-            result_info = libvirtApi.KVMApi(kvm_credit).filesystem_del(filesystem)
-            if result_info == '删除文件系统成功。':
-                # ③删除快照
-                result_info = libvirtApi.KVMApi(kvm_credit).zfs_snapshot_del(filesystem_snapshot)
-                if result_info == '删除快照成功。':
-                    # ④删除数据库数据:name为虚拟机的名称是唯一的
-                    kvmcopy = KvmCopy.objects.exclude(state='9').filter(name=name).filter(utils_id=utils_id)
-                    if kvmcopy.exists():
-                        kvm = kvmcopy[0]
-                        kvm.state = '9'
-                        kvm.save()
-                        result["res"] = '删除成功。'
-                else:
-                    result["res"] = result_info
-            else:
-                result["res"] = result_info
+        delete_giid = '75d3413e-9799-11eb-b4e8-000c29921d27'
+        delete_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
+                        {"code": "username", "value": kvm_credit['KvmUser']},
+                        {"code": "password", "value": kvm_credit['KvmPasswd']},
+                        {"code": "kvm_name", "value": kvm_name}]
+        newJob = Job(userid=request.user.id)
+        state = newJob.execute_workflow(delete_giid, input=delete_input)
+        if state == 'NOTEXIST':
+            return JsonResponse({
+                "ret": 0,
+                "data": "组件不存在，请于管理员联系。",
+            })
+        elif state == 'ERROR':
+            return JsonResponse({
+                "ret": 0,
+                "data": newJob.jobBaseInfo['log'],
+            })
         else:
-            result["res"] = result_info
+            # 删除数据库数据:name为虚拟机的名称是唯一的
+            kvmcopy = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
+            if kvmcopy.exists():
+                kvm = kvmcopy[0]
+                kvm.state = '9'
+                kvm.save()
+            data = '删除成功。'
     except Exception as e:
         print(e)
-        result["res"] = '删除失败。'
-    return JsonResponse(result)
+        ret = 0
+        data = '删除失败。'
+    return JsonResponse({
+        'ret': ret,
+        'data': data,
+    })
 
 
+# 执行组件，克隆KVM虚拟机
+# 步骤：①关闭或者暂停状态 ②判断要克隆虚拟机是否存在 ③先创建文件系统 ④再执行克隆操作
 @login_required
 def kvm_clone_save(request):
-    # 克隆虚拟机：①判断要克隆虚拟机是否存在 ②先创建文件系统 ③再执行克隆操作
-    result = {}
     utils_id = request.POST.get("utils_id", "")
-    kvm_state = request.POST.get("kvm_state", "")
-    kvm_name = request.POST.get("kvm_name_old", "")
-    kvm_name_clone = request.POST.get("kvm_name_new", "")
+    kvm_name = request.POST.get("kvm_name", "")
+    kvm_clone_name = request.POST.get("kvm_clone_name", "")
+    ret = 1
     try:
         utils_id = int(utils_id)
     except:
         pass
-    if not kvm_name_clone.strip():
-        result['res'] = '新虚拟机名称未填写。'
-    elif kvm_state == 'running' or kvm_state == '运行中':
-        result['res'] = '虚拟机未关闭。'
+    if not kvm_clone_name.strip():
+        return JsonResponse({
+            "ret": 0,
+            "data": "新虚拟机名称未填写。",
+        })
     else:
         kvm_credit = kvm_credit_data(utils_id)
-        filesystem = 'data/vmdata/' + kvm_name_clone  # 文件系统
         try:
-            kvm_exist = []
-            kvm_list = libvirtApi.KVMApi(kvm_credit).kvm_all_list()
-            for i in kvm_list:
-                kvm_exist.append(i['name'])
-            if kvm_name_clone in kvm_exist:
-                result['res'] = '虚拟机' + kvm_name_clone + '已存在。'
+            clone_giid = '6bab5454-9815-11eb-bc7a-000c29921d27'
+            clone_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
+                           {"code": "username", "value": kvm_credit['KvmUser']},
+                           {"code": "password", "value": kvm_credit['KvmPasswd']},
+                           {"code": "kvm_name", "value": kvm_name},
+                           {"code": "kvm_clone_name", "value": kvm_clone_name}]
+            newJob = Job(userid=request.user.id)
+            state = newJob.execute_workflow(clone_giid, input=clone_input)
+            if state == 'NOTEXIST':
+                return JsonResponse({
+                    "ret": 0,
+                    "data": "组件不存在，请于管理员联系。",
+                })
+            elif state == 'ERROR':
+                return JsonResponse({
+                    "ret": 0,
+                    "data": newJob.jobBaseInfo['log'],
+                })
             else:
-                result_info = libvirtApi.KVMApi(kvm_credit).create_filesystem(filesystem)
-                if result_info == '文件系统创建成功。':
-                    result_info = libvirtApi.KVMApi(kvm_credit).kvm_clone(kvm_state, kvm_name, kvm_name_clone, filesystem)
-                    result["res"] = result_info
-                else:
-                    result["res"] = '文件系统创建失败。'
+                data = '克隆成功。'
         except Exception as e:
             print(e)
-            result["res"] = '克隆失败。'
-    return JsonResponse(result)
+            ret = 0
+            data = '克隆失败。'
+    return JsonResponse({
+        'ret': ret,
+        'data': data,
+    })
 
 
 @login_required
@@ -718,94 +736,83 @@ def kvm_machine_create(request):
     return JsonResponse(result)
 
 
+# 执行组件，激活KVM虚拟机
+# ①修改ip、密码、主机名 ②开启虚拟机 ③保存数据库
 @login_required
 def kvm_power(request):
-    # 给电：修改ip和主机名，开启虚拟机、新增数据库
-    result = {}
     utils_id = request.POST.get("utils_id", "")
     kvm_name = request.POST.get("kvm_name", "")
-    kvm_state = request.POST.get("kvm_state", "")
     kvm_ip = request.POST.get("kvm_ip", "")
     kvm_hostname = request.POST.get("kvm_hostname", "")
     kvm_password = request.POST.get("kvm_password", "")
-    kvm_id = ''
-    compile_ip = re.compile('^(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|[1-9])\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)$')
     user_id = request.user.id
+    kvm_id = ''
+    ret = 1
     try:
         user_id = int(user_id)
         utils_id = int(utils_id)
     except:
         pass
-    if not kvm_ip.strip():
-        result['res'] = 'IP未填写。'
-    elif not kvm_hostname.strip():
-        result['res'] = '主机名未填写。'
-    elif not compile_ip.match(kvm_ip):
-        result['res'] = 'IP不合法。'
-    else:
-        kvm_credit = kvm_credit_data(utils_id)
-        utils_ip = kvm_credit['KvmHost']
-        filesystem = 'data/vmdata/' + kvm_name     # data/vmdata/Test-10
-        try:
-            result_info = libvirtApi.KVMApi(kvm_credit).guestmount(kvm_name, filesystem)
-            if result_info == '挂载成功。':
-                result_info = libvirtApi.KVMApi(kvm_credit).alert_ip_hostname(kvm_ip, kvm_hostname)
-                if result_info == '修改成功。':
-                    result_info = libvirtApi.KVMApi(kvm_credit).alter_password(kvm_password)
-                    if result_info == '修改密码成功。':
-                        result_info = libvirtApi.KVMApi(kvm_credit).umount()
-                        if result_info == '取消挂载成功。':
-                            result_info = libvirtApi.LibvirtApi(utils_ip).kvm_start(kvm_state, kvm_name)
-                            if result_info == '开机成功。':
-                                # 保存数据库
-                                try:
-                                    kvm = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
-                                    if kvm.exists():
-                                        kvm.update(**{
-                                            'name': kvm_name,
-                                            'create_time': datetime.datetime.now(),
-                                            'create_user_id': user_id,
-                                            'utils_id': utils_id,
-                                            'ip': kvm_ip,
-                                            'hostname': kvm_hostname,
-                                            'password': kvm_password
-                                        })
-                                    else:
-                                        kvm.create(**{
-                                            'name': kvm_name,
-                                            'create_time': datetime.datetime.now(),
-                                            'create_user_id': user_id,
-                                            'utils_id': utils_id,
-                                            'ip': kvm_ip,
-                                            'hostname': kvm_hostname,
-                                            'password': kvm_password
-                                        })
-                                    result = '给电成功。'
-                                    kvm_id = libvirtApi.LibvirtApi(utils_ip).kvm_id(kvm_name)
-                                except Exception as e:
-                                    print(e)
-                                    result = '给电失败。'
-                            else:
-                                result = '开机失败。'
-                        else:
-                            result = '取消挂载失败。'
-                    else:
-                        result = '修改密码失败。'
-                else:
-                    result = '修改失败。'
+    kvm_credit = kvm_credit_data(utils_id)
+    try:
+        power_giid = '9a33ff3a-9b65-11eb-8467-000c29921d27'
+        power_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
+                       {"code": "username", "value": kvm_credit['KvmUser']},
+                       {"code": "password", "value": kvm_credit['KvmPasswd']},
+                       {"code": "kvm_name", "value": kvm_name},
+                       {"code": "kvm_ip", "value": kvm_ip},
+                       {"code": "kvm_password", "value": kvm_password},
+                       {"code": "kvm_hostname", "value": kvm_hostname}]
+        newJob = Job(userid=request.user.id)
+        state = newJob.execute_workflow(power_giid, input=power_input)
+        if state == 'NOTEXIST':
+            return JsonResponse({
+                "ret": 0,
+                "data": "组件不存在，请于管理员联系。",
+            })
+        elif state == 'ERROR':
+            return JsonResponse({
+                "ret": 0,
+                "data": newJob.jobBaseInfo['log'],
+            })
+        else:
+            kvm = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
+            if kvm.exists():
+                kvm.update(**{
+                    'name': kvm_name,
+                    'create_time': datetime.datetime.now(),
+                    'create_user_id': user_id,
+                    'utils_id': utils_id,
+                    'ip': kvm_ip,
+                    'hostname': kvm_hostname,
+                    'password': kvm_password
+                })
             else:
-                result = '挂载失败。'
-        except Exception as e:
-            print(e)
-            result = '给电失败。'
+                kvm.create(**{
+                    'name': kvm_name,
+                    'create_time': datetime.datetime.now(),
+                    'create_user_id': user_id,
+                    'utils_id': utils_id,
+                    'ip': kvm_ip,
+                    'hostname': kvm_hostname,
+                    'password': kvm_password
+                })
+            data = '激活成功。'
+            for i in newJob.finalOutput:
+                if i['code'] == 'kvmid':
+                    kvm_id = i['value']
+    except Exception as e:
+        print(e)
+        ret = 0
+        data = '激活失败。'
     return JsonResponse({
-        'res': result,
+        'ret': ret,
+        'data': data,
         'kvm_id': kvm_id,
         'ip': kvm_ip,
         'hostname': kvm_hostname,
         'password': kvm_password
     })
-
 
 
 ######################
