@@ -11,6 +11,7 @@ from .viewset.workflow_views import *
 from .viewset.test import *
 from .viewset.component_views import *
 from .viewset.cloud_views import *
+from .viewset.host_views import *
 
 urlpatterns = [
     url(r'^test/$', test),
@@ -330,6 +331,15 @@ urlpatterns = [
     url(r'^component_move/$', component_move),
     url(r'^get_component_tree/$', get_component_tree),
     url(r'^get_component_detail/$', get_component_detail),
+
+
+    # 主机管理
+    url(r'^hosts_manage/$', hosts_manage, {'funid': '128'}),
+    url(r'^get_hosts_tree_by_business/$', get_hosts_tree_by_business),
+    url(r'^hosts_del/$', hosts_del),
+    url(r'^hosts_move/$', hosts_move),
+    url(r'^hosts_node_save/$', hosts_node_save),
+
 
 
 

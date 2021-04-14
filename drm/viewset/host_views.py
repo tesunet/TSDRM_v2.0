@@ -1,9 +1,11 @@
 # 客户端管理
+from django.db.models import Max
+from django.http import HttpResponse
 from django.shortcuts import render
-from TSDRM import settings
+from djcelery.views import JsonResponse
 from .basic_views import getpagefuns
 from django.contrib.auth.decorators import login_required
-from ..models import UtilsManage
+from ..models import *
 
 
 ######################
@@ -11,8 +13,8 @@ from ..models import UtilsManage
 ######################
 
 @login_required
-def client_manage(request, funid):
-    return render(request, 'client_manage.html',
+def hosts_manage(request, funid):
+    return render(request, 'hosts_manage.html',
                   {'username': request.user.userinfo.fullname,
                    "pagefuns": getpagefuns(funid, request=request),
                    "is_superuser": request.user.is_superuser
@@ -20,479 +22,32 @@ def client_manage(request, funid):
 
 
 @login_required
-def kvm_data(request):
-    util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
-    all_kvm_dict = {}
-    for utils in util_manage:
-        utils_id = utils.id
-        kvm_credit = kvm_credit_data(utils_id)
-        try:
-            kvm_list = libvirtApi.KVMApi(kvm_credit).kvm_exclude_copy_list()
-            all_kvm_dict[utils_id] = kvm_list
-        except Exception as e:
-            print(e)
-            return JsonResponse({
-                "ret": 0,
-                "data": "获取kvm虚拟机失败。",
-            })
-    return JsonResponse({'all_kvm_dict': all_kvm_dict})
-
-
-@login_required
-def kvm_machine_data(request):
-    kvminfo = {}
-    id = request.POST.get("id", "")
-    utils_id = request.POST.get("utils_id", "")
-    try:
-        id = int(id)
-        utils_id = int(utils_id)
-    except:
-        pass
-    kc = KvmMachine.objects.exclude(state="9").filter(hostsmanage_id=id).filter(utils_id=utils_id)
-    if len(kc) > 0:
-        kvminfo["id"] = kc[0].id
-        kvminfo["utils_id"] = kc[0].utils_id
-        kvminfo["name"] = kc[0].name
-        kvminfo["filesystem"] = kc[0].filesystem
-    return JsonResponse({'ret': 1, 'kvminfo': kvminfo})
-
-
-@login_required
-def kvm_save(request):
-    hostsmanage_id = request.POST.get("hostsmanage_id", "")
-    id = request.POST.get("kvm_id", "")
-    utils_id = request.POST.get("util_kvm_id", "")
-    name = request.POST.get("name", "")
-    try:
-        hostsmanage_id = int(hostsmanage_id)
-        id = int(id)
-        utils_id = int(utils_id)
-    except:
-        status = 0
-        info = '网络异常。'
-    else:
-        if not utils_id:
-            status = 0
-            info = '虚拟化平台未选择。'
-        elif not name.strip():
-            status = 0
-            info = '虚机未选择。'
-        else:
-            # 新增
-            if id == 0:
-                try:
-                    kvmmachine = KvmMachine()
-                    kvmmachine.utils_id = utils_id
-                    kvmmachine.hostsmanage_id = hostsmanage_id
-                    kvmmachine.name = name
-                    kvmmachine.save()
-                    id = kvmmachine.id
-                    status = 1
-                    info = "保存成功。"
-                except:
-                    status = 0
-                    info = "服务器异常。"
-            # 修改
-            else:
-                try:
-                    kvmmachine = KvmMachine.objects.get(id=id)
-                    kvmmachine.utils_id = utils_id
-                    kvmmachine.hostsmanage_id = hostsmanage_id
-                    kvmmachine.name = name
-                    kvmmachine.save()
-                    id = kvmmachine.id
-                    status = 1
-                    info = "修改成功。"
-                except:
-                    status = 0
-                    info = "服务器异常。"
-    return JsonResponse({
-        'status': status,
-        'info': info,
-        'id': id
-    })
-
-
-@login_required
-def kvm_del(request):
-    if 'id' in request.POST:
-        id = request.POST.get('id', '')
-        try:
-            id = int(id)
-        except:
-            return HttpResponse(0)
-        kvm = KvmMachine.objects.get(id=id)
-        kvm.state = '9'
-        kvm.save()
-        return HttpResponse(1)
-    else:
-        return HttpResponse(0)
-
-
-@login_required
-def kvm_copy_create(request):
-    result = {}
-    utils_id = request.POST.get("utils_id", "")
-    snapshot_name = request.POST.get("snapshot_name", "")
-    copy_name = request.POST.get("kvm_copy_name", "")
-    kvm_machine = request.POST.get("kvm_machine", "")
-    kvm_machine_id = request.POST.get("kvm_machine_id", "")
-    copy_cpu = request.POST.get("kvm_copy_cpu", "")
-    copy_memory = request.POST.get("kvm_copy_memory", "")
-    user_id = request.user.id
-    try:
-        user_id = int(user_id)
-        kvm_machine_id = int(kvm_machine_id)
-        utils_id = int(utils_id)
-    except:
-        pass
-    if not copy_name.strip():
-        result['res'] = '实例名称未填写。'
-    else:
-        kvm_credit = kvm_credit_data(utils_id)
-        # 拼接路径
-        filesystem = 'data/vmdata/' + kvm_machine        # data/vmdata/CentOS-7
-        snapshotname = filesystem + '@' + snapshot_name  # data/vmdata/CentOS-7@2020-07-28
-        filesystemname = filesystem + ':' + copy_name    # data/vmdata/CentOS-7:2020-07-28
-        copyname = kvm_machine + '@' + copy_name         # CentOS-7@2020-07-28
-        try:
-            kvm_exist = []
-            kvm_list = libvirtApi.KVMApi(kvm_credit).kvm_all_list()
-            for i in kvm_list:
-                kvm_exist.append(i['name'])
-            if copyname in kvm_exist:
-                result['res'] = '实例' + copy_name + '已存在。'
-            else:
-                # ①创建快照
-                result_info = libvirtApi.KVMApi(kvm_credit).zfs_create_snapshot(snapshotname)
-                if result_info == '创建成功。':
-                    # ②克隆快照，生成新的文件系统
-                    result_info = libvirtApi.KVMApi(kvm_credit).zfs_clone_snapshot(snapshotname, filesystemname)
-                    if result_info == '克隆成功。':
-                        # ③克隆成功，生成新的xml文件
-                        result_info = libvirtApi.KVMApi(kvm_credit).create_kvm_xml(kvm_machine, snapshotname, copyname, copy_cpu, copy_memory)
-                        if result_info == '生成成功。':
-                            # ④新的xml文件生成，开始定义虚拟机
-                            result_info = libvirtApi.KVMApi(kvm_credit).define_kvm(copyname)
-                            if result_info == '定义成功。':
-                                # ④定义成功，保存数据库
-                                try:
-                                    KvmCopy.objects.create(**{
-                                        'name': copyname,
-                                        'create_time': datetime.datetime.now(),
-                                        'create_user_id': user_id,
-                                        'utils_id': utils_id,
-                                        'kvmmachine_id': kvm_machine_id,
-                                        'snapshot': snapshotname,
-                                    })
-                                    result['res'] = '创建成功。'
-                                except Exception as e:
-                                    print(e)
-                                    result['res'] = '保存失败。'
-                            else:
-                                result['res'] = '定义失败。'
-                        else:
-                            result['res'] = '生成失败。'
-                    else:
-                        result['res'] = '克隆失败。'
-                else:
-                    result['res'] = '创建失败。'
-        except Exception as e:
-            print(e)
-            result['res'] = '创建失败。'
-    return JsonResponse(result)
-
-
-@login_required
-def kvm_copy_data(request):
-    kvmmachine_id = request.GET.get("kvmmachine_id", "")
-    utils_id = request.GET.get("utils_id", "")
-    try:
-        utils_id = int(utils_id)
-        kvmmachine_id = int(kvmmachine_id)
-    except:
-        pass
-    kvm_credit = kvm_credit_data(utils_id)
-    utils_ip = kvm_credit['KvmHost']
-    result = []
-    all_kvmcopy = KvmCopy.objects.filter(kvmmachine_id=kvmmachine_id).filter(utils_id=utils_id).order_by('-create_time').exclude(state='9')
-    if len(all_kvmcopy) > 0:
-        for kvmcopy in all_kvmcopy:
-            copy_state = libvirtApi.LibvirtApi(utils_ip).kvm_state(kvmcopy.name)
-            result.append({
-                "id": kvmcopy.id,
-                "name": kvmcopy.name,
-                "ip": kvmcopy.ip,
-                "hostname": kvmcopy.hostname,
-                "password": kvmcopy.password,
-                "create_time": kvmcopy.create_time.strftime(
-                                '%Y-%m-%d %H:%M:%S') if kvmcopy.create_time else '',
-                "create_user": kvmcopy.create_user.userinfo.fullname if kvmcopy.create_user.userinfo.fullname else '',
-                "copy_state": copy_state,
-                "snapshot": kvmcopy.snapshot,
-            })
-    return JsonResponse({"data": result})
-
-
-@login_required
-def kvm_copy_del(request):
-    # 删除副本：删除虚拟机 + 删除文件系统 + 删除快照 + 删除本地数据库数据
-    result = {}
-    id = request.POST.get("id", "")
-    utils_id = request.POST.get("utils_id", "")
-    name = request.POST.get("name", "")
-    state = request.POST.get("state", "")
-    try:
-        id = int(id)
-        utils_id = int(utils_id)
-    except:
-        pass
-    kvm_credit = kvm_credit_data(utils_id)
-    utils_ip = kvm_credit['KvmHost']
-    filesystem_snapshot = 'data/vmdata/' + name         # data/vmdata/CentOS-7@test2    快照
-    filesystem = filesystem_snapshot.replace('@', ':')  # data/vmdata/CentOS-7:test2    文件系统
-    try:
-        # ①删除虚拟机
-        result_info = libvirtApi.LibvirtApi(utils_ip).kvm_undefine(state, name)
-        if result_info == '取消定义成功。':
-            # ②删除文件系统
-            result_info = libvirtApi.KVMApi(kvm_credit).filesystem_del(filesystem)
-            if result_info == '删除文件系统成功。':
-                # ③删除快照
-                result_info = libvirtApi.KVMApi(kvm_credit).zfs_snapshot_del(filesystem_snapshot)
-                if result_info == '删除快照成功。':
-                    # ④删除数据库数据
-                    kvmcopy = KvmCopy.objects.get(id=id)
-                    kvmcopy.state = '9'
-                    kvmcopy.save()
-                    result["res"] = '删除成功。'
-                else:
-                    result["res"] = result_info
-            else:
-                result["res"] = result_info
-        else:
-            result["res"] = result_info
-    except Exception as e:
-        print(e)
-        result["res"] = '删除失败。'
-
-    return JsonResponse(result)
-
-
-@login_required
-def kvm_power_on(request):
-    # 给电：修改ip、主机名、root密码，开启虚拟机
-    result = {}
-    utils_id = request.POST.get("utils_id", "")
-    copy_id = request.POST.get("id", "")
-    copy_name = request.POST.get("copy_name", "")
-    copy_state = request.POST.get("copy_state", "")
-    kvm_machine = request.POST.get("kvm_machine", "")
-    copy_ip = request.POST.get("copy_ip", "")
-    copy_hostname = request.POST.get("copy_hostname", "")
-    copy_password = request.POST.get("copy_password", "")
-    compile_ip = re.compile('^(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|[1-9])\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)$')
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-    if not copy_ip.strip():
-        result['res'] = '实例IP未填写。'
-    elif not copy_hostname.strip():
-        result['res'] = '实例主机名未填写。'
-    elif not copy_password.strip():
-        result['res'] = '实例密码未填写。'
-    elif not compile_ip.match(copy_ip):
-        result['res'] = '实例IP不合法。'
-    else:
-        kvm_credit = kvm_credit_data(utils_id)
-        utils_ip = kvm_credit['KvmHost']
-        # 拼接路径
-        filesystem = 'data/vmdata/' + copy_name     # data/vmdata/CentOS-7@2020-09-14
-        filesystem = filesystem.replace('@', ':')   # data/vmdata/CentOS-7:2020-09-14
-        try:
-            result_info = libvirtApi.KVMApi(kvm_credit).guestmount(kvm_machine, filesystem)
-            if result_info == '挂载成功。':
-                # ①挂载成功，修改ip和主机名
-                result_info = libvirtApi.KVMApi(kvm_credit).alert_ip_hostname(copy_ip, copy_hostname)
-                if result_info == '修改成功。':
-                    # ②修改密码
-                    result_info = libvirtApi.KVMApi(kvm_credit).alter_password(copy_password)
-                    if result_info == '修改密码成功。':
-                        # ③取消挂载
-                        result_info = libvirtApi.KVMApi(kvm_credit).umount()
-                        if result_info == '取消挂载成功。':
-                            # ④开机
-                            result_info = libvirtApi.LibvirtApi(utils_ip).kvm_start(copy_state, copy_name)
-                            if result_info == '开机成功。':
-                                # ⑤保存数据库
-                                try:
-                                    kvm_copy = KvmCopy.objects.get(id=copy_id)
-                                    kvm_copy.ip = copy_ip
-                                    kvm_copy.hostname = copy_hostname
-                                    kvm_copy.password = copy_password
-                                    kvm_copy.save()
-                                    result['res'] = '给电成功。'
-                                except Exception as e:
-                                    print(e)
-                                    result['res'] = '给电失败。'
-                            else:
-                                result['res'] = '开机失败。'
-                        else:
-                            result['res'] = '取消挂载失败。'
-                    else:
-                        result['res'] = '修改密码失败。'
-                else:
-                    result['res'] = '修改失败。'
-            else:
-                result['res'] = '挂载失败。'
-        except Exception as e:
-            print(e)
-            result["res"] = '开机失败。'
-    return JsonResponse(result)
-
-
-@login_required
-def kvm_start(request):
-    utils_id = request.POST.get("utils_id", "")
-    kvm_name = request.POST.get("kvm_name", "")
-    kvm_state = request.POST.get("kvm_state", "")
-    kvm_id = ""
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-    kvm_credit = kvm_credit_data(utils_id)
-    utils_ip = kvm_credit['KvmHost']
-    try:
-        result = libvirtApi.LibvirtApi(utils_ip).kvm_start(kvm_state, kvm_name)
-        kvm_id = libvirtApi.LibvirtApi(utils_ip).kvm_id(kvm_name)
-    except Exception as e:
-        print(e)
-        result = '开机失败。'
-    return JsonResponse({
-        'res': result,
-        'kvm_id': kvm_id
-    })
-
-
-@login_required
-def kvm_destroy(request):
-    utils_id = request.POST.get("utils_id", "")
-    kvm_name = request.POST.get("kvm_name", "")
-    kvm_state = request.POST.get("kvm_state", "")
-    kvm_id = ""
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-    kvm_credit = kvm_credit_data(utils_id)
-    utils_ip = kvm_credit['KvmHost']
-    try:
-        result = libvirtApi.LibvirtApi(utils_ip).kvm_destroy(kvm_state, kvm_name)
-        kvm_id = libvirtApi.LibvirtApi(utils_ip).kvm_id(kvm_name)
-    except Exception as e:
-        print(e)
-        result = '断电失败。'
-    return JsonResponse({
-        'res': result,
-        'kvm_id': kvm_id
-    })
-
-
-######################
-# 虚拟机管理
-######################
-@login_required
-def kvm_manage(request, funid):
-    util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
-    utils_kvm_list = []
-    for utils in util_manage:
-        utils_kvm_list.append({
-            "id": utils.id,
-            "code": utils.code,
-            "name": utils.name,
-        })
-    return render(request, 'kvm_manage.html',
-                  {'username': request.user.userinfo.fullname,
-                   "pagefuns": getpagefuns(funid, request=request),
-                   "utils_kvm_list": utils_kvm_list,
-                   })
-
-
-def get_kvm_copy_node(utils_id, parent, kvm_credit):
-    datas = []
-    children = libvirtApi.KVMApi(kvm_credit).kvm_include_copy_list(parent)  # 副本虚拟机
-    for child in children:
-        data = dict()
-        data['state'] = {'opened': 'True'}
-        data['data'] = {
-            'id': child['id'],
-            'utils_id': utils_id,
-            'name': child['name'],
-            'state': child['state'],
-            'pname': parent,
-        }
-        if child['state'] == '运行中':
-            data['text'] = "<span class='fa fa-desktop' style='color:green; height:24px;'></span> " + child['name']
-        else:
-            data['text'] = "<span class='fa fa-desktop' style='color:red; height:24px;'></span> " + child['name']
-        data['type'] = 'COPY'
-        data['ip'] = kvm_credit['KvmHost']
-        datas.append(data)
-    return datas
-
-
-def get_kvm_node(utils_id, parent, kvm_credit, children):
-    nodes = []
-    for child in children:
-        node = dict()
-        node['state'] = {'opened': 'True'}
-        node['data'] = {
-            'id': child['id'],
-            'utils_id': utils_id,
-            'name': child['name'],
-            'state': child['state'],
-            'pname': parent,
-        }
-        if child['state'] == '运行中':
-            node['text'] = "<span class='fa fa-desktop' style='color:green; height:24px;'></span> " + child['name']
-        else:
-            node['text'] = "<span class='fa fa-desktop' style='color:red; height:24px;'></span> " + child['name']
-        node['type'] = 'KVM'
-        node['ip'] = kvm_credit['KvmHost']
-
-        # 获取三级菜单：实例虚拟机
-        node["children"] = get_kvm_copy_node(utils_id, child['name'], kvm_credit)
-        nodes.append(node)
-    return nodes
-
-
-@login_required
-def get_kvm_tree(request):
-    # 循环一级菜单工具管理：kvm
-    util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
+def get_hosts_tree_by_business(request):
+    select_id = request.POST.get('id', '')
     tree_data = []
-    for utils in util_manage:
-        utils_id = utils.id
-        kvm_credit = kvm_credit_data(utils_id)
+    root_nodes = HostsManage.objects.order_by("sort").exclude(state="9").filter(pnode=None).filter(nodetype="NODE")
+
+    for root_node in root_nodes:
         root = dict()
-        root["text"] = "<img src = '/static/pages/images/ts.png' height='24px'> " + utils.code,
-        root['id'] = utils.id
-        root['state'] = {'opened': 'True'}
-        root['data'] = {
-            'utils_id': utils.id,
-            'name': utils.name,
-            'pname': '无',
+        root["text"] = root_node.host_name
+        root["id"] = root_node.id
+        root["type"] = root_node.nodetype
+        root["data"] = {
+            "name": root_node.host_name,
+            "remark": root_node.remark,
+            "pname": "无",
+            "edit": False
         }
-        root['kvm_credit'] = kvm_credit
-        # 获取kvm模板文件
-        kvm_template = libvirtApi.KVMApi(kvm_credit).all_kvm_template()
-        root['kvm_template'] = kvm_template
-        root['type'] = 'ROOT'
-        # 循环二级菜单：虚拟机
-        children = libvirtApi.KVMApi(kvm_credit).kvm_exclude_copy_list()
-        root["children"] = get_kvm_node(utils.id, utils.code, kvm_credit, children)
+        if root_node.id==1:
+            root["text"] = "<img src = '/static/pages/images/c.png' height='24px'> " + root["text"]
+        try:
+            if int(select_id) == root_node.id:
+                root["state"] = {"opened": True, "selected": True}
+            else:
+                root["state"] = {"opened": True}
+        except:
+            root["state"] = {"opened": True}
+        root["children"] = get_hosts_node_by_business(root_node, select_id, request)
         tree_data.append(root)
     return JsonResponse({
         "ret": 1,
@@ -500,670 +55,1623 @@ def get_kvm_tree(request):
     })
 
 
+
+def get_hosts_node_by_business(parent, select_id, request):
+    nodes = []
+    children = parent.children.order_by("sort").exclude(state="9")
+    for child in children:
+        # 当前用户所在用户组所拥有的 主机访问权限
+        # 如当前用户是管理员 均可访问
+        if not request.user.is_superuser and child.nodetype == "CLIENT":
+            # 能访问当前主机的所有角色
+            # 当前用户所在的所有角色
+            # 只要匹配一个就展示
+            user_in_groups = request.user.userinfo.group.all()
+            host_in_groups = child.group_set.all()
+
+            has_privilege = False
+
+            for uig in user_in_groups:
+                for hig in host_in_groups:
+                    if uig.id == hig.id:
+                        has_privilege = True
+                        break
+            if not has_privilege:
+                continue
+
+        node = dict()
+
+        node["text"] = child.host_name
+        node["id"] = child.id
+        node["type"] = child.nodetype
+        edit=True
+        if child.id in [1, 2, 3]:
+            edit=False
+        node["data"] = {
+            "name": child.host_name,
+            "remark": child.remark,
+            "pname": parent.host_name,
+            "edit": edit
+        }
+
+        node["children"] = get_hosts_node_by_business(child, select_id, request)
+        if child.id in [1,2,3]:
+            node["state"] = {"opened": True}
+        if child.id==2:
+            node["text"] = "<img src = '/static/pages/images/s.png' height='24px'> " + node["text"]
+        if child.id==3:
+            node["text"] = "<img src = '/static/pages/images/d.png' height='24px'> " + node["text"]
+        if child.nodetype=="NODE" and child.id not in [1,2,3]:
+            node["text"] = "<i class='jstree-icon jstree-themeicon fa fa-folder icon-state-warning icon-lg jstree-themeicon-custom'></i>" + node["text"]
+
+        if child.nodetype=="CLIENT":
+            kvm_client = KvmMachine.objects.exclude(state="9").filter(hostsmanage=child)
+            if len(kvm_client)>0:
+                node["text"] = "<img src = '/static/pages/images/ts.png' height='24px'> " + node["text"]
+            db_client = DbCopyClient.objects.exclude(state="9").filter(hostsmanage=child)
+            if len(db_client) > 0:
+                if db_client[0].dbtype=="1":
+                    node["text"] = "<img src = '/static/pages/images/oracle.png' height='24px'> " + node["text"]
+                if db_client[0].dbtype == "2":
+                    node["text"] = "<img src = '/static/pages/images/mysql.png' height='24px'> " + node["text"]
+            cv_client = CvClient.objects.exclude(state="9").filter(hostsmanage=child)
+            if len(cv_client)>0:
+                node["text"] = "<img src = '/static/pages/images/cv.png' height='24px'> " + node["text"]
+        try:
+            if int(select_id) == child.id:
+                node["state"] = {"selected": True}
+        except:
+            pass
+        nodes.append(node)
+    return nodes
+
+
 @login_required
-def get_kvm_detail(request):
-    utils_id = request.POST.get("utils_id", "")
-    kvm_id = request.POST.get("kvm_id", "")
-    kvm_name = request.POST.get("kvm_name", "")
-    ret = 1
+def hosts_del(request):
+    if 'id' in request.POST:
+        id = request.POST.get('id', '')
+        try:
+            id = int(id)
+        except:
+            return HttpResponse(0)
+        client = HostsManage.objects.get(id=id)
+        client.state = "9"
+        client.save()
+
+        return HttpResponse(1)
+    else:
+        return HttpResponse(0)
+
+
+@login_required
+def hosts_move(request):
+    id = request.POST.get('id', '')
+    parent = request.POST.get('parent', '')
+    old_parent = request.POST.get('old_parent', '')
+    position = request.POST.get('position', '')
+    old_position = request.POST.get('old_position', '')
     try:
-        utils_id = int(utils_id)
+        id = int(id)  # 节点 id
+        parent = int(parent)  # 目标位置父节点 pnode_id
+        position = int(position)  # 目标位置
+        old_parent = int(old_parent)  # 起点位置父节点 pnode_id
+        old_position = int(old_position)  # 起点位置
     except:
-        pass
-    kvm_credit = kvm_credit_data(utils_id)
-    utils_ip = kvm_credit['KvmHost']
-    try:
-        # 通过传参判断点击节点类型：点击根节点：kvm_name=='' and kvm_id==''，点击kvm虚拟机节点：kvm_name=='Test-1' and kvm_id=='1'
-        # 宿主机信息：cpu、内存、磁盘
-        if kvm_name == '' and kvm_id == '':
-            memory_disk_cpu_data = libvirtApi.KVMApi(kvm_credit).disk_cpu_data()
-            memory_info = libvirtApi.LibvirtApi(utils_ip).mem_cpu_hostname_info()
-            memory_disk_cpu_data['cpu_count'] = memory_info['cpu_count']
-            memory_disk_cpu_data['hostname'] = memory_info['hostname']
-            memory_disk_cpu_data['mem_total'] = memory_info['mem_total']
-            memory_disk_cpu_data['mem_used'] = memory_info['mem_used']
-            memory_disk_cpu_data['memory_usage'] = memory_info['memory_usage']
-            data = {
-                'memory_disk_cpu_data': memory_disk_cpu_data
-            }
-        # kvm虚拟机磁盘文件信息：cpu、内存、磁盘
+        return HttpResponse("0")
+    # sort = position + 1 sort从1开始
+
+    # 起始节点下方 所有节点  sort -= 1
+    old_client_parent = HostsManage.objects.get(id=old_parent)
+    old_sort = old_position + 1
+    old_clients = HostsManage.objects.exclude(state="9").filter(pnode=old_client_parent).filter(sort__gt=old_sort)
+
+    # 目标节点下方(包括该节点) 所有节点 sort += 1
+    client_parent = HostsManage.objects.get(id=parent)
+    sort = position + 1
+    clients = HostsManage.objects.exclude(state=9).exclude(id=id).filter(pnode=client_parent).filter(sort__gte=sort)
+
+    my_client = HostsManage.objects.get(id=id)
+
+    # 判断目标父节点是否为接口，若为接口无法挪动
+    if client_parent.nodetype == "CLIENT":
+        return HttpResponse("客户端")
+    else:
+        # 目标父节点下所有节点 除了自身 接口名称都不得相同 否则重名
+        client_same = HostsManage.objects.exclude(state="9").exclude(id=id).filter(pnode=client_parent).filter(
+            host_name=my_client.host_name)
+
+        if client_same:
+            return HttpResponse("重名")
         else:
-            kvm_id = kvm_id.strip()
-            ip = ''
-            hostname = ''
-            password = ''
-            # 已开启的虚拟机有id，未开启的虚拟机id为-1
-            if kvm_id != '-1':
-                kvm_data = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
-                if kvm_data.exists():
-                    ip = kvm_data[0].ip
-                    hostname = kvm_data[0].hostname
-                    password = kvm_data[0].password
-                kvm_info_data = libvirtApi.LibvirtApi(utils_ip).kvm_info_data(kvm_name)
-                kvm_disk_data = libvirtApi.LibvirtApi(utils_ip).kvm_disk_usage(kvm_name)
-                kvm_cpu_mem_data = libvirtApi.LibvirtApi(utils_ip).kvm_memory_cpu_usage(kvm_id)
-                data = {
-                    'kvm_info_data': kvm_info_data,
-                    'kvm_cpu_mem_data': kvm_cpu_mem_data,
-                    'kvm_disk_data': kvm_disk_data,
-                    'ip': ip,
-                    'hostname': hostname,
-                    'password': password
-                }
+            for old_client in old_clients:
+                try:
+                    old_client.sort -= 1
+                    old_client.save()
+                except:
+                    pass
+            for client in clients:
+                try:
+                    client.sort += 1
+                    client.save()
+                except:
+                    pass
+
+            # 该节点位置变动
+            try:
+                my_client.pnode = client_parent
+                my_client.sort = sort
+                my_client.save()
+            except:
+                pass
+
+            # 起始 结束 点不在同一节点下 写入父节点名称与ID ?
+            if parent != old_parent:
+                return HttpResponse(client_parent.host_name + "^" + str(client_parent.id))
             else:
-                kvm_data = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
-                if kvm_data.exists():
-                    ip = kvm_data[0].ip
-                    hostname = kvm_data[0].hostname
-                    password = kvm_data[0].password
-                kvm_info_data = libvirtApi.LibvirtApi(utils_ip).kvm_info_data(kvm_name)
-                kvm_disk_data = libvirtApi.LibvirtApi(utils_ip).kvm_disk_usage(kvm_name)
-                data = {
-                    'kvm_info_data': kvm_info_data,
-                    'kvm_disk_data': kvm_disk_data,
-                    'ip': ip,
-                    'hostname': hostname,
-                    'password': password
-                }
-    except Exception as e:
-        print(e)
+                return HttpResponse("0")
+
+
+@login_required
+def hosts_node_save(request):
+    id = request.POST.get("id", "")
+    pid = request.POST.get("pid", "")
+    node_name = request.POST.get("node_name", "")
+    node_remark = request.POST.get("node_remark", "")
+
+    try:
+        id = int(id)
+    except:
         ret = 0
-        data = '获取信息失败。'
-    return JsonResponse({
-        'ret': ret,
-        'data': data})
+        info = "网络错误。"
+    else:
+        if node_name.strip():
+            if id == 0:
+                try:
+                    cur_host_manage = HostsManage()
+                    cur_host_manage.pnode_id = pid
+                    cur_host_manage.host_name = node_name
+                    cur_host_manage.remark = node_remark
+                    cur_host_manage.nodetype = "NODE"
+                    # 排序
+                    sort = 1
+                    try:
+                        max_sort = HostsManage.objects.exclude(state="9").filter(pnode_id=pid).aggregate(
+                            max_sort=Max('sort', distinct=True))["max_sort"]
+                        sort = max_sort + 1
+                    except:
+                        pass
+                    cur_host_manage.sort = sort
 
-
-@login_required
-def get_kvm_task_data(request):
-    # kvm虚拟机磁盘文件信息：cpu、内存、磁盘
-    kvm_id = request.POST.get("kvm_id", "")
-    utils_ip = request.POST.get("utils_ip", "")
-    ret = 1
-    data = ''
-    kvm_id = kvm_id.strip()
-    try:
-        # 已开启的虚拟机有id，未开启的虚拟机id为-1
-        if kvm_id != '-1':
-            kvm_cpu_mem_data = libvirtApi.LibvirtApi(utils_ip).kvm_memory_cpu_usage(kvm_id)
-            data = {
-                'kvm_cpu_mem_data': kvm_cpu_mem_data,
-            }
-    except Exception as e:
-        print(e)
-        ret = 0
-        data = '获取信息失败。'
-    return JsonResponse({
-        'ret': ret,
-        'data': data})
-
-
-@login_required
-def kvm_suspend(request):
-    utils_id = request.POST.get("utils_id", "")
-    kvm_name = request.POST.get("kvm_name", "")
-    kvm_state = request.POST.get("kvm_state", "")
-    kvm_id = ""
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-    kvm_credit = kvm_credit_data(utils_id)
-    utils_ip = kvm_credit['KvmHost']
-    try:
-        result = libvirtApi.LibvirtApi(utils_ip).kvm_suspend(kvm_state, kvm_name)
-        kvm_id = libvirtApi.LibvirtApi(utils_ip).kvm_id(kvm_name)
-    except Exception as e:
-        print(e)
-        result = '暂停失败。'
-    return JsonResponse({
-        'res': result,
-        'kvm_id': kvm_id
-    })
-
-
-@login_required
-def kvm_resume(request):
-    utils_id = request.POST.get("utils_id", "")
-    kvm_name = request.POST.get("kvm_name", "")
-    kvm_state = request.POST.get("kvm_state", "")
-    kvm_id = ""
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-    kvm_credit = kvm_credit_data(utils_id)
-    utils_ip = kvm_credit['KvmHost']
-    try:
-        result = libvirtApi.LibvirtApi(utils_ip).kvm_resume(kvm_state, kvm_name)
-        kvm_id = libvirtApi.LibvirtApi(utils_ip).kvm_id(kvm_name)
-    except Exception as e:
-        print(e)
-        result = '运行失败。'
-    return JsonResponse({
-        'res': result,
-        'kvm_id': kvm_id
-    })
-
-
-@login_required
-def kvm_reboot(request):
-    utils_id = request.POST.get("utils_id", "")
-    kvm_name = request.POST.get("kvm_name", "")
-    kvm_state = request.POST.get("kvm_state", "")
-    kvm_id = ""
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-    kvm_credit = kvm_credit_data(utils_id)
-    utils_ip = kvm_credit['KvmHost']
-    try:
-        result = libvirtApi.LibvirtApi(utils_ip).kvm_reboot(kvm_state, kvm_name)
-        kvm_id = libvirtApi.LibvirtApi(utils_ip).kvm_id(kvm_name)
-    except Exception as e:
-        print(e)
-        result = '重启失败。'
-    return JsonResponse({
-        'res': result,
-        'kvm_id': kvm_id
-    })
-
-
-@login_required
-def kvm_shutdown(request):
-    # 关闭虚拟机
-    utils_id = request.POST.get("utils_id", "")
-    kvm_name = request.POST.get("kvm_name", "")
-    kvm_state = request.POST.get("kvm_state", "")
-    kvm_id = ""
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-    kvm_credit = kvm_credit_data(utils_id)
-    utils_ip = kvm_credit['KvmHost']
-    try:
-        result = libvirtApi.LibvirtApi(utils_ip).kvm_shutdown(kvm_state, kvm_name)
-        kvm_id = libvirtApi.LibvirtApi(utils_ip).kvm_id(kvm_name)
-    except Exception as e:
-        print(e)
-        result = '关闭失败。'
-    return JsonResponse({
-        'res': result,
-        'kvm_id': kvm_id
-    })
-
-
-@login_required
-def kvm_delete(request):
-    # 删除副本：删除虚拟机 + 删除文件系统 + 删除快照 + 删除本地数据库数据
-    result = {}
-    utils_id = request.POST.get("utils_id", "")
-    name = request.POST.get("kvm_name", "")
-    state = request.POST.get("kvm_state", "")
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-    kvm_credit = kvm_credit_data(utils_id)
-    utils_ip = kvm_credit['KvmHost']
-    # 拼接路径
-    filesystem_snapshot = 'data/vmdata/' + name         # data/vmdata/CentOS-7@test2    快照
-    filesystem = filesystem_snapshot.replace('@', ':')  # data/vmdata/CentOS-7:test2    文件系统
-    try:
-        # ①删除虚拟机
-        result_info = libvirtApi.LibvirtApi(utils_ip).kvm_undefine(name, state)
-        if result_info == '取消定义成功。':
-            # ②删除文件系统
-            result_info = libvirtApi.KVMApi(kvm_credit).filesystem_del(filesystem)
-            if result_info == '删除文件系统成功。':
-                # ③删除快照
-                result_info = libvirtApi.KVMApi(kvm_credit).zfs_snapshot_del(filesystem_snapshot)
-                if result_info == '删除快照成功。':
-                    # ④删除数据库数据:name为虚拟机的名称是唯一的
-                    kvmcopy = KvmCopy.objects.exclude(state='9').filter(name=name).filter(utils_id=utils_id)
-                    if kvmcopy.exists():
-                        kvm = kvmcopy[0]
-                        kvm.state = '9'
-                        kvm.save()
-                        result["res"] = '删除成功。'
+                    cur_host_manage.save()
+                    id = cur_host_manage.id
+                except:
+                    ret = 0
+                    info = "服务器异常。"
                 else:
-                    result["res"] = result_info
+                    ret = 1
+                    info = "新增节点成功。"
             else:
-                result["res"] = result_info
+                # 修改
+                try:
+                    cur_host_manage = HostsManage.objects.get(id=id)
+                    cur_host_manage.host_name = node_name
+                    cur_host_manage.remark = node_remark
+                    cur_host_manage.save()
+
+                    ret = 1
+                    info = "节点信息修改成功。"
+                except:
+                    ret = 0
+                    info = "服务器异常。"
         else:
-            result["res"] = result_info
-    except Exception as e:
-        print(e)
-        result["res"] = '删除失败。'
-    return JsonResponse(result)
-
-
-@login_required
-def kvm_clone_save(request):
-    # 克隆虚拟机：①判断要克隆虚拟机是否存在 ②先创建文件系统 ③再执行克隆操作
-    result = {}
-    utils_id = request.POST.get("utils_id", "")
-    kvm_state = request.POST.get("kvm_state", "")
-    kvm_name = request.POST.get("kvm_name_old", "")
-    kvm_name_clone = request.POST.get("kvm_name_new", "")
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-    if not kvm_name_clone.strip():
-        result['res'] = '新虚拟机名称未填写。'
-    elif kvm_state == 'running' or kvm_state == '运行中':
-        result['res'] = '虚拟机未关闭。'
-    else:
-        kvm_credit = kvm_credit_data(utils_id)
-        filesystem = 'data/vmdata/' + kvm_name_clone  # 文件系统
-        try:
-            kvm_exist = []
-            kvm_list = libvirtApi.KVMApi(kvm_credit).kvm_all_list()
-            for i in kvm_list:
-                kvm_exist.append(i['name'])
-            if kvm_name_clone in kvm_exist:
-                result['res'] = '虚拟机' + kvm_name_clone + '已存在。'
-            else:
-                result_info = libvirtApi.KVMApi(kvm_credit).create_filesystem(filesystem)
-                if result_info == '文件系统创建成功。':
-                    result_info = libvirtApi.KVMApi(kvm_credit).kvm_clone(kvm_state, kvm_name, kvm_name_clone, filesystem)
-                    result["res"] = result_info
-                else:
-                    result["res"] = '文件系统创建失败。'
-        except Exception as e:
-            print(e)
-            result["res"] = '克隆失败。'
-    return JsonResponse(result)
-
-
-@login_required
-def kvm_machine_create(request):
-    # 模板中新建虚拟机：创建文件系统 + 拷贝模板文件到文件系统 + 生成新的xml文件 + 定义虚拟机
-    result = {}
-    utils_id = request.POST.get("utils_id", "")
-    kvm_template = request.POST.get("kvm_template", "")
-    kvm_template_name = request.POST.get("kvm_template_name", "")
-    kvm_storage = request.POST.get("kvm_storage", "")
-    kvm_cpu = request.POST.get("kvm_cpu", "")
-    kvm_memory = request.POST.get("kvm_memory", "")
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-    if not kvm_template.strip():
-        result['res'] = '模板未选择。'
-    elif not kvm_template_name.strip():
-        result['res'] = '虚拟机名称未填写。'
-    else:
-        kvm_credit = kvm_credit_data(utils_id)
-        # 拼接路径
-        filesystem = 'data/vmdata/' + kvm_template_name                          # data/vmdata/Test-10
-        kvm_os_image_path = '/home/images/os-image/' + kvm_template              # /home/images/os-image/CentOS-7.qcow2
-        kvm_xml = kvm_template.replace('.qcow2', '.xml')                         # CentOS-7.xml
-        kvm_disk_path = '/' + filesystem + '/' + kvm_template_name + '.qcow2'    # /data/vmdata/Test-10/Test-10.qcow2
-        kvm_disk_image_path = '/home/images/disk-image/' + kvm_storage           # /home/images/disk-image/100G.qcow2
-        kvm_storage_path = '/' + filesystem + '/' + kvm_storage                  # /data/vmdata/Test-10/100G.qcow2
-        try:
-            kvm_exist = []
-            kvm_list = libvirtApi.KVMApi(kvm_credit).kvm_all_list()
-            for i in kvm_list:
-                kvm_exist.append(i['name'])
-            if kvm_template_name in kvm_exist:
-                result['res'] = '虚拟机' + kvm_template_name + '已存在。'
-            else:
-                # ①创建文件系统
-                result_info = libvirtApi.KVMApi(kvm_credit).create_filesystem(filesystem)
-                if result_info == '文件系统创建成功。':
-                    # ②拷贝模板文件到文件系统   + 判断有无选择存储文件
-                    result_info = libvirtApi.KVMApi(kvm_credit).copy_disk(kvm_os_image_path, kvm_disk_path, kvm_storage, kvm_disk_image_path, kvm_storage_path)
-                    if result_info == '拷贝磁盘文件成功。':
-                        # ③生成新的xml文件  + 判断有无选择存储文件
-                        result_info = libvirtApi.KVMApi(kvm_credit).create_new_xml(kvm_xml, kvm_disk_path, kvm_template_name, kvm_cpu, kvm_memory, kvm_storage, kvm_storage_path)
-                        if result_info == '生成成功。':
-                            # ④新的xml文件生成，开始定义虚拟机
-                            result_info = libvirtApi.KVMApi(kvm_credit).define_kvm(kvm_template_name)
-                            if result_info == '定义成功。':
-                                result['res'] = '新建成功。'
-                            else:
-                                result['res'] = '新建失败。'
-                        else:
-                            result['res'] = '生成失败。'
-                    else:
-                        result['res'] = '拷贝文件失败。'
-                else:
-                    result['res'] = '文件系统创建失败。'
-        except Exception as e:
-            print(e)
-            result["res"] = '新建失败。'
-    return JsonResponse(result)
-
-
-@login_required
-def kvm_power(request):
-    # 给电：修改ip和主机名，开启虚拟机、新增数据库
-    result = {}
-    utils_id = request.POST.get("utils_id", "")
-    kvm_name = request.POST.get("kvm_name", "")
-    kvm_state = request.POST.get("kvm_state", "")
-    kvm_ip = request.POST.get("kvm_ip", "")
-    kvm_hostname = request.POST.get("kvm_hostname", "")
-    kvm_password = request.POST.get("kvm_password", "")
-    kvm_id = ''
-    compile_ip = re.compile('^(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|[1-9])\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)$')
-    user_id = request.user.id
-    try:
-        user_id = int(user_id)
-        utils_id = int(utils_id)
-    except:
-        pass
-    if not kvm_ip.strip():
-        result['res'] = 'IP未填写。'
-    elif not kvm_hostname.strip():
-        result['res'] = '主机名未填写。'
-    elif not compile_ip.match(kvm_ip):
-        result['res'] = 'IP不合法。'
-    else:
-        kvm_credit = kvm_credit_data(utils_id)
-        utils_ip = kvm_credit['KvmHost']
-        filesystem = 'data/vmdata/' + kvm_name     # data/vmdata/Test-10
-        try:
-            result_info = libvirtApi.KVMApi(kvm_credit).guestmount(kvm_name, filesystem)
-            if result_info == '挂载成功。':
-                result_info = libvirtApi.KVMApi(kvm_credit).alert_ip_hostname(kvm_ip, kvm_hostname)
-                if result_info == '修改成功。':
-                    result_info = libvirtApi.KVMApi(kvm_credit).alter_password(kvm_password)
-                    if result_info == '修改密码成功。':
-                        result_info = libvirtApi.KVMApi(kvm_credit).umount()
-                        if result_info == '取消挂载成功。':
-                            result_info = libvirtApi.LibvirtApi(utils_ip).kvm_start(kvm_state, kvm_name)
-                            if result_info == '开机成功。':
-                                # 保存数据库
-                                try:
-                                    kvm = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
-                                    if kvm.exists():
-                                        kvm.update(**{
-                                            'name': kvm_name,
-                                            'create_time': datetime.datetime.now(),
-                                            'create_user_id': user_id,
-                                            'utils_id': utils_id,
-                                            'ip': kvm_ip,
-                                            'hostname': kvm_hostname,
-                                            'password': kvm_password
-                                        })
-                                    else:
-                                        kvm.create(**{
-                                            'name': kvm_name,
-                                            'create_time': datetime.datetime.now(),
-                                            'create_user_id': user_id,
-                                            'utils_id': utils_id,
-                                            'ip': kvm_ip,
-                                            'hostname': kvm_hostname,
-                                            'password': kvm_password
-                                        })
-                                    result = '给电成功。'
-                                    kvm_id = libvirtApi.LibvirtApi(utils_ip).kvm_id(kvm_name)
-                                except Exception as e:
-                                    print(e)
-                                    result = '给电失败。'
-                            else:
-                                result = '开机失败。'
-                        else:
-                            result = '取消挂载失败。'
-                    else:
-                        result = '修改密码失败。'
-                else:
-                    result = '修改失败。'
-            else:
-                result = '挂载失败。'
-        except Exception as e:
-            print(e)
-            result = '给电失败。'
+            ret = 0
+            info = "节点名称不能为空。"
     return JsonResponse({
-        'res': result,
-        'kvm_id': kvm_id,
-        'ip': kvm_ip,
-        'hostname': kvm_hostname,
-        'password': kvm_password
+        "ret": ret,
+        "info": info,
+        "nodeid": id
     })
 
 
+@login_required
+def get_cvinfo(request):
+    # 工具
+    utils_manage = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
+    data = []
 
-######################
-# 模板管理
-######################
-def kvm_template(request, funid):
-    util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
-    utils_kvm_list = []
-    for utils in util_manage:
-        utils_kvm_list.append({
-            "id": utils.id,
-            "code": utils.code,
-            "name": utils.name,
+    try:
+        pool = ThreadPoolExecutor(max_workers=10)
+
+        all_tasks = [pool.submit(get_instance_list, (um)) for um in utils_manage]
+        for future in as_completed(all_tasks):
+            if future.result():
+                data.append(future.result())
+    except Exception as e:
+        print(e)
+    # for um in utils_manage:
+    #     data.append(get_instance_list(um))
+
+    # 所有关联终端
+    destination = CvClient.objects.exclude(state="9").filter(type__in=['2', '3'])
+
+    u_destination = []
+
+    for um in utils_manage:
+        destination_list = []
+        for d in destination:
+            if d.utils.id == um.id:
+                destination_list.append({
+                    'id': d.id,
+                    'name': d.client_name
+                })
+        u_destination.append({
+            'utilid': um.id,
+            'utilname': um.name,
+            'destination_list': destination_list
         })
-    return render(request, 'kvm_template.html',
-                  {'username': request.user.userinfo.fullname,
-                   "pagefuns": getpagefuns(funid, request=request),
-                   "utils_kvm_list": utils_kvm_list,
-                   })
+    return JsonResponse({
+        "ret": 1,
+        "info": "查询成功。",
+        "data": data,
+        'u_destination': u_destination,
+    })
 
 
-def kvm_template_data(request):
+@login_required
+def get_client_detail(request):
+    hostinfo = {}
+    cvinfo = {}
+    dbcopyinfo = {}
+    kvminfo = {}
+    id = request.POST.get("id", "")
+    try:
+        id = int(id)
+        host_manage = HostsManage.objects.get(id=id)
+
+    except:
+        ret = 0
+        info = "当前客户端不存在。"
+    else:
+        param_list = []
+        try:
+            config = etree.XML(host_manage.config)
+
+            param_el = config.xpath("//param")
+            for v_param in param_el:
+                param_list.append({
+                    "param_name": v_param.attrib.get("param_name", ""),
+                    "variable_name": v_param.attrib.get("variable_name", ""),
+                    "param_value": v_param.attrib.get("param_value", ""),
+                })
+        except:
+            ret = 0
+            info = "数据格式异常，无法获取。"
+        else:
+            hostinfo = {
+                "host_id": host_manage.id,
+                "host_ip": host_manage.host_ip,
+                "host_name": host_manage.host_name,
+                "os": host_manage.os,
+                "username": host_manage.username,
+                "password": host_manage.password,
+                "remark": host_manage.remark,
+                "variable_param_list": param_list,
+            }
+            ret = 1
+            info = "查询成功。"
+
+            cc = CvClient.objects.exclude(state="9").filter(hostsmanage_id=id)
+            if len(cc) > 0:
+                cvinfo["id"] = cc[0].id
+                cvinfo["type"] = cc[0].type
+                cvinfo["utils_id"] = cc[0].utils_id
+                cvinfo["client_id"] = cc[0].client_id
+                cvinfo["agentType"] = cc[0].agentType
+                cvinfo["instanceName"] = cc[0].instanceName
+                cvinfo["destination_id"] = cc[0].destination_id
+
+                # oracle
+                cvinfo["copy_priority"] = ""
+                cvinfo["db_open"] = ""
+                cvinfo["log_restore"] = ""
+                cvinfo["data_path"] = ""
+                # File System
+                cvinfo["overWrite"] = ""
+                cvinfo["destPath"] = ""
+                cvinfo["sourcePaths"] = ""
+                # SQL Server
+                cvinfo["mssqlOverWrite"] = ""
+
+                try:
+                    config = etree.XML(cc[0].info)
+                    param_el = config.xpath("//param")
+                    if len(param_el) > 0:
+                        cvinfo["copy_priority"] = param_el[0].attrib.get("copy_priority", "")
+                        cvinfo["db_open"] = param_el[0].attrib.get("db_open", "")
+                        cvinfo["log_restore"] = param_el[0].attrib.get("log_restore", "")
+                        cvinfo["data_path"] = param_el[0].attrib.get("data_path", "")
+
+                        cvinfo["overWrite"] = param_el[0].attrib.get("overWrite", "")
+                        cvinfo["destPath"] = param_el[0].attrib.get("destPath", "")
+                        cvinfo["sourcePaths"] = eval(param_el[0].attrib.get("sourcePaths", "[]"))
+
+                        cvinfo["mssqlOverWrite"] = param_el[0].attrib.get("mssqlOverWrite", "")
+                except:
+                    pass
+
+            dc = DbCopyClient.objects.exclude(state="9").filter(hostsmanage_id=id)
+            if len(dc) > 0:
+                dbcopyinfo["id"] = dc[0].id
+                dbcopyinfo["hosttype"] = dc[0].hosttype
+                dbcopyinfo["dbtype"] = dc[0].dbtype
+                if dc[0].dbtype == "1":
+                    stdclient = DbCopyClient.objects.exclude(state="9").filter(pri=dc[0])
+                    dbcopyinfo["std_id"] = None
+                    if len(stdclient) > 0:
+                        dbcopyinfo["std_id"] = stdclient[0].id
+                    dbcopyinfo["dbusername"] = ""
+                    dbcopyinfo["dbpassowrd"] = ""
+                    dbcopyinfo["dbinstance"] = ""
+
+                    try:
+                        config = etree.XML(dc[0].info)
+                        param_el = config.xpath("//param")
+                        if len(param_el) > 0:
+                            dbcopyinfo["dbusername"] = param_el[0].attrib.get("dbusername", ""),
+                            dbcopyinfo["dbpassowrd"] = param_el[0].attrib.get("dbpassowrd", ""),
+                            dbcopyinfo["dbinstance"] = param_el[0].attrib.get("dbinstance", ""),
+                    except:
+                        pass
+                if dc[0].dbtype == "2":
+                    dbcopyinfo["std_id"] = []
+                    stdclientlist = DbCopyClient.objects.exclude(state="9").filter(pri=dc[0])
+                    for stdclient in stdclientlist:
+                        dbcopyinfo["std_id"].append(str(stdclient.id))
+                    dbcopyinfo["dbusername"] = ""
+                    dbcopyinfo["dbpassowrd"] = ""
+                    dbcopyinfo["copyusername"] = ""
+                    dbcopyinfo["copypassowrd"] = ""
+                    dbcopyinfo["binlog"] = ""
+
+                    try:
+                        config = etree.XML(dc[0].info)
+                        param_el = config.xpath("//param")
+                        if len(param_el) > 0:
+                            dbcopyinfo["dbusername"] = param_el[0].attrib.get("dbusername", ""),
+                            dbcopyinfo["dbpassowrd"] = param_el[0].attrib.get("dbpassowrd", ""),
+                            dbcopyinfo["copyusername"] = param_el[0].attrib.get("copyusername", ""),
+                            dbcopyinfo["copypassowrd"] = param_el[0].attrib.get("copypassowrd", ""),
+                            dbcopyinfo["binlog"] = param_el[0].attrib.get("binlog", ""),
+                    except:
+                        pass
+
+            kc = KvmMachine.objects.exclude(state="9").filter(hostsmanage_id=id)
+            if len(kc) > 0:
+                kvminfo["id"] = kc[0].id
+                kvminfo["utils_id"] = kc[0].utils_id
+                kvminfo["name"] = kc[0].name
+                kvminfo["filesystem"] = kc[0].filesystem
+    return JsonResponse({
+        "ret": ret,
+        "info": info,
+        "data": hostinfo,
+        "cvinfo": cvinfo,
+        "dbcopyinfo": dbcopyinfo,
+        "kvminfo": kvminfo
+    })
+
+
+@login_required
+def client_client_save(request):
+    id = request.POST.get("id", "")
+    pid = request.POST.get("pid", "")
+    host_ip = request.POST.get("host_ip", "")
+    host_name = request.POST.get("host_name", "")
+    host_os = request.POST.get("os", "")
+    username = request.POST.get("username", "")
+    password = request.POST.get("password", "")
+    config = request.POST.get("config", "")
+    remark = request.POST.get("remark", "")
+
+    try:
+        id = int(id)
+    except:
+        ret = 0
+        info = "网络错误。"
+    else:
+        if host_ip.strip():
+            if host_name.strip():
+                if host_os.strip():
+                    if username.strip():
+                        if password.strip():
+                            # 主机参数
+                            root = etree.Element("root")
+
+                            if config:
+                                config = json.loads(config)
+                                # 动态参数
+                                for c_config in config:
+                                    param_node = etree.SubElement(root, "param")
+                                    param_node.attrib["param_name"] = c_config["param_name"].strip()
+                                    param_node.attrib["variable_name"] = c_config["variable_name"].strip()
+                                    param_node.attrib["param_value"] = c_config["param_value"].strip()
+                            config = etree.tounicode(root)
+
+                            # 新增
+                            if id == 0:
+                                # 判断主机是否已经存在
+                                check_host_manage = HostsManage.objects.exclude(state="9").filter(host_name=host_name)
+                                if check_host_manage.exists():
+                                    ret = 0
+                                    info = "主机已经存在，请勿重复添加。"
+                                else:
+                                    try:
+                                        cur_host_manage = HostsManage()
+                                        cur_host_manage.pnode_id = pid
+                                        cur_host_manage.nodetype = "CLIENT"
+                                        cur_host_manage.host_ip = host_ip
+                                        cur_host_manage.host_name = host_name
+                                        cur_host_manage.os = host_os
+                                        cur_host_manage.username = username
+                                        cur_host_manage.password = password
+                                        cur_host_manage.config = config
+                                        cur_host_manage.remark = remark
+                                        # 排序
+                                        sort = 1
+                                        try:
+                                            max_sort = \
+                                                HostsManage.objects.exclude(state="9").filter(pnode_id=pid).aggregate(
+                                                    max_sort=Max('sort', distinct=True))["max_sort"]
+                                            sort = max_sort + 1
+                                        except:
+                                            pass
+                                        cur_host_manage.sort = sort
+
+                                        cur_host_manage.save()
+                                        id = cur_host_manage.id
+                                    except:
+                                        ret = 0
+                                        info = "服务器异常。"
+                                    else:
+                                        ret = 1
+                                        info = "主机信息新增成功。"
+                            else:
+                                # 修改
+                                try:
+                                    cur_host_manage = HostsManage.objects.get(id=id)
+                                    cur_host_manage.host_ip = host_ip
+                                    cur_host_manage.host_name = host_name
+                                    cur_host_manage.os = host_os
+                                    cur_host_manage.username = username
+                                    cur_host_manage.password = password
+                                    cur_host_manage.config = config
+                                    cur_host_manage.remark = remark
+                                    cur_host_manage.save()
+
+                                    ret = 1
+                                    info = "主机信息修改成功。"
+                                except:
+                                    ret = 0
+                                    info = "服务器异常。"
+                        else:
+                            ret = 0
+                            info = "密码未填写。"
+                    else:
+                        ret = 0
+                        info = "用户名未填写。"
+                else:
+                    ret = 0
+                    info = "系统未选择。"
+            else:
+                ret = 0
+                info = "主机名称不能为空。"
+        else:
+            ret = 0
+            info = "主机IP未填写。"
+    return JsonResponse({
+        "ret": ret,
+        "info": info,
+        "nodeid": id
+    })
+
+
+@login_required
+def client_cv_save(request):
+    id = request.POST.get("id", "")
+    cv_id = request.POST.get("cv_id", "")
+    cvclient_type = request.POST.get("cvclient_type", "")
+    cvclient_utils_manage = request.POST.get("cvclient_utils_manage", "")
+    cvclient_source = request.POST.get("cvclient_source", "")
+    cvclient_clientname = request.POST.get("cvclient_clientname", "")
+    cvclient_agentType = request.POST.get("cvclient_agentType", "")
+    cvclient_instance = request.POST.get("cvclient_instance", "")
+    cvclient_destination = request.POST.get("cvclient_destination", "")
+
+    # oracle
+    cvclient_copy_priority = request.POST.get("cvclient_copy_priority", "")
+    cvclient_db_open = request.POST.get("cvclient_db_open", "")
+    cvclient_log_restore = request.POST.get("cvclient_log_restore", "")
+    cvclient_data_path = request.POST.get("cvclient_data_path", "")
+
+    # File System
+    cv_mypath = request.POST.get("cv_mypath", "")
+    cv_iscover = request.POST.get("cv_iscover", "")
+    cv_selectedfile = request.POST.get("cv_selectedfile", "")
+
+    # SQL Server
+    mssql_iscover = request.POST.get("mssql_iscover", "")
+
+    try:
+        id = int(id)
+        cv_id = int(cv_id)
+        cvclient_utils_manage = int(cvclient_utils_manage)
+    except:
+        ret = 0
+        info = "网络错误。"
+    else:
+        if cvclient_type.strip():
+            if cvclient_source.strip():
+                if cvclient_agentType.strip():
+                    cv_params = {}
+                    if "Oracle" in cvclient_agentType:
+                        cv_params = {
+                            "copy_priority": cvclient_copy_priority,
+                            "db_open": cvclient_db_open,
+                            "log_restore": cvclient_log_restore,
+                            "data_path": cvclient_data_path,
+                        }
+                    elif "File System" in cvclient_agentType:
+                        inPlace = True
+                        if cv_mypath != "same":
+                            inPlace = False
+                        overWrite = False
+                        if cv_iscover == "TRUE":
+                            overWrite = True
+
+                        sourceItemlist = cv_selectedfile.split("*!-!*")
+                        for sourceItem in sourceItemlist:
+                            if sourceItem == "":
+                                sourceItemlist.remove(sourceItem)
+                        cv_params = {
+                            "overWrite": overWrite,
+                            "inPlace": inPlace,
+                            "destPath": cv_mypath,
+                            "sourcePaths": sourceItemlist,
+                            "OSRestore": False
+                        }
+                    elif "SQL Server" in cvclient_agentType:
+                        mssqlOverWrite = False
+                        if mssql_iscover == "TRUE":
+                            mssqlOverWrite = True
+                        cv_params = {
+                            "mssqlOverWrite": mssqlOverWrite,
+                        }
+                    # 新增
+                    if cv_id == 0:
+                        try:
+                            cvclient = CvClient()
+                            cvclient.hostsmanage_id = id
+                            cvclient.utils_id = cvclient_utils_manage
+                            cvclient.client_id = cvclient_source
+                            cvclient.client_name = cvclient_clientname
+                            cvclient.type = cvclient_type
+                            cvclient.agentType = cvclient_agentType
+                            cvclient.instanceName = cvclient_instance
+                            if cvclient_type in ("1", "3"):
+                                config = custom_cv_params(**cv_params)
+                                cvclient.info = config
+                                if cvclient_destination != "self":
+                                    try:
+                                        cvclient_destination = int(cvclient_destination)
+                                        cvclient.destination_id = cvclient_destination
+                                    except:
+                                        pass
+                            cvclient.save()
+                            if cvclient_destination == "self":
+                                cvclient.destination_id = cvclient.id
+                                cvclient.save()
+                            cv_id = cvclient.id
+                        except:
+                            ret = 0
+                            info = "服务器异常。"
+                        else:
+                            ret = 1
+                            info = "Commvault保护创建成功。"
+                    else:
+                        # 修改
+                        try:
+                            cvclient = CvClient.objects.get(id=cv_id)
+                            cvclient.hostsmanage_id = id
+                            cvclient.utils_id = cvclient_utils_manage
+                            cvclient.client_id = cvclient_source
+                            cvclient.client_name = cvclient_clientname
+                            cvclient.type = cvclient_type
+                            cvclient.agentType = cvclient_agentType
+                            cvclient.instanceName = cvclient_instance
+                            if cvclient_type in ("1", "3"):
+                                config = custom_cv_params(**cv_params)
+                                cvclient.info = config
+                                if cvclient_destination == "self":
+                                    cvclient.destination_id = cv_id
+                                else:
+                                    try:
+                                        cvclient_destination = int(cvclient_destination)
+                                        cvclient.destination_id = cvclient_destination
+                                    except Exception as e:
+                                        pass
+                            cvclient.save()
+                            ret = 1
+                            info = "Commvault保护修改成功。"
+                        except Exception as e:
+                            ret = 0
+                            info = "服务器异常。"
+                else:
+                    ret = 0
+                    info = "应用类型不能为空。"
+            else:
+                ret = 0
+                info = "源客户端不能为空。"
+        else:
+            ret = 0
+            info = "客户端类型不能为空。"
+    return JsonResponse({
+        "ret": ret,
+        "info": info,
+        "cv_id": cv_id
+    })
+
+
+@login_required
+def client_cv_del(request):
+    if 'id' in request.POST:
+        id = request.POST.get('id', '')
+        try:
+            id = int(id)
+        except:
+            return HttpResponse(0)
+        cv = CvClient.objects.get(id=id)
+        cv.state = "9"
+        cv.save()
+
+        return HttpResponse(1)
+    else:
+        return HttpResponse(0)
+
+
+@login_required
+def client_cv_get_backup_his(request):
+    id = request.GET.get('id', '')
+
     result = []
-    all_template = DiskTemplate.objects.exclude(state='9')
-    type_dict = {
-        'os_image': '系统磁盘',
-        'disk_image': '存储磁盘'
-    }
-    if len(all_template) > 0:
-        for template in all_template:
-            result.append({
-                "id": template.id,
-                "name": template.name,
-                "file_name": template.file_name,
-                "path": template.path,
-                "type": type_dict[template.type],
-                "os": template.os,
-                "utils_name": template.utils.code if template.utils.code else '',
-                "type_val": template.type,
-                "utils_id": template.utils_id
-            })
+    try:
+        id = int(id)
+        cvclient = CvClient.objects.get(id=id)
+        utils_manage = cvclient.utils
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
+        dm = SQLApi.CVApi(sqlserver_credit)
+        result = dm.get_all_backup_job_list(cvclient.client_name, cvclient.agentType, cvclient.instanceName)
+        dm.close()
+    except Exception as e:
+        print(e)
+
     return JsonResponse({"data": result})
 
 
-def get_kvm_template(request):
-    utils_id = request.POST.get("utils_id", "")
-    try:
-        utils_id = int(utils_id)
-    except:
-        pass
-    ret = 1
-    kvm_credit = kvm_credit_data(utils_id)
-    try:
-        data = libvirtApi.KVMApi(kvm_credit).all_kvm_template()
-    except Exception as e:
-        print(e)
-        ret = 0
-        data = '获取远程模板文件失败。'
-    return JsonResponse({
-        "ret": ret,
-        "data": data,
-    })
+@login_required
+def client_cv_recovery(request):
+    if request.method == 'POST':
+        cv_id = request.POST.get('cv_id', '')
+        sourceClient = request.POST.get('sourceClient', '')
+        destClient = request.POST.get('destClient', '')
+        restoreTime = request.POST.get('restoreTime', '')
+        browseJobId = request.POST.get('browseJobId', '')
+        agent = request.POST.get('agent', '')
 
-
-def kvm_template_save(request):
-    if request.user.is_authenticated():
-        result = {}
-        id = request.POST.get("id", "")
-        name = request.POST.get("name", "")
-        utils_id = request.POST.get("utils_id", "")
-        type = request.POST.get("type", "")
-        path = request.POST.get("path", "")
-        template_file = request.FILES.get("template_file", None)
-        remote_template_file = request.POST.get("remote_template_file", "")
-        file_name = template_file.name if template_file else ""
+        #################################
+        # sourceClient>> instance_name  #
+        #################################
+        instance = ""
         try:
-            id = int(id)
-            utils_id = int(utils_id)
-        except:
-            raise Http404()
-        # 判断是选择本地模板还是选择现有模板
-        if remote_template_file == '':
-            if not template_file and id == 0:
-                result['res'] = '请选择要导入的文件。'
-            else:
-                if if_contains_sign(file_name):
-                    result['res'] = r"""请注意文件命名格式，'\/"*?<>'符号文件不允许上传。"""
+            pri = CvClient.objects.exclude(state="9").get(id=int(cv_id))
+        except CvClient.DoesNotExist as e:
+            return HttpResponse("恢复任务启动失败, 源客户端不存在。")
+        else:
+            instance = pri.instanceName
+            if not instance:
+                return HttpResponse("恢复任务启动失败, 实例不存在。")
+
+            # 账户信息
+            utils_content = pri.utils.content if pri.utils else ""
+            commvault_credit, sqlserver_credit = get_credit_info(utils_content)
+
+            # 区分应用
+            if "Oracle" in agent:
+                data_path = request.POST.get('data_path', '')
+                copy_priority = request.POST.get('copy_priority', '')
+                data_sp = request.POST.get('data_sp', '')
+
+                try:
+                    copy_priority = int(copy_priority)
+                except:
+                    pass
+                # restoreTime对应curSCN号
+                dm = SQLApi.CVApi(sqlserver_credit)
+                oraclecopys = dm.get_oracle_backup_job_list(sourceClient)
+                # print("> %s" % restoreTime)
+                curSCN = ""
+                if restoreTime:
+                    for i in oraclecopys:
+                        if i["subclient"] == "default" and i['LastTime'] == restoreTime:
+                            # print('>>>>>1')
+                            print(i['LastTime'])
+                            curSCN = i["cur_SCN"]
+                            break
                 else:
-                    localfilepath = settings.BASE_DIR + os.sep + "drm" + os.sep + "upload" + os.sep + "disk_img" + os.sep + file_name
-                    linuxfilepath = path + '/' + file_name
-                    name_exist = DiskTemplate.objects.filter(name=name).filter(utils_id=utils_id).exclude(state="9")
-                    # 新增时判断是否存在，修改时覆盖，不需要判断
-                    if name_exist.exists() and id == 0:
-                        result['res'] = '模板名称已存在。'
-                    else:
-                        if not name.strip():
-                            result['res'] = '模板名称不能为空。'
-                        elif not utils_id:
-                            result['res'] = '模板平台未选择。'
-                        elif not type.strip():
-                            result['res'] = '模板类型未选择。'
-                        elif not path.strip():
-                            result['res'] = '模板路径未填写。'
-                        else:
-                            kvm_credit = kvm_credit_data(utils_id)
+                    for i in oraclecopys:
+                        if i["subclient"] == "default":
+                            # print('>>>>>2')
+                            curSCN = i["cur_SCN"]
+                            break
 
-                            ip = kvm_credit['KvmHost']
-                            username = kvm_credit['KvmUser']
-                            password = kvm_credit['KvmPasswd']
+                if copy_priority == 2:
+                    # 辅助拷贝状态
+                    auxcopys = dm.get_all_auxcopys()
+                    jobs_controller = dm.get_job_controller()
 
-                            # 新增 (且有my_file存在) 上传文件
-                            if id == 0 and template_file:
-                                name_exist = DiskTemplate.objects.filter(path=linuxfilepath).filter(utils_id=utils_id).exclude(state="9")
-                                if name_exist.exists():
-                                    result['res'] = '该文件已存在,请勿重复上传。'
-                                else:
+                    dm.close()
+
+                    # 判断当前存储策略是否有辅助拷贝未完成
+                    auxcopy_completed = True
+                    for job in jobs_controller:
+                        if job['storagePolicy'] == data_sp and job['operation'] == "Aux Copy":
+                            auxcopy_completed = False
+                            break
+                    # 假设未恢复成功
+                    if not auxcopy_completed:
+                        # 找到成功的辅助拷贝，开始时间在辅助拷贝前的、值对应上的主拷贝备份时间点(最终转化UTC)
+                        for auxcopy in auxcopys:
+                            if auxcopy['storagepolicy'] == data_sp and auxcopy['jobstatus'] in ["Completed", "Success"]:
+                                bytesxferred = auxcopy['bytesxferred']
+
+                                end_tag = False
+                                for orcl_copy in oraclecopys:
                                     try:
-                                        with open(localfilepath, 'wb+') as f:
-                                            for chunk in template_file.chunks():
-                                                f.write(chunk)
+                                        orcl_copy_starttime = datetime.datetime.strptime(orcl_copy['StartTime'],
+                                                                                         "%Y-%m-%d %H:%M:%S")
+                                        aux_copy_starttime = datetime.datetime.strptime(auxcopy['startdate'],
+                                                                                        "%Y-%m-%d %H:%M:%S")
+                                        if orcl_copy[
+                                            'numbytesuncomp'] == bytesxferred and orcl_copy_starttime < aux_copy_starttime and \
+                                                orcl_copy['subclient'] == "default":
+                                            # 获取enddate,转化时间
+                                            curSCN = orcl_copy['cur_SCN']
+                                            end_tag = True
+                                            break
                                     except Exception as e:
                                         print(e)
-                                        result['res'] = '文件保存失败。'
-                                    else:
-                                        try:
-                                            ssh = paramiko.Transport((ip, 22))
-                                            ssh.connect(username=username, password=password)
-                                            sftp = paramiko.SFTPClient.from_transport(ssh)
-                                        except Exception as e:
-                                            print(e)
-                                            result['res'] = '保存失败。'
-                                        else:
-                                            try:
-                                                sftp.put(localfilepath, linuxfilepath)
-                                            except Exception as e:
-                                                print(e)
-                                                result['res'] = '保存失败'
-                                            else:
-                                                # 上传成功，数据库新增数据
-                                                template_save = DiskTemplate()
-                                                template_save.name = name
-                                                template_save.file_name = file_name
-                                                template_save.type = type
-                                                template_save.path = linuxfilepath
-                                                template_save.utils_id = utils_id
-                                                template_save.save()
-                                                result['res'] = '保存成功。'
-                                            ssh.close()
+                                if end_tag:
+                                    break
 
-        else:
-            if not name.strip():
-                result['res'] = '模板名称不能为空。'
-            elif not utils_id:
-                result['res'] = '模板平台未选择。'
-            elif not type.strip():
-                result['res'] = '模板类型未选择。'
-            elif not path.strip():
-                result['res'] = '模板路径未填写。'
-            else:
-                # 新增
-                if id == 0:
-                    name_exist = DiskTemplate.objects.filter(name=name).filter(utils_id=utils_id).exclude(state="9")
-                    file_exist = DiskTemplate.objects.filter(path=path).filter(utils_id=utils_id).exclude(state="9")
-                    if file_exist.exists():
-                        result['res'] = '该文件已存在。'
-                    elif name_exist.exists():
-                        result['res'] = '模板名称已存在。'
+                dm.close()
+                oraRestoreOperator = {"curSCN": curSCN, "browseJobId": None, "data_path": data_path,
+                                      "copy_priority": copy_priority, "restoreTime": restoreTime}
+
+                cvToken = CV_RestApi_Token()
+                cvToken.login(commvault_credit)
+                cvAPI = CV_API(cvToken)
+                if agent == "Oracle Database":
+                    if cvAPI.restoreOracleBackupset(sourceClient, destClient, instance, oraRestoreOperator):
+                        return HttpResponse("恢复任务已经启动。" + cvAPI.msg)
                     else:
-                        template_save = DiskTemplate()
-                        template_save.name = name
-                        template_save.file_name = remote_template_file
-                        template_save.type = type
-                        template_save.path = path
-                        template_save.utils_id = utils_id
-                        template_save.save()
-                        result['res'] = '保存成功。'
-                # 编辑
+                        return HttpResponse("恢复任务启动失败。" + cvAPI.msg)
+                elif agent.upper() == "Oracle RAC":
+                    oraRestoreOperator["browseJobId"] = browseJobId
+                    if cvAPI.restoreOracleRacBackupset(sourceClient, destClient, instance, oraRestoreOperator):
+                        return HttpResponse("恢复任务已经启动。" + cvAPI.msg)
+                    else:
+                        return HttpResponse("恢复任务启动失败。" + cvAPI.msg)
                 else:
-                    name_exist = DiskTemplate.objects.filter(name=name).filter(utils_id=utils_id).exclude(id=id).exclude(state="9")
-                    file_exist = DiskTemplate.objects.filter(Q(path=path) | Q(path=path + '/' + remote_template_file)).\
-                        filter(utils_id=utils_id).exclude(id=id).exclude(state="9")
-                    if file_exist.exists():
-                        result['res'] = '该文件已存在。'
-                    elif name_exist.exists():
-                        result['res'] = '模板名称已存在。'
-                    else:
-                        template_save = DiskTemplate.objects.get(id=id)
-                        template_save.name = name
-                        template_save.file_name = remote_template_file
-                        template_save.type = type
-                        template_save.utils_id = utils_id
-                        # 判断是否修改了模板路径和模板文件: 没有修改，路径不变
-                        if template_save.path == path and template_save.file_name == remote_template_file:
-                            template_save.path = path
-                            template_save.save()
-                            result['res'] = '保存成功。'
-                        else:
-                            if remote_template_file in path:
-                                template_save.path = path
-                                template_save.save()
-                                result['res'] = '保存成功。'
-                            else:
-                                template_save.path = path + '/' + remote_template_file
-                                template_save.save()
-                                result['res'] = '保存成功。'
-        return JsonResponse(result)
+                    return HttpResponse("无当前模块，恢复任务启动失败。")
+            elif "File System" in agent:
+                iscover = request.POST.get('iscover', '')
+                mypath = request.POST.get('mypath', '')
+                selectedfile = request.POST.get('selectedfile')
+                sourceItemlist = selectedfile.split("*!-!*")
+                inPlace = True
+                if mypath != "same":
+                    inPlace = False
+                overWrite = False
+                if iscover == "TRUE":
+                    overWrite = True
+
+                for sourceItem in sourceItemlist:
+                    if sourceItem == "":
+                        sourceItemlist.remove(sourceItem)
+
+                fileRestoreOperator = {"restoreTime": restoreTime, "overWrite": overWrite, "inPlace": inPlace,
+                                       "destPath": mypath, "sourcePaths": sourceItemlist, "OS Restore": False}
+
+                cvToken = CV_RestApi_Token()
+                cvToken.login(commvault_credit)
+                cvAPI = CV_API(cvToken)
+                if cvAPI.restoreFSBackupset(sourceClient, destClient, "defaultBackupSet", fileRestoreOperator):
+                    return HttpResponse("恢复任务已经启动。")
+                else:
+                    return HttpResponse("恢复任务启动失败。")
+            elif "SQL Server" in agent:
+                mssql_iscover = request.POST.get('mssql_iscover', '')
+                mssqlOverWrite = False
+                if mssql_iscover == "TRUE":
+                    mssqlOverWrite = True
+                cvToken = CV_RestApi_Token()
+                cvToken.login(commvault_credit)
+                cvAPI = CV_API(cvToken)
+                mssql_dbs = cvAPI.get_mssql_db(pri.client_id, instance)
+                mssqlRestoreOperator = {"restoreTime": restoreTime, "overWrite": mssqlOverWrite, "mssql_dbs": mssql_dbs}
+                if cvAPI.restoreMssqlBackupset(sourceClient, destClient, instance, mssqlRestoreOperator):
+                    return HttpResponse("恢复任务已经启动。")
+                else:
+                    return HttpResponse(u"恢复任务启动失败。")
+    else:
+        return HttpResponse("恢复任务启动失败。")
 
 
-def kvm_template_del(request):
-    # 删除模板文件： 删除远程数据 + 删除数据库数据
-    id = request.POST.get("id", "")
-    path = request.POST.get("path", "")
-    utils_id = request.POST.get("utils_id", "")
+@login_required
+def client_cv_get_restore_his(request):
+    id = request.GET.get('id', '')
+
+    result = []
     try:
         id = int(id)
-        utils_id = int(utils_id)
-    except:
-        pass
-    status = 1
-    kvm_credit = kvm_credit_data(utils_id)
-    try:
-        info = libvirtApi.KVMApi(kvm_credit).del_kvm_template(path)
-        if info == '删除成功。':
-            template_save = DiskTemplate.objects.get(id=id)
-            template_save.state = "9"
-            template_save.save()
-            result = '删除成功。'
-        else:
-            status = 0
-            result = '删除失败。'
+        cvclient = CvClient.objects.get(id=id)
+        utils_manage = cvclient.utils
+        _, sqlserver_credit = get_credit_info(utils_manage.content)
+        dm = SQLApi.CVApi(sqlserver_credit)
+        result = dm.get_all_restore_job_list(cvclient.client_name, cvclient.agentType, cvclient.instanceName)
+        dm.close()
     except Exception as e:
         print(e)
-        status = 0
-        result = '删除失败。'
+    return JsonResponse({"data": result})
+
+
+@login_required
+def get_cv_process(request):
+    id = request.POST.get('id', "")
+    try:
+        id = int(id)
+    except:
+        id = 0
+
+    cv_process_list = []
+    if id != 0:
+        # 所属流程
+        processlist = Process.objects.filter(hosts_id=id, type='Commvault', processtype="1").exclude(state="9")
+        for process in processlist:
+            cv_process_list.append({
+                "process_id": process.id,
+                "process_name": process.name
+            })
+
     return JsonResponse({
-        "status": status,
-        "data": result,
+        "ret": 1,
+        "process": cv_process_list
     })
+
+
+@login_required
+def get_dbcopyinfo(request):
+    # 所有关联终端
+    stdlist = DbCopyClient.objects.exclude(state="9").filter(hosttype='2')
+
+    u_std = []
+
+    for std in stdlist:
+        u_std.append({
+            'type': std.dbtype,
+            'id': std.id,
+            'name': std.hostsmanage.host_name + "(" + std.hostsmanage.host_ip + ")"
+        })
+    return JsonResponse({
+        "ret": 1,
+        "info": "查询成功。",
+        'u_std': u_std,
+    })
+
+
+@login_required
+def get_adg_status(request):
+    id = request.POST.get('id', "")
+    dbcopy_id = request.POST.get('dbcopy_id', "")
+    dbcopy_std = request.POST.get('dbcopy_std', "")
+    try:
+        dbcopy_id = int(dbcopy_id)
+    except:
+        dbcopy_id = 0
+    try:
+        dbcopy_std = int(dbcopy_std)
+    except:
+        dbcopy_std = 0
+    try:
+        id = int(id)
+    except:
+        id = 0
+
+    host_list = [dbcopy_id, dbcopy_std]
+
+    adg_info_list = []
+    adg_process_list = []
+    for hostid in host_list:
+        if hostid != 0:
+            host = DbCopyClient.objects.filter(id=hostid).exclude(state="9")
+            if len(host) > 0:
+                host = host[0]
+                db_status = ''
+                database_role = ''
+                switchover_status = ''
+                host_status = 1  # 1为连接，0为断开
+                host_name = host.hostsmanage.host_name
+                host_ip = host.hostsmanage.host_ip
+                host_password = host.hostsmanage.password
+                host_username = host.hostsmanage.username
+                host_os = host.hostsmanage.os
+                # oracle用户名/密码
+                oracle_name = ""
+                oracle_password = ""
+                oracle_instance = ""
+
+                try:
+                    config = etree.XML(host.info)
+                    param_el = config.xpath("//param")
+                    if len(param_el) > 0:
+                        oracle_name = param_el[0].attrib.get("dbusername", ""),
+                        oracle_name = oracle_name[0]
+                        oracle_password = param_el[0].attrib.get("dbpassowrd", ""),
+                        oracle_password = oracle_password[0]
+                        oracle_instance = param_el[0].attrib.get("dbinstance", ""),
+                        oracle_instance = oracle_instance[0]
+                except:
+                    pass
+
+                try:
+                    conn = cx_Oracle.connect('{oracle_name}/{oracle_password}@{host_ip}/{oracle_instance}'.format(
+                        oracle_name=oracle_name, oracle_password=oracle_password, host_ip=host_ip,
+                        oracle_instance=oracle_instance))
+                    curs = conn.cursor()
+                    a_db_status_sql = 'select open_mode,switchover_status,database_role from v$database'
+                    curs.execute(a_db_status_sql)
+                    db_status_row = curs.fetchone()
+                    db_status = db_status_row[0] if db_status_row else ""
+                    database_role = db_status_row[1] if db_status_row else ""
+                    switchover_status = db_status_row[2] if db_status_row else ""
+                except Exception as e:
+                    print(e)
+                    check_host = ServerByPara('cd ..', host_ip, host_username, host_password, host_os)
+                    result = check_host.run("")
+                    if result["exec_tag"] == "1":
+                        host_status = 0
+                else:
+                    curs.close()
+                    conn.close()
+
+                adg_info_list.append({
+                    "db_status": db_status,
+                    "database_role": database_role,
+                    "switchover_status": switchover_status,
+                    "host_status": host_status,
+                    "host_name": host_name,
+                    "host_ip": host_ip
+                })
+
+    if id != 0:
+        processlist = Process.objects.filter(primary=id, type='Oracle ADG', processtype="1").exclude(state="9")
+        for process in processlist:
+            adg_process_list.append({
+                "process_id": process.id,
+                "back_id": process.backprocess_id,
+                "process_name": process.name
+            })
+
+    return JsonResponse({
+        "ret": 1,
+        "data": adg_info_list,
+        "process": adg_process_list
+    })
+
+
+@login_required
+def client_dbcopy_get_his(request):
+    result = []
+    id = request.GET.get("id", "")
+    type = request.GET.get("type", "")
+    state_dict = {
+        "DONE": "已完成",
+        "EDIT": "未执行",
+        "RUN": "执行中",
+        "ERROR": "执行失败",
+        "IGNORE": "忽略",
+        "STOP": "终止",
+        "PLAN": "计划",
+        "REJECT": "取消",
+        "SIGN": "签到",
+        "": "",
+    }
+
+    allprocess = []
+    frontprocess = []
+    backprocess = []
+    if type == 'ADG':
+        type = 'Oracle ADG'
+
+    processlist = Process.objects.filter(primary=id, type=type, processtype="1").exclude(state="9")
+    for process in processlist:
+        allprocess.append(process.id)
+        frontprocess.append(process.id)
+        if process.backprocess is not None:
+            allprocess.append(process.backprocess.id)
+            backprocess.append(process.backprocess.id)
+    allprocess_new = [str(x) for x in allprocess]
+    strprocess = ','.join(allprocess_new)
+    if strprocess == "":
+        strprocess = "0"
+
+    cursor = connection.cursor()
+
+    exec_sql = """
+    select r.starttime, r.endtime, r.creatuser, r.state, r.process_id, r.id, r.run_reason, p.name, p.url, p.type from drm_processrun as r 
+    left join drm_process as p on p.id = r.process_id where r.state != '9' and r.state != 'REJECT' and p.id in ({0}) order by r.starttime desc;
+    """.format(strprocess)
+
+    cursor.execute(exec_sql)
+    rows = cursor.fetchall()
+    for processrun_obj in rows:
+        create_users = processrun_obj[2] if processrun_obj[2] else ""
+        create_user_objs = User.objects.filter(username=create_users)
+        create_user_fullname = create_user_objs[0].userinfo.fullname if create_user_objs else ""
+        process_type = ""
+        if processrun_obj[4] in frontprocess:
+            process_type = "正切"
+        elif processrun_obj[4] in backprocess:
+            process_type = "回切"
+
+        result.append({
+            "starttime": processrun_obj[0].strftime('%Y-%m-%d %H:%M:%S') if processrun_obj[0] else "",
+            "endtime": processrun_obj[1].strftime('%Y-%m-%d %H:%M:%S') if processrun_obj[1] else "",
+            "createuser": create_user_fullname,
+            "state": state_dict["{0}".format(processrun_obj[3])] if processrun_obj[3] else "",
+            "process_id": processrun_obj[4] if processrun_obj[4] else "",
+            "processrun_id": processrun_obj[5] if processrun_obj[5] else "",
+            "run_reason": processrun_obj[6][:20] if processrun_obj[6] else "",
+            "process_name": processrun_obj[7] if processrun_obj[7] else "",
+            "process_type": process_type,
+            "process_url": processrun_obj[8] if processrun_obj[8] else ""
+        })
+
+    return JsonResponse({"data": result})
+
+
+@login_required
+def client_dbcopy_save(request):
+    id = request.POST.get("id", "")
+    dbcopy_id = request.POST.get("dbcopy_id", "")
+    dbcopy_dbtype = request.POST.get("dbcopy_dbtype", "")
+    dbcopy_hosttype = request.POST.get("dbcopy_hosttype", "")
+    dbcopy_oracleusername = request.POST.get("dbcopy_oracleusername", "")
+    dbcopy_oraclepassword = request.POST.get("dbcopy_oraclepassword", "")
+    dbcopy_oracleinstance = request.POST.get("dbcopy_oracleinstance", "")
+    dbcopy_std = request.POST.get("dbcopy_std", "")
+
+    try:
+        id = int(id)
+        dbcopy_id = int(dbcopy_id)
+    except:
+        ret = 0
+        info = "网络错误。"
+    else:
+        if dbcopy_dbtype.strip():
+            if dbcopy_hosttype.strip():
+                if dbcopy_oracleusername.strip():
+                    if dbcopy_oraclepassword.strip():
+                        if dbcopy_oracleinstance.strip():
+                            # 新增
+                            if dbcopy_id == 0:
+                                try:
+                                    dbcopy = DbCopyClient()
+                                    dbcopy.hostsmanage_id = id
+                                    dbcopy.dbtype = dbcopy_dbtype
+                                    dbcopy.hosttype = dbcopy_hosttype
+                                    root = etree.Element("root")
+                                    param_node = etree.SubElement(root, "param")
+                                    param_node.attrib["dbusername"] = dbcopy_oracleusername
+                                    param_node.attrib["dbpassowrd"] = dbcopy_oraclepassword
+                                    param_node.attrib["dbinstance"] = dbcopy_oracleinstance
+                                    config = etree.tounicode(root)
+                                    dbcopy.info = config
+                                    dbcopy.save()
+                                    dbcopy_id = dbcopy.id
+                                    if dbcopy_hosttype == "1":
+                                        if dbcopy_std != "none":
+                                            try:
+                                                dbcopy_std = int(dbcopy_std)
+                                                stdclient = DbCopyClient.objects.get(id=dbcopy_std)
+                                                stdclient.pri = dbcopy
+                                                stdclient.save()
+                                            except:
+                                                pass
+                                except:
+                                    ret = 0
+                                    info = "服务器异常。"
+                                else:
+                                    ret = 1
+                                    info = "数据库复制保护创建成功。"
+                            else:
+                                # 修改
+                                try:
+                                    dbcopy = DbCopyClient.objects.get(id=dbcopy_id)
+                                    dbcopy.hostsmanage_id = id
+                                    dbcopy.dbtype = dbcopy_dbtype
+                                    dbcopy.hosttype = dbcopy_hosttype
+                                    root = etree.Element("root")
+                                    param_node = etree.SubElement(root, "param")
+                                    param_node.attrib["dbusername"] = dbcopy_oracleusername
+                                    param_node.attrib["dbpassowrd"] = dbcopy_oraclepassword
+                                    param_node.attrib["dbinstance"] = dbcopy_oracleinstance
+                                    config = etree.tounicode(root)
+                                    dbcopy.info = config
+                                    dbcopy.save()
+                                    if dbcopy_hosttype == "1":
+                                        if dbcopy_std != "none":
+                                            try:
+                                                dbcopy_std = int(dbcopy_std)
+                                                stdclient = DbCopyClient.objects.get(id=dbcopy_std)
+                                                stdclient.pri = dbcopy
+                                                stdclient.save()
+                                            except:
+                                                pass
+                                    ret = 1
+                                    info = "数据库复制保护修改成功。"
+                                except:
+                                    ret = 0
+                                    info = "服务器异常。"
+
+                        else:
+                            ret = 0
+                            info = "oracle实例名不能为空。"
+                    else:
+                        ret = 0
+                        info = "oracle密码不能为空。"
+                else:
+                    ret = 0
+                    info = "oracle用户名不能为空。"
+            else:
+                ret = 0
+                info = "主机类型不能为空。"
+        else:
+            ret = 0
+            info = "保护类型不能为空。"
+    return JsonResponse({
+        "ret": ret,
+        "info": info,
+        "dbcopy_id": dbcopy_id
+    })
+
+
+@login_required
+def client_dbcopy_del(request):
+    if 'id' in request.POST:
+        id = request.POST.get('id', '')
+        try:
+            id = int(id)
+        except:
+            return HttpResponse(0)
+        dc = DbCopyClient.objects.get(id=id)
+        dc.state = "9"
+        dc.save()
+
+        return HttpResponse(1)
+    else:
+        return HttpResponse(0)
+
+
+@login_required
+def client_dbcopy_mysql_save(request):
+    id = request.POST.get("id", "")
+    dbcopy_id = request.POST.get("dbcopy_id", "")
+    dbcopy_dbtype = request.POST.get("dbcopy_dbtype", "")
+    dbcopy_hosttype = request.POST.get("dbcopy_hosttype", "")
+    dbcopy_mysqlusername = request.POST.get("dbcopy_mysqlusername", "")
+    dbcopy_mysqlpassword = request.POST.get("dbcopy_mysqlpassword", "")
+    dbcopy_mysqlcopyusername = request.POST.get("dbcopy_mysqlcopyusername", "")
+    dbcopy_mysqlcopypassword = request.POST.get("dbcopy_mysqlcopypassword", "")
+    dbcopy_mysqlbinlog = request.POST.get("dbcopy_mysqlbinlog", "")
+    dbcopy_mysql_std = request.POST.get('dbcopy_mysql_std')
+    dbcopy_mysql_std = json.loads(dbcopy_mysql_std)
+
+    try:
+        id = int(id)
+        dbcopy_id = int(dbcopy_id)
+    except:
+        ret = 0
+        info = "网络错误。"
+    else:
+        if dbcopy_dbtype.strip():
+            if dbcopy_hosttype.strip():
+                if dbcopy_mysqlusername.strip():
+                    if dbcopy_mysqlpassword.strip():
+                        if dbcopy_mysqlcopyusername.strip():
+                            if dbcopy_mysqlcopypassword.strip():
+                                if dbcopy_mysqlbinlog.strip():
+                                    # 新增
+                                    if dbcopy_id == 0:
+                                        try:
+                                            dbcopy = DbCopyClient()
+                                            dbcopy.hostsmanage_id = id
+                                            dbcopy.dbtype = dbcopy_dbtype
+                                            dbcopy.hosttype = dbcopy_hosttype
+                                            root = etree.Element("root")
+                                            param_node = etree.SubElement(root, "param")
+                                            param_node.attrib["dbusername"] = dbcopy_mysqlusername
+                                            param_node.attrib["dbpassowrd"] = dbcopy_mysqlpassword
+                                            param_node.attrib["copyusername"] = dbcopy_mysqlcopyusername
+                                            param_node.attrib["copypassowrd"] = dbcopy_mysqlcopypassword
+                                            param_node.attrib["binlog"] = dbcopy_mysqlbinlog
+                                            config = etree.tounicode(root)
+                                            dbcopy.info = config
+                                            dbcopy.save()
+                                            dbcopy_id = dbcopy.id
+                                            if dbcopy_hosttype == "1":
+                                                if len(dbcopy_mysql_std) > 0:
+                                                    for std in dbcopy_mysql_std:
+                                                        try:
+                                                            std = int(std)
+                                                            stdclient = DbCopyClient.objects.get(id=std)
+                                                            stdclient.pri = dbcopy
+                                                            stdclient.save()
+                                                        except:
+                                                            pass
+
+                                        except:
+                                            ret = 0
+                                            info = "服务器异常。"
+                                        else:
+                                            ret = 1
+                                            info = "数据库复制保护创建成功。"
+                                    else:
+                                        # 修改
+                                        try:
+                                            dbcopy = DbCopyClient.objects.get(id=dbcopy_id)
+                                            dbcopy.hostsmanage_id = id
+                                            dbcopy.dbtype = dbcopy_dbtype
+                                            dbcopy.hosttype = dbcopy_hosttype
+                                            root = etree.Element("root")
+                                            param_node = etree.SubElement(root, "param")
+                                            param_node.attrib["dbusername"] = dbcopy_mysqlusername
+                                            param_node.attrib["dbpassowrd"] = dbcopy_mysqlpassword
+                                            param_node.attrib["copyusername"] = dbcopy_mysqlcopyusername
+                                            param_node.attrib["copypassowrd"] = dbcopy_mysqlcopypassword
+                                            param_node.attrib["binlog"] = dbcopy_mysqlbinlog
+                                            config = etree.tounicode(root)
+                                            dbcopy.info = config
+                                            dbcopy.save()
+                                            if dbcopy_hosttype == "1":
+                                                if len(dbcopy_mysql_std) > 0:
+                                                    for std in dbcopy_mysql_std:
+                                                        try:
+                                                            std = int(std)
+                                                            stdclient = DbCopyClient.objects.get(id=std)
+                                                            stdclient.pri = dbcopy
+                                                            stdclient.save()
+                                                        except:
+                                                            pass
+                                            ret = 1
+                                            info = "数据库复制保护修改成功。"
+                                        except:
+                                            ret = 0
+                                            info = "服务器异常。"
+
+                                else:
+                                    ret = 0
+                                    info = "binlog路径不能为空。"
+                            else:
+                                ret = 0
+                                info = "复制密码不能为空。"
+                        else:
+                            ret = 0
+                            info = "复制用户名不能为空。"
+                    else:
+                        ret = 0
+                        info = "mysql密码不能为空。"
+                else:
+                    ret = 0
+                    info = "mysql用户名不能为空。"
+            else:
+                ret = 0
+                info = "主机类型不能为空。"
+        else:
+            ret = 0
+            info = "保护类型不能为空。"
+    return JsonResponse({
+        "ret": ret,
+        "info": info,
+        "dbcopy_id": dbcopy_id
+    })
+
+
+@login_required
+def get_mysql_status(request):
+    id = request.POST.get('id', "")
+    dbcopy_id = request.POST.get('dbcopy_id', "")
+    dbcopy_mysql_std = request.POST.get('dbcopy_mysql_std')
+    dbcopy_mysql_std = json.loads(dbcopy_mysql_std)
+    host_list = []
+    try:
+        id = int(id)
+    except:
+        id = 0
+    try:
+        dbcopy_id = int(dbcopy_id)
+        host_list.append(dbcopy_id)
+    except:
+        pass
+
+    if len(dbcopy_mysql_std) > 0:
+        for std in dbcopy_mysql_std:
+            try:
+                std = int(std)
+                host_list.append(std)
+            except:
+                pass
+
+    mysql_info_list = []
+    mysql_process_list = []
+    if len(host_list) > 0:
+        for num, hostid in enumerate(host_list):
+            if hostid != 0:
+                host = DbCopyClient.objects.filter(id=hostid).exclude(state="9")
+                if len(host) > 0:
+                    host = host[0]
+                    db_status = ''
+                    database_role = ''
+                    switchover_status = ''
+                    conn_status = 1  # 1为连接，0为断开
+                    host_name = host.hostsmanage.host_name
+                    host_ip = host.hostsmanage.host_ip
+                    # mysql用户名/密码
+                    dbusername = ""
+                    dbpassowrd = ""
+                    # salve复制状态
+                    master_host = ""
+                    io_state = ""
+                    sql_state = ""
+
+                    try:
+                        config = etree.XML(host.info)
+                        param_el = config.xpath("//param")
+                        if len(param_el) > 0:
+                            dbusername = param_el[0].attrib.get("dbusername", ""),
+                            dbusername = dbusername[0]
+                            dbpassowrd = param_el[0].attrib.get("dbpassowrd", ""),
+                            dbpassowrd = dbpassowrd[0]
+                    except:
+                        pass
+
+                    try:
+                        conn = pymysql.connect(host_ip, dbusername, dbpassowrd, "mysql")
+                        curs = conn.cursor()
+                        a_db_status_sql = 'show slave status;'
+                        curs.execute(a_db_status_sql)
+                        db_status_row = curs.fetchone()
+                        master_host = db_status_row[1] if db_status_row else ""
+                        io_state = db_status_row[10] if db_status_row else ""
+                        sql_state = db_status_row[11] if db_status_row else ""
+                    except Exception as e:
+                        conn_status = 0
+                    else:
+                        curs.close()
+                        conn.close()
+
+                    mysql_info_list.append({
+                        "num": num + 1,
+                        "conn_status": conn_status,
+                        "host_name": host_name,
+                        "host_ip": host_ip,
+                        "master_host": master_host,
+                        "io_state": io_state,
+                        "sql_state": sql_state,
+                        "masternum": 0,
+                    })
+        for host in mysql_info_list:
+            for master_host in mysql_info_list:
+                if host["master_host"] == master_host["host_ip"] or host["master_host"] == master_host["host_name"]:
+                    host["masternum"] = master_host["num"]
+                    break
+
+    if id != 0:
+        processlist = Process.objects.filter(primary=id, type='MYSQL', processtype="1").exclude(state="9")
+        for process in processlist:
+            mysql_process_list.append({
+                "process_id": process.id,
+                "back_id": process.backprocess_id,
+                "process_name": process.name
+            })
+
+    return JsonResponse({
+        "ret": 1,
+        "data": mysql_info_list,
+        "process": mysql_process_list
+    })
+
+
+@login_required
+def get_file_tree(request):
+    id = request.POST.get('id', '')
+    cv_id = request.POST.get('cv_id', '')
+    treedata = []
+
+    try:
+        cv_id = int(cv_id)
+        pri = CvClient.objects.exclude(state="9").get(id=int(cv_id))
+    except Exception:
+        pass
+    else:
+        client_id = pri.client_id
+        utils_content = pri.utils.content if pri.utils else ""
+        commvault_credit, _ = get_credit_info(utils_content)
+        cvToken = CV_RestApi_Token()
+        cvToken.login(commvault_credit)
+        cvAPI = CV_API(cvToken)
+        file_list = []
+        try:
+            file_list = cvAPI.browse(client_id, "File System", None, id, False)
+            for node in file_list:
+                root = {}
+                root["id"] = node["path"]
+                root["pId"] = id
+                root["name"] = node["path"]
+                if node["DorF"] == "D":
+                    root["isParent"] = True
+                else:
+                    root["isParent"] = False
+                treedata.append(root)
+        except Exception:
+            pass
+        treedata = json.dumps(treedata)
+
+    return HttpResponse(treedata)
+
+
+def host_save(request):
+    if request.user.is_authenticated():
+        host_id = request.POST.get("host_id", "")
+        host_ip = request.POST.get("host_ip", "")
+        host_name = request.POST.get("host_name", "")
+        host_os = request.POST.get("os", "")
+        connect_type = request.POST.get("type", "")
+        username = request.POST.get("username", "")
+        password = request.POST.get("password", "")
+        ret = 0
+        info = ""
+        try:
+            host_id = int(host_id)
+        except:
+            ret = 0
+            info = "网络错误。"
+        else:
+            if host_ip.strip():
+                if host_name.strip():
+                    if host_os.strip():
+                        if connect_type.strip():
+                            if username.strip():
+                                if password.strip():
+                                    # 新增
+                                    if host_id == 0:
+                                        # 判断主机是否已经存在
+                                        check_host_manage = HostsManage.objects.filter(host_ip=host_ip)
+                                        if check_host_manage.exists():
+                                            ret = 0
+                                            info = "主机已经存在，请勿重复添加。"
+                                        else:
+                                            try:
+                                                cur_host_manage = HostsManage()
+                                                cur_host_manage.host_ip = host_ip
+                                                cur_host_manage.host_name = host_name
+                                                cur_host_manage.os = host_os
+                                                cur_host_manage.type = connect_type
+                                                cur_host_manage.username = username
+                                                cur_host_manage.password = password
+                                                cur_host_manage.save()
+                                            except:
+                                                ret = 0
+                                                info = "服务器异常。"
+                                            else:
+                                                ret = 1
+                                                info = "新增主机成功。"
+                                    else:
+                                        # 修改
+                                        try:
+                                            cur_host_manage = HostsManage.objects.get(id=host_id)
+                                            cur_host_manage.host_ip = host_ip
+                                            cur_host_manage.host_name = host_name
+                                            cur_host_manage.os = host_os
+                                            cur_host_manage.type = connect_type
+                                            cur_host_manage.username = username
+                                            cur_host_manage.password = password
+                                            cur_host_manage.save()
+
+                                            ret = 1
+                                            info = "主机信息修改成功。"
+                                        except:
+                                            ret = 0
+                                            info = "服务器异常。"
+                                else:
+                                    ret = 0
+                                    info = "密码未填写。"
+                            else:
+                                ret = 0
+                                info = "用户名未填写。"
+                        else:
+                            ret = 0
+                            info = "连接类型未选择。"
+                    else:
+                        ret = 0
+                        info = "系统未选择。"
+                else:
+                    ret = 0
+                    info = "主机名称不能为空。"
+            else:
+                ret = 0
+                info = "主机IP未填写。"
+            return JsonResponse({
+                "ret": ret,
+                "info": info
+            })
+    else:
+        return HttpResponseRedirect("/login")
+
+
+def hosts_manage_data(request):
+    if request.user.is_authenticated():
+        all_hosts_manage = HostsManage.objects.exclude(state="9")
+        all_hm_list = []
+        for host_manage in all_hosts_manage:
+            all_hm_list.append({
+                "host_id": host_manage.id,
+                "host_ip": host_manage.host_ip,
+                "host_name": host_manage.host_name,
+                "os": host_manage.os,
+                "type": host_manage.type,
+                "username": host_manage.username,
+                "password": host_manage.password
+            })
+        return JsonResponse({"data": all_hm_list})
+    else:
+        return HttpResponseRedirect("/login")
+
+
+def hosts_manage_del(request):
+    if request.user.is_authenticated():
+        host_id = request.POST.get("host_id", "")
+
+        try:
+            cur_host_manage = HostsManage.objects.get(id=int(host_id))
+        except:
+            return JsonResponse({
+                "ret": 0,
+                "info": "当前网络异常"
+            })
+        else:
+            try:
+                cur_host_manage.state = "9"
+                cur_host_manage.save()
+            except:
+                return JsonResponse({
+                    "ret": 0,
+                    "info": "服务器网络异常。"
+                })
+            else:
+                return JsonResponse({
+                    "ret": 1,
+                    "info": "删除成功。"
+                })
+    else:
+        return HttpResponseRedirect("/login")
+
