@@ -445,9 +445,14 @@ def kvm_manage(request, funid):
                    })
 
 
-def get_kvm_copy_node(utils_id, parent, kvm_credit):
+def get_kvm_copy_node(utils_id, parent, kvm_credit, finalOutput):
     datas = []
-    children = libvirtApi.KVMApi(kvm_credit).kvm_include_copy_list(parent)  # 副本虚拟机
+    children = []
+    for i in finalOutput:
+        if i['code'] == 'kvmlistonlycopy':
+            for name in i['value']:
+                if parent + '@' in name['name']:
+                    children = i['value']
     for child in children:
         data = dict()
         data['state'] = {'opened': 'True'}
@@ -468,7 +473,7 @@ def get_kvm_copy_node(utils_id, parent, kvm_credit):
     return datas
 
 
-def get_kvm_node(utils_id, parent, kvm_credit, children):
+def get_kvm_node(utils_id, parent, kvm_credit, children, finalOutput):
     nodes = []
     for child in children:
         node = dict()
@@ -488,7 +493,7 @@ def get_kvm_node(utils_id, parent, kvm_credit, children):
         node['ip'] = kvm_credit['KvmHost']
 
         # 获取三级菜单：实例虚拟机
-        node["children"] = get_kvm_copy_node(utils_id, child['name'], kvm_credit)
+        node["children"] = get_kvm_copy_node(utils_id, child['name'], kvm_credit, finalOutput)
         nodes.append(node)
     return nodes
 
@@ -512,12 +517,50 @@ def get_kvm_tree(request):
         }
         root['kvm_credit'] = kvm_credit
         # 获取kvm模板文件
-        kvm_template = libvirtApi.KVMApi(kvm_credit).all_kvm_template()
-        root['kvm_template'] = kvm_template
+        kvm_template_guid = '0f298100-9b31-11eb-849b-000c29921d27'
+        kvm_template_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
+                {"code": "username", "value": kvm_credit['KvmUser']},
+                {"code": "password", "value": kvm_credit['KvmPasswd']}]
+        newJob = Job(userid=request.user.id)
+        state = newJob.execute_workflow(kvm_template_guid, input=kvm_template_input)
+        if state == 'NOTEXIST':
+            return JsonResponse({
+                "ret": 0,
+                "data": "组件不存在，请于管理员联系。",
+            })
+        elif state == 'ERROR':
+            return JsonResponse({
+                "ret": 0,
+                "data": newJob.jobBaseInfo['log'],
+            })
+        else:
+            for i in newJob.finalOutput:
+                if i['code'] == 'templatefile':
+                    root['kvm_template'] = i['value']
         root['type'] = 'ROOT'
         # 循环二级菜单：虚拟机
-        children = libvirtApi.KVMApi(kvm_credit).kvm_exclude_copy_list()
-        root["children"] = get_kvm_node(utils.id, utils.code, kvm_credit, children)
+        children = []
+        kvm_list_guid = '73c5e79c-979a-11eb-ac18-000c29921d27'
+        kvm_list_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
+                 {"code": "username", "value": kvm_credit['KvmUser']},
+                 {"code": "password", "value": kvm_credit['KvmPasswd']}]
+        newJob = Job(userid=request.user.id)
+        state = newJob.execute_workflow(kvm_list_guid, input=kvm_list_input)
+        if state == 'NOTEXIST':
+            return JsonResponse({
+                "ret": 0,
+                "data": "组件不存在，请于管理员联系。",
+            })
+        elif state == 'ERROR':
+            return JsonResponse({
+                "ret": 0,
+                "data": newJob.jobBaseInfo['log'],
+            })
+        else:
+            for i in newJob.finalOutput:
+                if i['code'] == 'kvmlistexcludecopy':
+                    children = i['value']
+        root["children"] = get_kvm_node(utils.id, utils.code, kvm_credit, children, newJob.finalOutput)
         tree_data.append(root)
     return JsonResponse({
         "ret": 1,
@@ -536,60 +579,94 @@ def get_kvm_detail(request):
     except:
         pass
     kvm_credit = kvm_credit_data(utils_id)
-    utils_ip = kvm_credit['KvmHost']
     try:
         # 通过传参判断点击节点类型：点击根节点：kvm_name=='' and kvm_id==''，点击kvm虚拟机节点：kvm_name=='Test-1' and kvm_id=='1'
         # 宿主机信息：cpu、内存、磁盘
         if kvm_name == '' and kvm_id == '':
-            memory_disk_cpu_data = libvirtApi.KVMApi(kvm_credit).disk_cpu_data()
-            memory_info = libvirtApi.LibvirtApi(utils_ip).mem_cpu_hostname_info()
-            memory_disk_cpu_data['cpu_count'] = memory_info['cpu_count']
-            memory_disk_cpu_data['hostname'] = memory_info['hostname']
-            memory_disk_cpu_data['mem_total'] = memory_info['mem_total']
-            memory_disk_cpu_data['mem_used'] = memory_info['mem_used']
-            memory_disk_cpu_data['memory_usage'] = memory_info['memory_usage']
+            memory_disk_cpu_data = []
+            host_guid = 'cc4e507c-9b35-11eb-b93f-000c29921d27'
+            host_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
+                              {"code": "username", "value": kvm_credit['KvmUser']},
+                              {"code": "password", "value": kvm_credit['KvmPasswd']}]
+            newJob = Job(userid=request.user.id)
+            state = newJob.execute_workflow(host_guid, input=host_input)
+            if state == 'NOTEXIST':
+                return JsonResponse({
+                    "ret": 0,
+                    "data": "组件不存在，请于管理员联系。",
+                })
+            elif state == 'ERROR':
+                return JsonResponse({
+                    "ret": 0,
+                    "data": newJob.jobBaseInfo['log'],
+                })
+            else:
+                for i in newJob.finalOutput:
+                    if i['code'] == 'diskcpumemory':
+                        memory_disk_cpu_data = i['value']
             data = {
-                'memory_disk_cpu_data': memory_disk_cpu_data
-            }
+                    'memory_disk_cpu_data': memory_disk_cpu_data
+                    }
         # kvm虚拟机磁盘文件信息：cpu、内存、磁盘
         else:
-            kvm_id = kvm_id.strip()
             ip = ''
             hostname = ''
             password = ''
-            # 已开启的虚拟机有id，未开启的虚拟机id为-1
-            if kvm_id != '-1':
-                kvm_data = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
-                if kvm_data.exists():
-                    ip = kvm_data[0].ip
-                    hostname = kvm_data[0].hostname
-                    password = kvm_data[0].password
-                kvm_info_data = libvirtApi.LibvirtApi(utils_ip).kvm_info_data(kvm_name)
-                kvm_disk_data = libvirtApi.LibvirtApi(utils_ip).kvm_disk_usage(kvm_name)
-                kvm_cpu_mem_data = libvirtApi.LibvirtApi(utils_ip).kvm_memory_cpu_usage(kvm_id)
-                data = {
-                    'kvm_info_data': kvm_info_data,
-                    'kvm_cpu_mem_data': kvm_cpu_mem_data,
-                    'kvm_disk_data': kvm_disk_data,
-                    'ip': ip,
-                    'hostname': hostname,
-                    'password': password
-                }
+            # 从数据库获取虚机的ip、密码、主机名
+            kvm_data = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
+            if kvm_data.exists():
+                ip = kvm_data[0].ip
+                hostname = kvm_data[0].hostname
+                password = kvm_data[0].password
+
+            kvm_info_data = []
+            kvm_diskcpumemory_data = []
+            kvm_info_guid = '0cf3fd1e-9813-11eb-a964-000c29921d27'
+            kvm_info_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
+                          {"code": "kvm_name", "value": kvm_name}]
+            newJob = Job(userid=request.user.id)
+            state = newJob.execute_workflow(kvm_info_guid, input=kvm_info_input)
+            if state == 'NOTEXIST':
+                return JsonResponse({
+                    "ret": 0,
+                    "data": "组件不存在，请于管理员联系。",
+                })
+            elif state == 'ERROR':
+                return JsonResponse({
+                    "ret": 0,
+                    "data": newJob.jobBaseInfo['log'],
+                })
             else:
-                kvm_data = KvmCopy.objects.exclude(state='9').filter(name=kvm_name).filter(utils_id=utils_id)
-                if kvm_data.exists():
-                    ip = kvm_data[0].ip
-                    hostname = kvm_data[0].hostname
-                    password = kvm_data[0].password
-                kvm_info_data = libvirtApi.LibvirtApi(utils_ip).kvm_info_data(kvm_name)
-                kvm_disk_data = libvirtApi.LibvirtApi(utils_ip).kvm_disk_usage(kvm_name)
-                data = {
-                    'kvm_info_data': kvm_info_data,
-                    'kvm_disk_data': kvm_disk_data,
-                    'ip': ip,
-                    'hostname': hostname,
-                    'password': password
-                }
+                for i in newJob.finalOutput:
+                    if i['code'] == 'kvminfo':
+                        kvm_info_data = i['value']
+
+            diskcpumem_guid = '798bbe14-98d4-11eb-9499-000c29921d27'
+            diskcpumem_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
+                                {"code": "kvm_name", "value": kvm_name}]
+            newJob = Job(userid=request.user.id)
+            state = newJob.execute_workflow(diskcpumem_guid, input=diskcpumem_input)
+            if state == 'NOTEXIST':
+                return JsonResponse({
+                    "ret": 0,
+                    "data": "组件不存在，请于管理员联系。",
+                })
+            elif state == 'ERROR':
+                return JsonResponse({
+                    "ret": 0,
+                    "data": newJob.jobBaseInfo['log'],
+                })
+            else:
+                for i in newJob.finalOutput:
+                    if i['code'] == 'kvmdiskcpumemory':
+                        kvm_diskcpumemory_data = i['value']
+            data = {
+                'kvm_info_data': kvm_info_data,
+                'kvm_diskcpumemory_data': kvm_diskcpumemory_data,
+                'ip': ip,
+                'hostname': hostname,
+                'password': password
+            }
     except Exception as e:
         print(e)
         ret = 0
@@ -602,18 +679,34 @@ def get_kvm_detail(request):
 @login_required
 def get_kvm_task_data(request):
     # kvm虚拟机磁盘文件信息：cpu、内存、磁盘
-    kvm_id = request.POST.get("kvm_id", "")
+    kvm_name = request.POST.get("kvm_name", "")
     utils_ip = request.POST.get("utils_ip", "")
     ret = 1
-    data = ''
-    kvm_id = kvm_id.strip()
     try:
         # 已开启的虚拟机有id，未开启的虚拟机id为-1
-        if kvm_id != '-1':
-            kvm_cpu_mem_data = libvirtApi.LibvirtApi(utils_ip).kvm_memory_cpu_usage(kvm_id)
-            data = {
-                'kvm_cpu_mem_data': kvm_cpu_mem_data,
-            }
+        kvm_diskcpumemory_data = []
+        diskcpumem_guid = '798bbe14-98d4-11eb-9499-000c29921d27'
+        diskcpumem_input = [{"code": "ip", "value": utils_ip},
+                            {"code": "kvm_name", "value": kvm_name}]
+        newJob = Job(userid=request.user.id)
+        state = newJob.execute_workflow(diskcpumem_guid, input=diskcpumem_input)
+        if state == 'NOTEXIST':
+            return JsonResponse({
+                "ret": 0,
+                "data": "组件不存在，请于管理员联系。",
+            })
+        elif state == 'ERROR':
+            return JsonResponse({
+                "ret": 0,
+                "data": newJob.jobBaseInfo['log'],
+            })
+        else:
+            for i in newJob.finalOutput:
+                if i['code'] == 'kvmdiskcpumemory':
+                    kvm_diskcpumemory_data = i['value']
+        data = {
+            'kvm_cpu_mem_data': kvm_diskcpumemory_data,
+        }
     except Exception as e:
         print(e)
         ret = 0

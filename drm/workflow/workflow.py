@@ -846,8 +846,8 @@ class Job(object):
         self.jobBaseInfo["state"]="DONE"
         self.jobBaseInfo["endtime"] = datetime.datetime.now()
 
-        print(self.jobBaseInfo["name"] + ":")
-        print(self.finalOutput)
+        # print(self.jobBaseInfo["name"] + ":")
+        # print(self.finalOutput)
 
     # 执行流程
     def run_workflow(self):
