@@ -1928,6 +1928,369 @@ def load_hosts_params(request):
     })
 
 
+######################
+# 客户端管理
+######################
+def kvm_credit_data(utils_id):
+    utils_kvm_info = UtilsManage.objects.filter(id=utils_id)
+    content = utils_kvm_info[0].content
+    util_type = utils_kvm_info[0].util_type
+    kvm_credit = get_credit_info(content, util_type.upper())
+    return kvm_credit
+
+
+@login_required
+def client_manage(request, funid):
+    # kvm虚拟化平台
+    util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
+    utils_kvm_list = []
+    for utils in util_manage:
+        utils_kvm_list.append({
+            "id": utils.id,
+            "code": utils.code,
+            "name": utils.name,
+        })
+    return render(request, 'client_manage.html',
+                  {'username': request.user.userinfo.fullname,
+                   "pagefuns": getpagefuns(funid, request=request),
+                   "utils_kvm_list": utils_kvm_list,
+                   "is_superuser": request.user.is_superuser
+                   })
+
+
+@login_required
+def kvm_data(request):
+    util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
+    all_kvm_dict = {}
+    for utils in util_manage:
+        utils_id = utils.id
+        kvm_credit = kvm_credit_data(utils_id)
+        try:
+            kvm_list = libvirtApi.KVMApi(kvm_credit).kvm_exclude_copy_list()
+            all_kvm_dict[utils_id] = kvm_list
+        except Exception as e:
+            print(e)
+            return JsonResponse({
+                "ret": 0,
+                "data": "获取kvm虚拟机失败。",
+            })
+    return JsonResponse({'all_kvm_dict': all_kvm_dict})
+
+
+@login_required
+def kvm_machine_data(request):
+    kvminfo = {}
+    id = request.POST.get("id", "")
+    utils_id = request.POST.get("utils_id", "")
+    try:
+        id = int(id)
+        utils_id = int(utils_id)
+    except:
+        pass
+    kc = KvmMachine.objects.exclude(state="9").filter(hostsmanage_id=id).filter(utils_id=utils_id)
+    if len(kc) > 0:
+        kvminfo["id"] = kc[0].id
+        kvminfo["utils_id"] = kc[0].utils_id
+        kvminfo["name"] = kc[0].name
+        kvminfo["filesystem"] = kc[0].filesystem
+    return JsonResponse({'ret': 1, 'kvminfo': kvminfo})
+
+
+@login_required
+def kvm_save(request):
+    hostsmanage_id = request.POST.get("hostsmanage_id", "")
+    id = request.POST.get("kvm_id", "")
+    utils_id = request.POST.get("util_kvm_id", "")
+    name = request.POST.get("name", "")
+    try:
+        hostsmanage_id = int(hostsmanage_id)
+        id = int(id)
+        utils_id = int(utils_id)
+    except:
+        status = 0
+        info = '网络异常。'
+    else:
+        if not utils_id:
+            status = 0
+            info = '虚拟化平台未选择。'
+        elif not name.strip():
+            status = 0
+            info = '虚机未选择。'
+        else:
+            # 新增
+            if id == 0:
+                try:
+                    kvmmachine = KvmMachine()
+                    kvmmachine.utils_id = utils_id
+                    kvmmachine.hostsmanage_id = hostsmanage_id
+                    kvmmachine.name = name
+                    kvmmachine.save()
+                    id = kvmmachine.id
+                    status = 1
+                    info = "保存成功。"
+                except:
+                    status = 0
+                    info = "服务器异常。"
+            # 修改
+            else:
+                try:
+                    kvmmachine = KvmMachine.objects.get(id=id)
+                    kvmmachine.utils_id = utils_id
+                    kvmmachine.hostsmanage_id = hostsmanage_id
+                    kvmmachine.name = name
+                    kvmmachine.save()
+                    id = kvmmachine.id
+                    status = 1
+                    info = "修改成功。"
+                except:
+                    status = 0
+                    info = "服务器异常。"
+    return JsonResponse({
+        'status': status,
+        'info': info,
+        'id': id
+    })
+
+
+@login_required
+def kvm_del(request):
+    if 'id' in request.POST:
+        id = request.POST.get('id', '')
+        try:
+            id = int(id)
+        except:
+            return HttpResponse(0)
+        kvm = KvmMachine.objects.get(id=id)
+        kvm.state = '9'
+        kvm.save()
+        return HttpResponse(1)
+    else:
+        return HttpResponse(0)
+
+
+@login_required
+def kvm_copy_create(request):
+    result = {}
+    utils_id = request.POST.get("utils_id", "")
+    snapshot_name = request.POST.get("snapshot_name", "")
+    copy_name = request.POST.get("kvm_copy_name", "")
+    kvm_machine = request.POST.get("kvm_machine", "")
+    kvm_machine_id = request.POST.get("kvm_machine_id", "")
+    copy_cpu = request.POST.get("kvm_copy_cpu", "")
+    copy_memory = request.POST.get("kvm_copy_memory", "")
+    user_id = request.user.id
+    try:
+        user_id = int(user_id)
+        kvm_machine_id = int(kvm_machine_id)
+        utils_id = int(utils_id)
+    except:
+        pass
+    if not copy_name.strip():
+        result['res'] = '实例名称未填写。'
+    else:
+        kvm_credit = kvm_credit_data(utils_id)
+        # 拼接路径
+        filesystem = 'data/vmdata/' + kvm_machine        # data/vmdata/CentOS-7
+        snapshotname = filesystem + '@' + snapshot_name  # data/vmdata/CentOS-7@2020-07-28
+        filesystemname = filesystem + ':' + copy_name    # data/vmdata/CentOS-7:2020-07-28
+        copyname = kvm_machine + '@' + copy_name         # CentOS-7@2020-07-28
+        try:
+            kvm_exist = []
+            kvm_list = libvirtApi.KVMApi(kvm_credit).kvm_all_list()
+            for i in kvm_list:
+                kvm_exist.append(i['name'])
+            if copyname in kvm_exist:
+                result['res'] = '实例' + copy_name + '已存在。'
+            else:
+                # ①创建快照
+                result_info = libvirtApi.KVMApi(kvm_credit).zfs_create_snapshot(snapshotname)
+                if result_info == '创建成功。':
+                    # ②克隆快照，生成新的文件系统
+                    result_info = libvirtApi.KVMApi(kvm_credit).zfs_clone_snapshot(snapshotname, filesystemname)
+                    if result_info == '克隆成功。':
+                        # ③克隆成功，生成新的xml文件
+                        result_info = libvirtApi.KVMApi(kvm_credit).create_kvm_xml(kvm_machine, snapshotname, copyname, copy_cpu, copy_memory)
+                        if result_info == '生成成功。':
+                            # ④新的xml文件生成，开始定义虚拟机
+                            result_info = libvirtApi.KVMApi(kvm_credit).define_kvm(copyname)
+                            if result_info == '定义成功。':
+                                # ④定义成功，保存数据库
+                                try:
+                                    KvmCopy.objects.create(**{
+                                        'name': copyname,
+                                        'create_time': datetime.datetime.now(),
+                                        'create_user_id': user_id,
+                                        'utils_id': utils_id,
+                                        'kvmmachine_id': kvm_machine_id,
+                                        'snapshot': snapshotname,
+                                    })
+                                    result['res'] = '创建成功。'
+                                except Exception as e:
+                                    print(e)
+                                    result['res'] = '保存失败。'
+                            else:
+                                result['res'] = '定义失败。'
+                        else:
+                            result['res'] = '生成失败。'
+                    else:
+                        result['res'] = '克隆失败。'
+                else:
+                    result['res'] = '创建失败。'
+        except Exception as e:
+            print(e)
+            result['res'] = '创建失败。'
+    return JsonResponse(result)
+
+
+@login_required
+def kvm_copy_data(request):
+    kvmmachine_id = request.GET.get("kvmmachine_id", "")
+    utils_id = request.GET.get("utils_id", "")
+    try:
+        utils_id = int(utils_id)
+        kvmmachine_id = int(kvmmachine_id)
+    except:
+        pass
+    kvm_credit = kvm_credit_data(utils_id)
+    utils_ip = kvm_credit['KvmHost']
+    result = []
+    all_kvmcopy = KvmCopy.objects.filter(kvmmachine_id=kvmmachine_id).filter(utils_id=utils_id).order_by('-create_time').exclude(state='9')
+    if len(all_kvmcopy) > 0:
+        for kvmcopy in all_kvmcopy:
+            copy_state = libvirtApi.LibvirtApi(utils_ip).kvm_state(kvmcopy.name)
+            result.append({
+                "id": kvmcopy.id,
+                "name": kvmcopy.name,
+                "ip": kvmcopy.ip,
+                "hostname": kvmcopy.hostname,
+                "password": kvmcopy.password,
+                "create_time": kvmcopy.create_time.strftime(
+                                '%Y-%m-%d %H:%M:%S') if kvmcopy.create_time else '',
+                "create_user": kvmcopy.create_user.userinfo.fullname if kvmcopy.create_user.userinfo.fullname else '',
+                "copy_state": copy_state,
+                "snapshot": kvmcopy.snapshot,
+            })
+    return JsonResponse({"data": result})
+
+
+@login_required
+def kvm_copy_del(request):
+    # 删除副本：删除虚拟机 + 删除文件系统 + 删除快照 + 删除本地数据库数据
+    result = {}
+    id = request.POST.get("id", "")
+    utils_id = request.POST.get("utils_id", "")
+    name = request.POST.get("name", "")
+    state = request.POST.get("state", "")
+    try:
+        id = int(id)
+        utils_id = int(utils_id)
+    except:
+        pass
+    kvm_credit = kvm_credit_data(utils_id)
+    utils_ip = kvm_credit['KvmHost']
+    filesystem_snapshot = 'data/vmdata/' + name         # data/vmdata/CentOS-7@test2    快照
+    filesystem = filesystem_snapshot.replace('@', ':')  # data/vmdata/CentOS-7:test2    文件系统
+    try:
+        # ①删除虚拟机
+        result_info = libvirtApi.LibvirtApi(utils_ip).kvm_undefine(state, name)
+        if result_info == '取消定义成功。':
+            # ②删除文件系统
+            result_info = libvirtApi.KVMApi(kvm_credit).filesystem_del(filesystem)
+            if result_info == '删除文件系统成功。':
+                # ③删除快照
+                result_info = libvirtApi.KVMApi(kvm_credit).zfs_snapshot_del(filesystem_snapshot)
+                if result_info == '删除快照成功。':
+                    # ④删除数据库数据
+                    kvmcopy = KvmCopy.objects.get(id=id)
+                    kvmcopy.state = '9'
+                    kvmcopy.save()
+                    result["res"] = '删除成功。'
+                else:
+                    result["res"] = result_info
+            else:
+                result["res"] = result_info
+        else:
+            result["res"] = result_info
+    except Exception as e:
+        print(e)
+        result["res"] = '删除失败。'
+
+    return JsonResponse(result)
+
+
+@login_required
+def kvm_power_on(request):
+    # 给电：修改ip、主机名、root密码，开启虚拟机
+    result = {}
+    utils_id = request.POST.get("utils_id", "")
+    copy_id = request.POST.get("id", "")
+    copy_name = request.POST.get("copy_name", "")
+    copy_state = request.POST.get("copy_state", "")
+    kvm_machine = request.POST.get("kvm_machine", "")
+    copy_ip = request.POST.get("copy_ip", "")
+    copy_hostname = request.POST.get("copy_hostname", "")
+    copy_password = request.POST.get("copy_password", "")
+    compile_ip = re.compile('^(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|[1-9])\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)\.(1\d{2}|2[0-4]\d|25[0-5]|[1-9]\d|\d)$')
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    if not copy_ip.strip():
+        result['res'] = '实例IP未填写。'
+    elif not copy_hostname.strip():
+        result['res'] = '实例主机名未填写。'
+    elif not copy_password.strip():
+        result['res'] = '实例密码未填写。'
+    elif not compile_ip.match(copy_ip):
+        result['res'] = '实例IP不合法。'
+    else:
+        kvm_credit = kvm_credit_data(utils_id)
+        utils_ip = kvm_credit['KvmHost']
+        # 拼接路径
+        filesystem = 'data/vmdata/' + copy_name     # data/vmdata/CentOS-7@2020-09-14
+        filesystem = filesystem.replace('@', ':')   # data/vmdata/CentOS-7:2020-09-14
+        try:
+            result_info = libvirtApi.KVMApi(kvm_credit).guestmount(kvm_machine, filesystem)
+            if result_info == '挂载成功。':
+                # ①挂载成功，修改ip和主机名
+                result_info = libvirtApi.KVMApi(kvm_credit).alert_ip_hostname(copy_ip, copy_hostname)
+                if result_info == '修改成功。':
+                    # ②修改密码
+                    result_info = libvirtApi.KVMApi(kvm_credit).alter_password(copy_password)
+                    if result_info == '修改密码成功。':
+                        # ③取消挂载
+                        result_info = libvirtApi.KVMApi(kvm_credit).umount()
+                        if result_info == '取消挂载成功。':
+                            # ④开机
+                            result_info = libvirtApi.LibvirtApi(utils_ip).kvm_start(copy_state, copy_name)
+                            if result_info == '开机成功。':
+                                # ⑤保存数据库
+                                try:
+                                    kvm_copy = KvmCopy.objects.get(id=copy_id)
+                                    kvm_copy.ip = copy_ip
+                                    kvm_copy.hostname = copy_hostname
+                                    kvm_copy.password = copy_password
+                                    kvm_copy.save()
+                                    result['res'] = '给电成功。'
+                                except Exception as e:
+                                    print(e)
+                                    result['res'] = '给电失败。'
+                            else:
+                                result['res'] = '开机失败。'
+                        else:
+                            result['res'] = '取消挂载失败。'
+                    else:
+                        result['res'] = '修改密码失败。'
+                else:
+                    result['res'] = '修改失败。'
+            else:
+                result['res'] = '挂载失败。'
+        except Exception as e:
+            print(e)
+            result["res"] = '开机失败。'
+    return JsonResponse(result)
+
+
 def get_client_node(parent, select_id, request):
     nodes = []
     children = parent.children.order_by("sort").exclude(state="9")

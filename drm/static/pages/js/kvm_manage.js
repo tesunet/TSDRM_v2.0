@@ -466,29 +466,31 @@ $(document).ready(function () {
                     {
                         utils_id: $("#utils_id").val(),
                         kvm_name: $("#kvm_name").val(),
-                        kvm_state: $("#kvm_state").val(),
                     },
                 success: function (data) {
-                    var myres = data["res"];
-                    var kvm_id = data["kvm_id"];
-                    if (myres == "暂停成功。") {
-                        $('#kvm_state').val('暂停');
-                        $('#kvm_id').val(kvm_id);
+                    if (data.ret == 0) {
+                        alert(data.data)
+                    } else {
+                        var myres = data["data"];
+                        var kvm_id = data["kvm_id"];
+                        if (myres == "暂停成功。") {
+                            $('#kvm_state').val('暂停');
+                            $('#kvm_id').val(kvm_id);
 
-                        //重新获取kvm虚拟机的cpu、内存使用信息
-                        get_kvm_task_data();
+                            //重新获取kvm虚拟机的cpu、内存使用信息
+                            get_kvm_task_data();
 
-                        //设置节点图标：开机、关机状态
-                        var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
-                        var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:green; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:red; height:24px;'></span> ");
-                        $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
+                            //设置节点图标：开机、关机状态
+                            var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
+                            var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:green; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:red; height:24px;'></span> ");
+                            $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
 
-                        // 完成开机、关机、暂停、运行、断电后重新设置虚拟机的id和状态
-                        curnode.data.id = kvm_id;
-                        curnode.data.state = '暂停';
-
+                            // 完成开机、关机、暂停、运行、断电后重新设置虚拟机的id和状态
+                            curnode.data.id = kvm_id;
+                            curnode.data.state = '暂停';
+                        }
+                        alert(myres);
                     }
-                    alert(myres);
                 },
                 error: function (e) {
                     alert("页面出现错误，请于管理员联系。");
@@ -505,24 +507,27 @@ $(document).ready(function () {
                 {
                     utils_id: $("#utils_id").val(),
                     kvm_name: $("#kvm_name").val(),
-                    kvm_state: $("#kvm_state").val(),
                 },
             success: function (data) {
-                var myres = data["res"];
-                var kvm_id = data["kvm_id"];
-                if (myres == "运行成功。") {
-                    $('#kvm_state').val('运行中');
-                    $('#kvm_id').val(kvm_id);
+                if (data.ret == 0) {
+                        alert(data.data)
+                } else {
+                    var myres = data["data"];
+                    var kvm_id = data["kvm_id"];
+                    if (myres == "唤醒成功。") {
+                        $('#kvm_state').val('运行中');
+                        $('#kvm_id').val(kvm_id);
 
-                    get_kvm_task_data();
-                    var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
+                        get_kvm_task_data();
+                        var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
 
-                    var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:red; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:green; height:24px;'></span> ");
-                    $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
-                    curnode.data.id = kvm_id;
-                    curnode.data.state = '运行中'
+                        var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:red; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:green; height:24px;'></span> ");
+                        $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
+                        curnode.data.id = kvm_id;
+                        curnode.data.state = '运行中'
+                    }
+                    alert(myres);
                 }
-                alert(myres);
             },
             error: function (e) {
                 alert("页面出现错误，请于管理员联系。");
@@ -540,23 +545,25 @@ $(document).ready(function () {
                     {
                         utils_id: $("#utils_id").val(),
                         kvm_name: $("#kvm_name").val(),
-                        kvm_state: $("#kvm_state").val(),
                     },
                 success: function (data) {
-                    var myres = data["res"];
-                    var kvm_id = data["kvm_id"];
-                    if (myres == "关闭成功。") {
-                        $('#kvm_state').val('关闭');
-                        $('#kvm_id').val(kvm_id);
-                        get_kvm_task_data();
-                        var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
-                        var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:green; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:red; height:24px;'></span> ");
-                        $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
-                        curnode.data.id = kvm_id;
-                        curnode.data.state = '关闭'
-
+                    if (data.ret == 0) {
+                        alert(data.data)
+                    } else {
+                        var myres = data["data"];
+                        var kvm_id = data["kvm_id"];
+                        if (myres == "关闭成功。") {
+                            $('#kvm_state').val('关闭');
+                            $('#kvm_id').val(kvm_id);
+                            get_kvm_task_data();
+                            var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
+                            var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:green; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:red; height:24px;'></span> ");
+                            $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
+                            curnode.data.id = kvm_id;
+                            curnode.data.state = '关闭'
+                        }
+                        alert(myres);
                     }
-                    alert(myres);
                 },
                 error: function (e) {
                     alert("页面出现错误，请于管理员联系。");
@@ -573,21 +580,23 @@ $(document).ready(function () {
                 {
                     utils_id: $("#utils_id").val(),
                     kvm_name: $("#kvm_name").val(),
-                    kvm_state: $("#kvm_state").val(),
                 },
             success: function (data) {
-                var myres = data["res"];
-                var kvm_id = data["kvm_id"];
-                if (myres == "重启成功。") {
-                    $('#kvm_state').val('运行中');
-                    $('#kvm_id').val(kvm_id);
-                    get_kvm_task_data();
-                    var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
-                    curnode.data.id = kvm_id;
-                    curnode.data.state = '运行中'
-
+                if (data.ret == 0) {
+                    alert(data.data)
+                } else {
+                    var myres = data["data"];
+                    var kvm_id = data["kvm_id"];
+                    if (myres == "重启成功。") {
+                        $('#kvm_state').val('运行中');
+                        $('#kvm_id').val(kvm_id);
+                        get_kvm_task_data();
+                        var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
+                        curnode.data.id = kvm_id;
+                        curnode.data.state = '运行中'
+                    }
+                    alert(myres);
                 }
-                alert(myres);
             },
             error: function (e) {
                 alert("页面出现错误，请于管理员联系。");
@@ -605,23 +614,25 @@ $(document).ready(function () {
                     {
                         utils_id: $("#utils_id").val(),
                         kvm_name: $("#kvm_name").val(),
-                        kvm_state: $("#kvm_state").val(),
                     },
                 success: function (data) {
-                    var myres = data["res"];
-                    var kvm_id = data["kvm_id"];
-                    if (myres == "断电成功。") {
-                        $('#kvm_state').val('关闭');
-                        $('#kvm_id').val(kvm_id);
-                        get_kvm_task_data();
-                        var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
-                        var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:green; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:red; height:24px;'></span> ");
-                        $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
-                        curnode.data.id = kvm_id;
-                        curnode.data.state = '关闭'
-
+                    if (data.ret == 0) {
+                        alert(data.data)
+                    } else {
+                        var myres = data["data"];
+                        var kvm_id = data["kvm_id"];
+                        if (myres == "断电成功。") {
+                            $('#kvm_state').val('关闭');
+                            $('#kvm_id').val(kvm_id);
+                            get_kvm_task_data();
+                            var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
+                            var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:green; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:red; height:24px;'></span> ");
+                            $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
+                            curnode.data.id = kvm_id;
+                            curnode.data.state = '关闭'
+                        }
+                        alert(myres);
                     }
-                    alert(myres);
                 },
                 error: function (e) {
                     alert("页面出现错误，请于管理员联系。");
@@ -638,30 +649,31 @@ $(document).ready(function () {
                 {
                     utils_id: $("#utils_id").val(),
                     kvm_name: $("#kvm_name").val(),
-                    kvm_state: $("#kvm_state").val(),
-
                 },
             success: function (data) {
-                var myres = data["res"];
-                var kvm_id = data["kvm_id"];
-                if (myres == "开机成功。") {
-                    $('#kvm_state').val('运行中');
-                    $('#kvm_id').val(kvm_id);
+                if (data.ret == 0) {
+                    alert(data.data)
+                } else {
+                    var myres = data["data"];
+                    var kvm_id = data["kvm_id"];
+                    if (myres == "给电成功。") {
+                        $('#kvm_state').val('运行中');
+                        $('#kvm_id').val(kvm_id);
 
-                    //重新获取kvm虚拟机的cpu、内存使用信息
-                    get_kvm_task_data();
+                        //重新获取kvm虚拟机的cpu、内存使用信息
+                        get_kvm_task_data();
 
-                    //设置节点图标：开机、关机状态
-                    var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
-                    var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:red; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:green; height:24px;'></span> ");
-                    $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
+                        //设置节点图标：开机、关机状态
+                        var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
+                        var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:red; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:green; height:24px;'></span> ");
+                        $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
 
-                    // 完成开机、关机、暂停、运行、断电后重新设置虚拟机的id和状态
-                    curnode.data.id = kvm_id;
-                    curnode.data.state = '运行中'
-
+                        // 完成开机、关机、暂停、运行、断电后重新设置虚拟机的id和状态
+                        curnode.data.id = kvm_id;
+                        curnode.data.state = '运行中'
+                    }
+                    alert(myres);
                 }
-                alert(myres);
             },
             error: function (e) {
                 alert("页面出现错误，请于管理员联系。");
