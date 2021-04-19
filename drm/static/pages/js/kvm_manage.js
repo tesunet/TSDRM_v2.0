@@ -44,6 +44,7 @@ function getkvmtree() {
                     "plugins": ["contextmenu", "dnd", "types", "role"]
                 })
                     .bind('select_node.jstree', function (event, data) {
+                        console.log(data, '99999')
                         var kvm_id = data.node.data.id;
                         var utils_id = data.node.data.utils_id;
                         var kvm_name = data.node.data.name;
@@ -693,7 +694,10 @@ $(document).ready(function () {
                     } else {
                         var myres = data["data"];
                         if (myres == "删除成功。") {
-                            getkvmtree();
+                            //树节点删除
+                            var ref = $('#tree_kvm_manage').jstree(true),
+                            sel = ref.get_selected();
+                            ref.delete_node(sel);
                         }
                         alert(myres);
                     }
@@ -733,7 +737,15 @@ $(document).ready(function () {
                 } else {
                     var myres = data["data"];
                     if (myres == "克隆成功。") {
-                        getkvmtree();
+                        // 克隆成功，树节点新增
+                        $('#tree_kvm_manage').jstree('create_node', $("#pid").val(), {
+                            "text": $("#kvm_name_new").val(),
+                        }, "last", false, false);
+                        $('#tree_kvm_manage').jstree('deselect_all');
+
+                        var ref = $('#tree_kvm_manage').jstree(true);
+                        ref.refresh();
+
                     }
                     alert(myres);
                     $('#loading1').hide();
@@ -761,83 +773,47 @@ $(document).ready(function () {
     $('#kvm_machine_create').click(function () {
         $('#create_kvm_machine').hide();
         $('#loading3').show();
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../kvm_machine_create/",
+            data:
+                {
+                    utils_id: $("#utils_id").val(),
+                    kvm_template_name: $("#select_kvm_template").val(),
+                    kvm_name: $("#kvm_template_name").val(),
+                    kvm_storage: $("#select_kvm_storage").val(),
+                    kvm_cpu: $("#alter_kvm_cpu").val(),
+                    kvm_memory: $("#alter_kvm_memory").val(),
+                },
+            success: function (data) {
+                if (data.ret == 0) {
+                    alert(data.data);
+                    $('#loading3').hide();
+                    $('#create_kvm_machine').show();
+                } else {
+                    var myres = data["data"];
+                    if (myres == "注册成功。") {
+                        // 注册成功，树节点新增
+                        $('#tree_kvm_manage').jstree('create_node', $("#id").val(), {
+                            "text": $("#kvm_template_name").val(),
+                        }, "last", false, false);
+                        $('#tree_kvm_manage').jstree('deselect_all');
 
-        var kvm_memory = $("#alter_kvm_memory").val();
-        if (kvm_memory != ''){
-            if (kvm_memory % 4 != 0){
-                alter('内存大小必须为4MB的倍数。');
-                $('#create_kvm_machine').show();
-                $('#loading3').hide();
-            }else{
-                $.ajax({
-                    type: "POST",
-                    dataType: 'json',
-                    url: "../kvm_machine_create/",
-                    data:
-                        {
-                            utils_id: $("#utils_id").val(),
-                            kvm_template: $("#select_kvm_template").val(),
-                            kvm_template_name: $("#kvm_template_name").val(),
-                            kvm_storage: $("#select_kvm_storage").val(),
-                            kvm_cpu: $("#alter_kvm_cpu").val(),
-                            kvm_memory: $("#alter_kvm_memory").val(),
-                        },
-                    success: function (data) {
-                        var myres = data["res"];
-                        if (myres == "新建成功。") {
-                            $('#loading3').hide();
-                            $('#create_kvm_machine').hide();
-                            $('#static02').modal('hide');
-                            location.reload()
-
-                        }
-                        alert(myres);
-                        $('#loading3').hide();
-                        $('#create_kvm_machine').show();
-                    },
-                    error: function (e) {
-                        alert("页面出现错误，请于管理员联系。");
-                        $('#loading3').hide();
-                        $('#create_kvm_machine').show();
-                    }
-                });
-            }
-        }
-        else{
-            $.ajax({
-                type: "POST",
-                dataType: 'json',
-                url: "../kvm_machine_create/",
-                data:
-                    {
-                        utils_id: $("#utils_id").val(),
-                        kvm_template: $("#select_kvm_template").val(),
-                        kvm_template_name: $("#kvm_template_name").val(),
-                        kvm_storage: $("#select_kvm_storage").val(),
-                        kvm_cpu: $("#alter_kvm_cpu").val(),
-                        kvm_memory: $("#alter_kvm_memory").val(),
-                    },
-                success: function (data) {
-                    var myres = data["res"];
-                    if (myres == "新建成功。") {
-                        $('#loading3').hide();
-                        $('#create_kvm_machine').hide();
-                        $('#static02').modal('hide');
-                        location.reload()
-
+                        var ref = $('#tree_kvm_manage').jstree(true);
+                        ref.refresh();
                     }
                     alert(myres);
                     $('#loading3').hide();
-                    $('#create_kvm_machine').show();
-                },
-                error: function (e) {
-                    alert("页面出现错误，请于管理员联系。");
-                    $('#loading3').hide();
-                    $('#create_kvm_machine').show();
+                    $('#static02').modal('hide');
                 }
-            });
-        }
-
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+                $('#loading3').hide();
+                $('#create_kvm_machine').show();
+            }
+        });
     });
     $('#kvm_power').click(function () {
         $('#static03').modal('show');

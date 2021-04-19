@@ -674,66 +674,53 @@ def kvm_clone_save(request):
     })
 
 
+# 执行组件，注册KVM虚拟机
+# 模板中新建虚拟机：创建文件系统 + 拷贝模板文件到文件系统 + 生成新的xml文件 + 定义虚拟机
 @login_required
 def kvm_machine_create(request):
-    # 模板中新建虚拟机：创建文件系统 + 拷贝模板文件到文件系统 + 生成新的xml文件 + 定义虚拟机
-    result = {}
     utils_id = request.POST.get("utils_id", "")
-    kvm_template = request.POST.get("kvm_template", "")
     kvm_template_name = request.POST.get("kvm_template_name", "")
-    kvm_storage = request.POST.get("kvm_storage", "")
+    kvm_name = request.POST.get("kvm_name", "")
     kvm_cpu = request.POST.get("kvm_cpu", "")
     kvm_memory = request.POST.get("kvm_memory", "")
+    ret = 1
     try:
         utils_id = int(utils_id)
     except:
         pass
-    if not kvm_template.strip():
-        result['res'] = '模板未选择。'
-    elif not kvm_template_name.strip():
-        result['res'] = '虚拟机名称未填写。'
-    else:
-        kvm_credit = kvm_credit_data(utils_id)
-        # 拼接路径
-        filesystem = 'data/vmdata/' + kvm_template_name                          # data/vmdata/Test-10
-        kvm_os_image_path = '/home/images/os-image/' + kvm_template              # /home/images/os-image/CentOS-7.qcow2
-        kvm_xml = kvm_template.replace('.qcow2', '.xml')                         # CentOS-7.xml
-        kvm_disk_path = '/' + filesystem + '/' + kvm_template_name + '.qcow2'    # /data/vmdata/Test-10/Test-10.qcow2
-        kvm_disk_image_path = '/home/images/disk-image/' + kvm_storage           # /home/images/disk-image/100G.qcow2
-        kvm_storage_path = '/' + filesystem + '/' + kvm_storage                  # /data/vmdata/Test-10/100G.qcow2
-        try:
-            kvm_exist = []
-            kvm_list = libvirtApi.KVMApi(kvm_credit).kvm_all_list()
-            for i in kvm_list:
-                kvm_exist.append(i['name'])
-            if kvm_template_name in kvm_exist:
-                result['res'] = '虚拟机' + kvm_template_name + '已存在。'
-            else:
-                # ①创建文件系统
-                result_info = libvirtApi.KVMApi(kvm_credit).create_filesystem(filesystem)
-                if result_info == '文件系统创建成功。':
-                    # ②拷贝模板文件到文件系统   + 判断有无选择存储文件
-                    result_info = libvirtApi.KVMApi(kvm_credit).copy_disk(kvm_os_image_path, kvm_disk_path, kvm_storage, kvm_disk_image_path, kvm_storage_path)
-                    if result_info == '拷贝磁盘文件成功。':
-                        # ③生成新的xml文件  + 判断有无选择存储文件
-                        result_info = libvirtApi.KVMApi(kvm_credit).create_new_xml(kvm_xml, kvm_disk_path, kvm_template_name, kvm_cpu, kvm_memory, kvm_storage, kvm_storage_path)
-                        if result_info == '生成成功。':
-                            # ④新的xml文件生成，开始定义虚拟机
-                            result_info = libvirtApi.KVMApi(kvm_credit).define_kvm(kvm_template_name)
-                            if result_info == '定义成功。':
-                                result['res'] = '新建成功。'
-                            else:
-                                result['res'] = '新建失败。'
-                        else:
-                            result['res'] = '生成失败。'
-                    else:
-                        result['res'] = '拷贝文件失败。'
-                else:
-                    result['res'] = '文件系统创建失败。'
-        except Exception as e:
-            print(e)
-            result["res"] = '新建失败。'
-    return JsonResponse(result)
+    kvm_credit = kvm_credit_data(utils_id)
+    try:
+        create_giid = '10825768-98d7-11eb-b09f-000c29921d27'
+        create_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
+                        {"code": "username", "value": kvm_credit['KvmUser']},
+                        {"code": "password", "value": kvm_credit['KvmPasswd']},
+                        {"code": "kvm_template_name", "value": kvm_template_name},
+                        {"code": "kvm_name", "value": kvm_name},
+                        {"code": "kvm_cpu", "value": kvm_cpu},
+                        {"code": "kvm_memory", "value": kvm_memory}]
+        newJob = Job(userid=request.user.id)
+        state = newJob.execute_workflow(create_giid, input=create_input)
+        if state == 'NOTEXIST':
+            return JsonResponse({
+                "ret": 0,
+                "data": "组件不存在，请于管理员联系。",
+            })
+        elif state == 'ERROR':
+            return JsonResponse({
+                "ret": 0,
+                "data": newJob.jobBaseInfo['log'],
+            })
+        else:
+            data = '注册成功。'
+            pass
+    except Exception as e:
+        print(e)
+        ret = 0
+        data = '注册失败。'
+    return JsonResponse({
+        'ret': ret,
+        'data': data,
+    })
 
 
 # 执行组件，激活KVM虚拟机
