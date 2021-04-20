@@ -618,6 +618,8 @@ class Job(object):
             componentCode=self.jobModel.workflowBaseInfo["code"]
             try:
                 exec(componentCode)
+
+
                 if "state" not in componentOutput or componentOutput["state"]=="failed":
                     self.jobBaseInfo["state"] = "ERROR"
                     if "message" in componentOutput:

@@ -104,6 +104,7 @@ class HostsManage(models.Model):
     password = models.CharField("密码", blank=True, null=True, max_length=50)
     state = models.CharField("状态", blank=True, null=True, max_length=20)
     config = models.TextField("主机参数", null=True, default="<root></root>")
+    monitor = models.TextField("性能监控", null=True, default="<root></root>")
     pnode = models.ForeignKey('self', null=True, related_name='children', verbose_name='父节点')
     nodetype = models.CharField("节点类型", blank=True, null=True, max_length=20)
     sort = models.IntegerField("排序", blank=True, null=True)

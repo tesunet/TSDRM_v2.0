@@ -605,7 +605,7 @@ $(document).ready(function () {
                 var val_splitarray=array[i].split("^")
                 code_array.push(val_splitarray[0])
             }
-            var judge_result = judgeMember(code_array,$component_output_save("#component_input_code").val())
+            var judge_result = judgeMember(code_array,$("#component_input_code").val())
             if (judge_result=="exist"){
                 alert("已存在参数名")
                 return

@@ -339,6 +339,7 @@ urlpatterns = [
     url(r'^hosts_del/$', hosts_del),
     url(r'^hosts_move/$', hosts_move),
     url(r'^hosts_node_save/$', hosts_node_save),
+    url(r'^hosts_get_client_detail/$', hosts_get_client_detail),
 
 
 

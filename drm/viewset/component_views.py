@@ -303,7 +303,7 @@ def component_save(request):
                     componentsave.input = input_params_xml
                     componentsave.variable = variable_params_xml
                     componentsave.output = output_params_xml
-                    componentsave.cod = code
+                    componentsave.code = code
                     componentsave.sort = sort if sort else None
                     componentsave.remark = remark
                     componentsave.type = "LEAF"

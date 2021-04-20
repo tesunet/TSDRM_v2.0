@@ -6,6 +6,9 @@ from djcelery.views import JsonResponse
 from .basic_views import getpagefuns
 from django.contrib.auth.decorators import login_required
 from ..models import *
+from ..workflow.workflow import Job
+from lxml import etree
+import json
 
 
 ######################
@@ -130,15 +133,18 @@ def get_hosts_node_by_business(parent, select_id, request):
 def hosts_del(request):
     if 'id' in request.POST:
         id = request.POST.get('id', '')
-        try:
-            id = int(id)
-        except:
-            return HttpResponse(0)
-        client = HostsManage.objects.get(id=id)
-        client.state = "9"
-        client.save()
 
-        return HttpResponse(1)
+        component_guid = '4348a146-9cdb-11eb-9ef2-84fdd1a17907'
+        component_input = [{"code": "id", "value": id}]
+        newJob = Job(userid=request.user.id)
+        state = newJob.execute_workflow(component_guid, input=component_input)
+
+        if state == 'NOTEXIST':
+            return HttpResponse(0)
+        elif state == 'ERROR':
+            return HttpResponse(0)
+        else:
+            return HttpResponse(1)
     else:
         return HttpResponse(0)
 
@@ -149,66 +155,45 @@ def hosts_move(request):
     parent = request.POST.get('parent', '')
     old_parent = request.POST.get('old_parent', '')
     position = request.POST.get('position', '')
-    old_position = request.POST.get('old_position', '')
+
+    ret = 0
+    info = "未知错误。"
+    data=None
+
     try:
         id = int(id)  # 节点 id
         parent = int(parent)  # 目标位置父节点 pnode_id
         position = int(position)  # 目标位置
         old_parent = int(old_parent)  # 起点位置父节点 pnode_id
-        old_position = int(old_position)  # 起点位置
     except:
-        return HttpResponse("0")
-    # sort = position + 1 sort从1开始
+        return JsonResponse({
+            "ret": ret,
+            "info": info,
+            "data": data
+        })
 
-    # 起始节点下方 所有节点  sort -= 1
-    old_client_parent = HostsManage.objects.get(id=old_parent)
-    old_sort = old_position + 1
-    old_clients = HostsManage.objects.exclude(state="9").filter(pnode=old_client_parent).filter(sort__gt=old_sort)
-
-    # 目标节点下方(包括该节点) 所有节点 sort += 1
-    client_parent = HostsManage.objects.get(id=parent)
-    sort = position + 1
-    clients = HostsManage.objects.exclude(state=9).exclude(id=id).filter(pnode=client_parent).filter(sort__gte=sort)
-
-    my_client = HostsManage.objects.get(id=id)
-
-    # 判断目标父节点是否为接口，若为接口无法挪动
-    if client_parent.nodetype == "CLIENT":
-        return HttpResponse("客户端")
+    component_guid = 'f188cf66-9cd4-11eb-901a-84fdd1a17907'
+    component_input = [{"code": "id", "value": id},
+                       {"code": "newParent", "value": parent},
+                       {"code": "newPosition", "value": position}]
+    newJob = Job(userid=request.user.id)
+    state = newJob.execute_workflow(component_guid, input=component_input)
+    if state == 'NOTEXIST':
+        ret = 0
+        info = "组件不存在，请于管理员联系。。"
+    elif state == 'ERROR':
+        ret = 0
+        info = newJob.jobBaseInfo["log"]
     else:
-        # 目标父节点下所有节点 除了自身 接口名称都不得相同 否则重名
-        client_same = HostsManage.objects.exclude(state="9").exclude(id=id).filter(pnode=client_parent).filter(
-            host_name=my_client.host_name)
-
-        if client_same:
-            return HttpResponse("重名")
-        else:
-            for old_client in old_clients:
-                try:
-                    old_client.sort -= 1
-                    old_client.save()
-                except:
-                    pass
-            for client in clients:
-                try:
-                    client.sort += 1
-                    client.save()
-                except:
-                    pass
-
-            # 该节点位置变动
-            try:
-                my_client.pnode = client_parent
-                my_client.sort = sort
-                my_client.save()
-            except:
-                pass
-
-            # 起始 结束 点不在同一节点下 写入父节点名称与ID ?
-            if parent != old_parent:
-                return HttpResponse(client_parent.host_name + "^" + str(client_parent.id))
-            else:
-                return HttpResponse("0")
+        ret = 1
+        if parent != old_parent:
+            new_client_parent = HostsManage.objects.get(id=parent)
+            data = new_client_parent.host_name + "^" + str(new_client_parent.id)
+    return JsonResponse({
+        "ret": ret,
+        "info": info,
+        "data": data
+    })
 
 
 @login_required
@@ -217,55 +202,50 @@ def hosts_node_save(request):
     pid = request.POST.get("pid", "")
     node_name = request.POST.get("node_name", "")
     node_remark = request.POST.get("node_remark", "")
-
+    ret = 0
+    info = "位置错误"
     try:
         id = int(id)
     except:
         ret = 0
         info = "网络错误。"
     else:
-        if node_name.strip():
-            if id == 0:
-                try:
-                    cur_host_manage = HostsManage()
-                    cur_host_manage.pnode_id = pid
-                    cur_host_manage.host_name = node_name
-                    cur_host_manage.remark = node_remark
-                    cur_host_manage.nodetype = "NODE"
-                    # 排序
-                    sort = 1
-                    try:
-                        max_sort = HostsManage.objects.exclude(state="9").filter(pnode_id=pid).aggregate(
-                            max_sort=Max('sort', distinct=True))["max_sort"]
-                        sort = max_sort + 1
-                    except:
-                        pass
-                    cur_host_manage.sort = sort
-
-                    cur_host_manage.save()
-                    id = cur_host_manage.id
-                except:
-                    ret = 0
-                    info = "服务器异常。"
-                else:
-                    ret = 1
-                    info = "新增节点成功。"
+        if id == 0:
+            component_guid = 'f108ffb8-9cc4-11eb-87b4-84fdd1a17907'
+            component_input = [{"code": "pid", "value": pid},
+                                  {"code": "name", "value": node_name},
+                                  {"code": "remark", "value": node_remark}]
+            newJob = Job(userid=request.user.id)
+            state = newJob.execute_workflow(component_guid, input=component_input)
+            if state == 'NOTEXIST':
+                ret = 0
+                info = "组件不存在，请于管理员联系。。"
+            elif state == 'ERROR':
+                ret = 0
+                info = newJob.jobBaseInfo["log"]
             else:
-                # 修改
-                try:
-                    cur_host_manage = HostsManage.objects.get(id=id)
-                    cur_host_manage.host_name = node_name
-                    cur_host_manage.remark = node_remark
-                    cur_host_manage.save()
-
-                    ret = 1
-                    info = "节点信息修改成功。"
-                except:
-                    ret = 0
-                    info = "服务器异常。"
+                ret = 1
+                info = "新增节点成功。"
+                for i in newJob.finalOutput:
+                    if i['code'] == 'id':
+                        id = i['value']
         else:
-            ret = 0
-            info = "节点名称不能为空。"
+            # 修改
+            component_guid = '0f1a9734-9cca-11eb-979e-84fdd1a17907'
+            component_input = [{"code": "id", "value": id},
+                               {"code": "name", "value": node_name},
+                               {"code": "remark", "value": node_remark}]
+            newJob = Job(userid=request.user.id)
+            state = newJob.execute_workflow(component_guid, input=component_input)
+            if state == 'NOTEXIST':
+                ret = 0
+                info = "组件不存在，请于管理员联系。。"
+            elif state == 'ERROR':
+                ret = 0
+                info = newJob.jobBaseInfo["log"]
+            else:
+                ret = 1
+                info = "节点信息修改成功。"
     return JsonResponse({
         "ret": ret,
         "info": info,
@@ -274,204 +254,54 @@ def hosts_node_save(request):
 
 
 @login_required
-def get_cvinfo(request):
-    # 工具
-    utils_manage = UtilsManage.objects.exclude(state='9').filter(util_type='Commvault')
-    data = []
-
-    try:
-        pool = ThreadPoolExecutor(max_workers=10)
-
-        all_tasks = [pool.submit(get_instance_list, (um)) for um in utils_manage]
-        for future in as_completed(all_tasks):
-            if future.result():
-                data.append(future.result())
-    except Exception as e:
-        print(e)
-    # for um in utils_manage:
-    #     data.append(get_instance_list(um))
-
-    # 所有关联终端
-    destination = CvClient.objects.exclude(state="9").filter(type__in=['2', '3'])
-
-    u_destination = []
-
-    for um in utils_manage:
-        destination_list = []
-        for d in destination:
-            if d.utils.id == um.id:
-                destination_list.append({
-                    'id': d.id,
-                    'name': d.client_name
-                })
-        u_destination.append({
-            'utilid': um.id,
-            'utilname': um.name,
-            'destination_list': destination_list
-        })
-    return JsonResponse({
-        "ret": 1,
-        "info": "查询成功。",
-        "data": data,
-        'u_destination': u_destination,
-    })
-
-
-@login_required
-def get_client_detail(request):
-    hostinfo = {}
-    cvinfo = {}
-    dbcopyinfo = {}
-    kvminfo = {}
+def hosts_get_client_detail(request):
     id = request.POST.get("id", "")
-    try:
-        id = int(id)
-        host_manage = HostsManage.objects.get(id=id)
+    ret = 0
+    info = "位置错误"
+    data = None
 
-    except:
+    component_guid = '65816810-9cf3-11eb-8792-84fdd1a17907'
+    component_input = [{"code": "id", "value": id}]
+    newJob = Job(userid=request.user.id)
+    state = newJob.execute_workflow(component_guid, input=component_input)
+    if state == 'NOTEXIST':
         ret = 0
-        info = "当前客户端不存在。"
+        info = "组件不存在，请于管理员联系。。"
+    elif state == 'ERROR':
+        ret = 0
+        info = newJob.jobBaseInfo["log"]
     else:
-        param_list = []
+        for i in newJob.finalOutput:
+            if i['code'] == 'data':
+                data = i['value']
         try:
-            config = etree.XML(host_manage.config)
-
-            param_el = config.xpath("//param")
-            for v_param in param_el:
-                param_list.append({
-                    "param_name": v_param.attrib.get("param_name", ""),
-                    "variable_name": v_param.attrib.get("variable_name", ""),
-                    "param_value": v_param.attrib.get("param_value", ""),
-                })
-        except:
-            ret = 0
-            info = "数据格式异常，无法获取。"
-        else:
-            hostinfo = {
-                "host_id": host_manage.id,
-                "host_ip": host_manage.host_ip,
-                "host_name": host_manage.host_name,
-                "os": host_manage.os,
-                "username": host_manage.username,
-                "password": host_manage.password,
-                "remark": host_manage.remark,
-                "variable_param_list": param_list,
-            }
+            data = json.loads(data)
             ret = 1
             info = "查询成功。"
-
-            cc = CvClient.objects.exclude(state="9").filter(hostsmanage_id=id)
-            if len(cc) > 0:
-                cvinfo["id"] = cc[0].id
-                cvinfo["type"] = cc[0].type
-                cvinfo["utils_id"] = cc[0].utils_id
-                cvinfo["client_id"] = cc[0].client_id
-                cvinfo["agentType"] = cc[0].agentType
-                cvinfo["instanceName"] = cc[0].instanceName
-                cvinfo["destination_id"] = cc[0].destination_id
-
-                # oracle
-                cvinfo["copy_priority"] = ""
-                cvinfo["db_open"] = ""
-                cvinfo["log_restore"] = ""
-                cvinfo["data_path"] = ""
-                # File System
-                cvinfo["overWrite"] = ""
-                cvinfo["destPath"] = ""
-                cvinfo["sourcePaths"] = ""
-                # SQL Server
-                cvinfo["mssqlOverWrite"] = ""
-
-                try:
-                    config = etree.XML(cc[0].info)
-                    param_el = config.xpath("//param")
-                    if len(param_el) > 0:
-                        cvinfo["copy_priority"] = param_el[0].attrib.get("copy_priority", "")
-                        cvinfo["db_open"] = param_el[0].attrib.get("db_open", "")
-                        cvinfo["log_restore"] = param_el[0].attrib.get("log_restore", "")
-                        cvinfo["data_path"] = param_el[0].attrib.get("data_path", "")
-
-                        cvinfo["overWrite"] = param_el[0].attrib.get("overWrite", "")
-                        cvinfo["destPath"] = param_el[0].attrib.get("destPath", "")
-                        cvinfo["sourcePaths"] = eval(param_el[0].attrib.get("sourcePaths", "[]"))
-
-                        cvinfo["mssqlOverWrite"] = param_el[0].attrib.get("mssqlOverWrite", "")
-                except:
-                    pass
-
-            dc = DbCopyClient.objects.exclude(state="9").filter(hostsmanage_id=id)
-            if len(dc) > 0:
-                dbcopyinfo["id"] = dc[0].id
-                dbcopyinfo["hosttype"] = dc[0].hosttype
-                dbcopyinfo["dbtype"] = dc[0].dbtype
-                if dc[0].dbtype == "1":
-                    stdclient = DbCopyClient.objects.exclude(state="9").filter(pri=dc[0])
-                    dbcopyinfo["std_id"] = None
-                    if len(stdclient) > 0:
-                        dbcopyinfo["std_id"] = stdclient[0].id
-                    dbcopyinfo["dbusername"] = ""
-                    dbcopyinfo["dbpassowrd"] = ""
-                    dbcopyinfo["dbinstance"] = ""
-
-                    try:
-                        config = etree.XML(dc[0].info)
-                        param_el = config.xpath("//param")
-                        if len(param_el) > 0:
-                            dbcopyinfo["dbusername"] = param_el[0].attrib.get("dbusername", ""),
-                            dbcopyinfo["dbpassowrd"] = param_el[0].attrib.get("dbpassowrd", ""),
-                            dbcopyinfo["dbinstance"] = param_el[0].attrib.get("dbinstance", ""),
-                    except:
-                        pass
-                if dc[0].dbtype == "2":
-                    dbcopyinfo["std_id"] = []
-                    stdclientlist = DbCopyClient.objects.exclude(state="9").filter(pri=dc[0])
-                    for stdclient in stdclientlist:
-                        dbcopyinfo["std_id"].append(str(stdclient.id))
-                    dbcopyinfo["dbusername"] = ""
-                    dbcopyinfo["dbpassowrd"] = ""
-                    dbcopyinfo["copyusername"] = ""
-                    dbcopyinfo["copypassowrd"] = ""
-                    dbcopyinfo["binlog"] = ""
-
-                    try:
-                        config = etree.XML(dc[0].info)
-                        param_el = config.xpath("//param")
-                        if len(param_el) > 0:
-                            dbcopyinfo["dbusername"] = param_el[0].attrib.get("dbusername", ""),
-                            dbcopyinfo["dbpassowrd"] = param_el[0].attrib.get("dbpassowrd", ""),
-                            dbcopyinfo["copyusername"] = param_el[0].attrib.get("copyusername", ""),
-                            dbcopyinfo["copypassowrd"] = param_el[0].attrib.get("copypassowrd", ""),
-                            dbcopyinfo["binlog"] = param_el[0].attrib.get("binlog", ""),
-                    except:
-                        pass
-
-            kc = KvmMachine.objects.exclude(state="9").filter(hostsmanage_id=id)
-            if len(kc) > 0:
-                kvminfo["id"] = kc[0].id
-                kvminfo["utils_id"] = kc[0].utils_id
-                kvminfo["name"] = kc[0].name
-                kvminfo["filesystem"] = kc[0].filesystem
+        except:
+            ret = 0
+            info = "数据异常"
     return JsonResponse({
         "ret": ret,
         "info": info,
-        "data": hostinfo,
-        "cvinfo": cvinfo,
-        "dbcopyinfo": dbcopyinfo,
-        "kvminfo": kvminfo
+        "data": data
     })
 
 
 @login_required
-def client_client_save(request):
+def hosts_client_save(request):
     id = request.POST.get("id", "")
     pid = request.POST.get("pid", "")
     host_ip = request.POST.get("host_ip", "")
     host_name = request.POST.get("host_name", "")
-    host_os = request.POST.get("os", "")
+    host_type = request.POST.get("host_type", "")
     username = request.POST.get("username", "")
     password = request.POST.get("password", "")
     config = request.POST.get("config", "")
     remark = request.POST.get("remark", "")
+
+    ret = 0
+    info = "位置错误"
 
     try:
         id = int(id)
@@ -481,7 +311,7 @@ def client_client_save(request):
     else:
         if host_ip.strip():
             if host_name.strip():
-                if host_os.strip():
+                if host_type.strip():
                     if username.strip():
                         if password.strip():
                             # 主机参数
@@ -555,19 +385,19 @@ def client_client_save(request):
                                     info = "服务器异常。"
                         else:
                             ret = 0
-                            info = "密码未填写。"
+                            info = "管理员密码未填写。"
                     else:
                         ret = 0
-                        info = "用户名未填写。"
+                        info = "管理员用户名填写。"
                 else:
                     ret = 0
-                    info = "系统未选择。"
+                    info = "主机类型未选择。"
             else:
                 ret = 0
-                info = "主机名称不能为空。"
+                info = "客户端名称不能为空。"
         else:
             ret = 0
-            info = "主机IP未填写。"
+            info = "连接IP未填写。"
     return JsonResponse({
         "ret": ret,
         "info": info,

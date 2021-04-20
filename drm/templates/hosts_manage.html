@@ -17,7 +17,7 @@
 
 </style>
 <div style="height:10px"></div>
-<div id="showdata" hidden class="portlet-body">
+<div id="showdata" class="portlet-body">
     <div class="row">
 {#        <div class="col-md-4 tab" role="tabpanel">#}
 {#            <ul id="navtabs1" class="nav nav-tabs ">#}
@@ -77,15 +77,7 @@
                                         </div>
                                         <div class="form-group">
                                             <label class="col-md-2 control-label"><span
-                                                    style="color:red; ">*</span>主机IP</label>
-                                            <div class="col-md-10">
-                                                <input id="host_ip" type="text" name="host_ip" class="form-control " placeholder="">
-                                                <div class="form-control-focus"></div>
-                                            </div>
-                                        </div>
-                                        <div class="form-group">
-                                            <label class="col-md-2 control-label"><span
-                                                    style="color:red; ">*</span>主机名称</label>
+                                                    style="color:red; ">*</span>客户端名称</label>
                                             <div class="col-md-10">
                                                 <input id="host_name" type="text" name="host_name" class="form-control " placeholder="">
                                                 <div class="form-control-focus"></div>
@@ -93,17 +85,28 @@
                                         </div>
                                         <div class="form-group">
                                             <label class="col-md-2 control-label"><span
-                                                    style="color:red; ">*</span>系统</label>
+                                                    style="color:red; ">*</span>连接IP</label>
                                             <div class="col-md-10">
-                                                <select class="form-control" id="os" name="os">
-                                                    <option value="Linux">Linux</option>
-                                                    <option value="Windows">Windows</option>
+                                                <input id="host_ip" type="text" name="host_ip" class="form-control " placeholder="">
+                                                <div class="form-control-focus"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="form-group">
+                                            <label class="col-md-2 control-label"><span
+                                                    style="color:red; ">*</span>主机类型</label>
+                                            <div class="col-md-10">
+                                                <select class="form-control" id="host_type" name="host_type">
+                                                    <option value="Linux_P">Linux物理机</option>
+                                                    <option value="Linux_V">Linux虚拟机</option>
+                                                    <option value="Windows_P">Windows物理机</option>
+                                                    <option value="Windows_V">Windows虚拟机</option>
                                                 </select>
                                             </div>
                                         </div>
                                         <div class="form-group">
                                             <label class="col-md-2 control-label"><span
-                                                    style="color:red; ">*</span>用户名</label>
+                                                    style="color:red; ">*</span>管理员用户名</label>
                                             <div class="col-md-10">
                                                 <input id="username" type="text" name="username" class="form-control " placeholder="">
                                                 <div class="form-control-focus"></div>
@@ -111,7 +114,7 @@
                                         </div>
                                         <div class="form-group">
                                             <label class="col-md-2 control-label"><span
-                                                    style="color:red; ">*</span>密码</label>
+                                                    style="color:red; ">*</span>管理员密码</label>
                                             <div class="col-md-10">
                                                 <input id="password" type="password" name="password" class="form-control " placeholder="">
                                                 <div class="form-control-focus"></div>
