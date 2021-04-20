@@ -44,27 +44,49 @@ function getkvmtree() {
                     "plugins": ["contextmenu", "dnd", "types", "role"]
                 })
                     .bind('select_node.jstree', function (event, data) {
-                        console.log(data, '99999')
-                        var kvm_id = data.node.data.id;
-                        var utils_id = data.node.data.utils_id;
-                        var kvm_name = data.node.data.name;
-                        $("#form_div").show();
-                        var type = data.node.original.type;
-                        $("#type").val(type);
-                        $("#id").val(data.node.id);
-                        $("#pid").val(data.node.parent);
-                        $("#utils_id").val(utils_id);
-                        $("#kvm_id").val(kvm_id);
-                        $("#my_type").val(type);
-                        $("#title").text(data.node.data.name);
-                        $('#pname').val(data.node.data.pname);
+                        var kvm_id = '';
+                        var utils_id = '';
+                        var kvm_name = '';
+                        var utils_ip = '';
+                        if (data.node.data){
+                            // 刷新整个页面之后，点击此虚拟机节点，获取数据
+                            kvm_id = data.node.data.id;
+                            utils_id = data.node.data.utils_id;
+                            kvm_name = data.node.data.name;
+                            utils_ip = data.node.original.ip;
+                            $("#form_div").show();
+                            $("#id").val(data.node.id);
+                            $("#pid").val(data.node.parent);
+                            $("#my_type").val(type);
+                            $("#title").text(kvm_name);
 
+                            $("#kvm_id").val(kvm_id);
+                            $("#kvm_name").val(kvm_name);
+                            $("#kvm_state").val(data.node.data.state);
+                            $("#utils_id").val(utils_id);
+                            $("#utils_ip").val(utils_ip);
+                        }else {
+                            //新建虚拟机、克隆虚拟机之后树节点展示此虚机信息，点击此虚拟机节点，获取数据
+                            kvm_id = data.node.original.kvm_id;
+                            utils_id = data.node.original.utils_id;
+                            kvm_name = data.node.original.kvm_name;
+                            utils_ip = data.node.original.utils_ip;
+                            $("#form_div").show();
+                            $("#id").val(data.node.id);
+                            $("#pid").val(data.node.parent);
+                            $("#title").text(kvm_name);
+
+                            $("#kvm_id").val(kvm_id);
+                            $("#kvm_name").val(kvm_name);
+                            $("#kvm_state").val(data.node.original.kvm_state);
+                            $("#utils_id").val(utils_id);
+                            $("#utils_ip").val(utils_ip);
+                        }
                         // 根节点
                         if (data.node.parent == "#") {
                             $("#loading2").show();
                             $("#form_div").hide();
-                            var utils_ip = data.node.original.kvm_credit.KvmHost;
-                            $("#host_ip").val(utils_ip);
+                            $("#host_ip").val(data.node.original.kvm_credit.KvmHost);
 
                             $.ajax({
                                 type: "POST",
@@ -102,13 +124,11 @@ function getkvmtree() {
                                     $("#form_div").hide();
                                 }
                             });
-
                             var os_image = data.node.original.kvm_template.os_image;
                             var disk_image = data.node.original.kvm_template.disk_image;
                             var base_image = data.node.original.kvm_template.base_image;
                             var windb_image = data.node.original.kvm_template.windb_image;
                             var linuxdb_image = data.node.original.kvm_template.linuxdb_image;
-
 
                             $('#select_kvm_template').empty();
                             $('#select_kvm_storage').empty();
@@ -119,7 +139,6 @@ function getkvmtree() {
                             }
                             os_image_pre += '</optgroup>';
                             $('#select_kvm_template').append(os_image_pre);
-
 
                             var disk_image_pre = '<option selected value="" ></option>';
                             disk_image_pre += '<optgroup label="' + '/home/images/disk-image' + '" class="dropdown-header">';
@@ -133,7 +152,6 @@ function getkvmtree() {
                                 disk_image_pre += '<option value="' + windb_image[i] + '">' + windb_image[i] + '</option>'
                             }
                             disk_image_pre += '</optgroup>';
-
 
                             disk_image_pre += '<optgroup label="' + '/home/images/linuxdb-image' + '" class="dropdown-header">';
                             for (i = 0; i < linuxdb_image.length; i++) {
@@ -149,15 +167,10 @@ function getkvmtree() {
 
                             $('#select_kvm_storage').append(disk_image_pre)
                         }
-                        // 虚拟机
+                        // KVM虚拟机
                         else {
                             $("#loading2").show();
                             $("#form_div").hide();
-                            var kvm_info = data.node.data;
-                            $("#kvm_name").val(kvm_info.name);
-                            $("#kvm_state").val(kvm_info.state);
-                            var utils_ip = data.node.original.ip;
-                            $("#utils_ip").val(utils_ip);
 
                             $.ajax({
                                 type: "POST",
@@ -173,9 +186,9 @@ function getkvmtree() {
                                     if (data.ret == 1) {
                                         $("#node").hide();
                                         $("#kvm_info").show();
-
                                         $("#loading2").hide();
                                         $("#form_div").show();
+                                        // KVM虚机的基础信息页面展示数据
                                         var kvm_info = data.data.kvm_info_data;
                                         $("#kvm_cpu").val(kvm_info.kvm_cpu + '个');
                                         $("#kvm_memory").val(kvm_info.kvm_memory + 'MB');
@@ -184,74 +197,57 @@ function getkvmtree() {
                                         $("#kvm_ip").val(data.data.ip);
                                         $("#kvm_hostname").val(data.data.hostname);
                                         $("#kvm_password").val(data.data.password);
-                                        if (type == 'KVM') {
-                                            if ($("#kvm_ip").val() == '' && $("#kvm_hostname").val() == '') {
-                                            $("#kvm_power_div").show();
-                                            $("#kvm_task_div").hide();
 
-                                            } else if ($("#kvm_ip").val() != '' && $("#kvm_hostname").val() != '') {
-                                                $("#kvm_power_div").hide();
-                                                $("#kvm_task_div").show();
-                                                if ($("#kvm_state").val() == '运行中') {
-                                                    $("#kvm_start").hide();
-                                                    $("#kvm_resume").hide();
-                                                    $("#kvm_shutdown").show();
-                                                    $("#kvm_destroy").show();
-                                                    $("#kvm_suspend").show();
-                                                    $("#kvm_reboot").show();
-                                                } else if ($("#kvm_state").val() == '关闭') {
-                                                    $("#kvm_start").show();
-                                                    $("#kvm_resume").hide();
-                                                    $("#kvm_suspend").hide();
-                                                    $("#kvm_shutdown").hide();
-                                                    $("#kvm_destroy").hide();
-                                                    $("#kvm_reboot").hide();
-                                                } else if ($("#kvm_state").val() == '暂停') {
-                                                    $("#kvm_start").hide();
-                                                    $("#kvm_shutdown").hide();
-                                                    $("#kvm_resume").show();
-                                                    $("#kvm_suspend").hide();
-                                                    $("#kvm_destroy").show();
-                                                    $("#kvm_reboot").hide();
-                                                    $("#kvm_undefine").hide();
-                                                }
-                                            }
-                                        }
-                                        if (type == 'COPY') {
+                                        // 任务栏：给电、断电、关闭、重启、暂停、唤醒、克隆、删除、激活按钮展示
+                                        // kvmcopy表中没有此kvm虚拟机的信息，意为此虚机没有激活，只展示激活按钮，
+                                        // 激活的虚机根据此虚机的状态展示：给电、断电、关闭、重启、暂停、唤醒、克隆、删除按钮
+                                        if ($("#kvm_ip").val() == '' && $("#kvm_hostname").val() == '') {
+                                            $("#kvm_suspend").hide();
+                                            $("#kvm_resume").hide();
+                                            $("#kvm_shutdown").hide();
+                                            $("#kvm_reboot").hide();
+                                            $("#kvm_clone").hide();
+                                            $("#kvm_destroy").hide();
+                                            $("#kvm_start").hide();
                                             $("#kvm_undefine").hide();
-                                            if ($("#kvm_ip").val() == '' && $("#kvm_hostname").val() == '') {
-                                                $("#kvm_power_div").show();
-                                                $("#kvm_task_div").hide();
-
-                                            } else if ($("#kvm_ip").val() != '' && $("#kvm_hostname").val() != '') {
-                                                $("#kvm_power_div").hide();
-                                                $("#kvm_task_div").show();
-                                                if ($("#kvm_state").val() == '运行中') {
-                                                    $("#kvm_start").hide();
-                                                    $("#kvm_resume").hide();
-                                                    $("#kvm_shutdown").show();
-                                                    $("#kvm_destroy").show();
-                                                    $("#kvm_suspend").show();
-                                                    $("#kvm_reboot").show();
-                                                } else if ($("#kvm_state").val() == '关闭') {
-                                                    $("#kvm_start").show();
-                                                    $("#kvm_resume").hide();
-                                                    $("#kvm_suspend").hide();
-                                                    $("#kvm_shutdown").hide();
-                                                    $("#kvm_destroy").hide();
-                                                    $("#kvm_reboot").hide();
-                                                    $("#kvm_undefine").show();
-                                                } else if ($("#kvm_state").val() == '暂停') {
-                                                    $("#kvm_start").hide();
-                                                    $("#kvm_shutdown").hide();
-                                                    $("#kvm_resume").show();
-                                                    $("#kvm_suspend").hide();
-                                                    $("#kvm_destroy").show();
-                                                    $("#kvm_reboot").hide();
-                                                }
+                                            $("#kvm_power").show();
+                                        } else if ($("#kvm_ip").val() != '' && $("#kvm_hostname").val() != '') {
+                                            $("#kvm_suspend").show();
+                                            $("#kvm_resume").show();
+                                            $("#kvm_shutdown").show();
+                                            $("#kvm_reboot").show();
+                                            $("#kvm_clone").show();
+                                            $("#kvm_destroy").show();
+                                            $("#kvm_start").show();
+                                            $("#kvm_undefine").show();
+                                            $("#kvm_power").hide();
+                                            if ($("#kvm_state").val() == '运行中') {
+                                                $("#kvm_start").hide();
+                                                $("#kvm_resume").hide();
+                                                $("#kvm_undefine").hide();
+                                                $("#kvm_shutdown").show();
+                                                $("#kvm_destroy").show();
+                                                $("#kvm_suspend").show();
+                                                $("#kvm_reboot").show();
+                                            } else if ($("#kvm_state").val() == '关闭') {
+                                                $("#kvm_start").show();
+                                                $("#kvm_resume").hide();
+                                                $("#kvm_suspend").hide();
+                                                $("#kvm_shutdown").hide();
+                                                $("#kvm_destroy").hide();
+                                                $("#kvm_reboot").hide();
+                                                $("#kvm_undefine").show();
+                                            } else if ($("#kvm_state").val() == '暂停') {
+                                                $("#kvm_start").hide();
+                                                $("#kvm_shutdown").hide();
+                                                $("#kvm_resume").show();
+                                                $("#kvm_suspend").hide();
+                                                $("#kvm_destroy").show();
+                                                $("#kvm_reboot").hide();
+                                                $("#kvm_undefine").hide();
                                             }
                                         }
-
+                                        // 内存空间使用情况、cpu使用率、磁盘空间使用情况信息根据虚机的状态展示
                                         var kvm_diskcpumemory_data = data.data.kvm_diskcpumemory_data;
                                         if ($("#kvm_state").val() == '运行中' || $("#kvm_state").val() == '暂停') {
                                             $('#kvm_memory_space input').eq(0).val(kvm_diskcpumemory_data["mem_usage"].toFixed(0)).trigger('change');
@@ -286,7 +282,6 @@ function getkvmtree() {
                                 }
                             });
                         }
-
                     });
             }
         }
@@ -298,6 +293,7 @@ function getkvmtree() {
 $(document).ready(function () {
     $('#loading').show();
     $('#showdata').hide();
+    // 加载树
     getkvmtree();
 
     var Dashboard = function () {
@@ -327,9 +323,8 @@ $(document).ready(function () {
             Dashboard.init(); // init metronic core componets
         });
     }
-
+    // 完成开机、关机、暂停、运行、断电后重新获取kvm虚拟机的cpu、内存使用信息
     function get_kvm_task_data() {
-        //完成开机、关机、暂停、运行、断电后重新获取kvm虚拟机的cpu、内存使用信息
         $.ajax({
             type: "POST",
             dataType: 'json',
@@ -342,77 +337,55 @@ $(document).ready(function () {
             },
             success: function (data) {
                 if (data.ret == 1) {
-                    var type = $("#type").val();
                     $("#node").hide();
                     $("#kvm_info").show();
                     $("#loading2").hide();
                     $("#form_div").show();
 
-                    if (type == 'KVM') {
-                        if ($("#kvm_ip").val() == '' && $("#kvm_hostname").val() == '') {
-                        $("#kvm_power_div").show();
-                        $("#kvm_task_div").hide();
-
-                        } else if ($("#kvm_ip").val() != '' && $("#kvm_hostname").val() != '') {
-                            $("#kvm_power_div").hide();
-                            $("#kvm_task_div").show();
-                            if ($("#kvm_state").val() == '运行中') {
-                                $("#kvm_start").hide();
-                                $("#kvm_resume").hide();
-                                $("#kvm_shutdown").show();
-                                $("#kvm_destroy").show();
-                                $("#kvm_suspend").show();
-                                $("#kvm_reboot").show();
-                            } else if ($("#kvm_state").val() == '关闭') {
-                                $("#kvm_start").show();
-                                $("#kvm_resume").hide();
-                                $("#kvm_suspend").hide();
-                                $("#kvm_shutdown").hide();
-                                $("#kvm_destroy").hide();
-                                $("#kvm_reboot").hide();
-                            } else if ($("#kvm_state").val() == '暂停') {
-                                $("#kvm_start").hide();
-                                $("#kvm_shutdown").hide();
-                                $("#kvm_resume").show();
-                                $("#kvm_suspend").hide();
-                                $("#kvm_destroy").show();
-                                $("#kvm_reboot").hide();
-                                $("#kvm_undefine").hide();
-                            }
-                        }
-                    }
-                    if (type == 'COPY') {
+                    if ($("#kvm_ip").val() == '' && $("#kvm_hostname").val() == '') {
+                        $("#kvm_suspend").hide();
+                        $("#kvm_resume").hide();
+                        $("#kvm_shutdown").hide();
+                        $("#kvm_reboot").hide();
+                        $("#kvm_clone").hide();
+                        $("#kvm_destroy").hide();
+                        $("#kvm_start").hide();
                         $("#kvm_undefine").hide();
-                        if ($("#kvm_ip").val() == '' && $("#kvm_hostname").val() == '') {
-                            $("#kvm_power_div").show();
-                            $("#kvm_task_div").hide();
-
-                        } else if ($("#kvm_ip").val() != '' && $("#kvm_hostname").val() != '') {
-                            $("#kvm_power_div").hide();
-                            $("#kvm_task_div").show();
-                            if ($("#kvm_state").val() == '运行中') {
-                                $("#kvm_start").hide();
-                                $("#kvm_resume").hide();
-                                $("#kvm_shutdown").show();
-                                $("#kvm_destroy").show();
-                                $("#kvm_suspend").show();
-                                $("#kvm_reboot").show();
-                            } else if ($("#kvm_state").val() == '关闭') {
-                                $("#kvm_start").show();
-                                $("#kvm_resume").hide();
-                                $("#kvm_suspend").hide();
-                                $("#kvm_shutdown").hide();
-                                $("#kvm_destroy").hide();
-                                $("#kvm_reboot").hide();
-                                $("#kvm_undefine").show();
-                            } else if ($("#kvm_state").val() == '暂停') {
-                                $("#kvm_start").hide();
-                                $("#kvm_shutdown").hide();
-                                $("#kvm_resume").show();
-                                $("#kvm_suspend").hide();
-                                $("#kvm_destroy").show();
-                                $("#kvm_reboot").hide();
-                            }
+                        $("#kvm_power").show();
+                    } else if ($("#kvm_ip").val() != '' && $("#kvm_hostname").val() != '') {
+                        $("#kvm_suspend").show();
+                        $("#kvm_resume").show();
+                        $("#kvm_shutdown").show();
+                        $("#kvm_reboot").show();
+                        $("#kvm_clone").show();
+                        $("#kvm_destroy").show();
+                        $("#kvm_start").show();
+                        $("#kvm_undefine").show();
+                        $("#kvm_power").hide();
+                        if ($("#kvm_state").val() == '运行中') {
+                            $("#kvm_start").hide();
+                            $("#kvm_resume").hide();
+                            $("#kvm_undefine").hide();
+                            $("#kvm_shutdown").show();
+                            $("#kvm_destroy").show();
+                            $("#kvm_suspend").show();
+                            $("#kvm_reboot").show();
+                        } else if ($("#kvm_state").val() == '关闭') {
+                            $("#kvm_start").show();
+                            $("#kvm_resume").hide();
+                            $("#kvm_suspend").hide();
+                            $("#kvm_shutdown").hide();
+                            $("#kvm_destroy").hide();
+                            $("#kvm_reboot").hide();
+                            $("#kvm_undefine").show();
+                        } else if ($("#kvm_state").val() == '暂停') {
+                            $("#kvm_start").hide();
+                            $("#kvm_shutdown").hide();
+                            $("#kvm_resume").show();
+                            $("#kvm_suspend").hide();
+                            $("#kvm_destroy").show();
+                            $("#kvm_reboot").hide();
+                            $("#kvm_undefine").hide();
                         }
                     }
 
@@ -452,6 +425,7 @@ $(document).ready(function () {
             }
         });
     };
+    // 暂停虚机
     $('#kvm_suspend').click(function () {
         if (confirm("确定要暂停该虚拟机？")) {
             $.ajax({
@@ -482,8 +456,14 @@ $(document).ready(function () {
                             $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
 
                             // 完成开机、关机、暂停、运行、断电后重新设置虚拟机的id和状态
-                            curnode.data.id = kvm_id;
-                            curnode.data.state = '暂停';
+                            //  完成克隆后点击激活虚机，没有刷新页面，点击暂停，data为空，判断data数据，重新加载虚机id和状态
+                            if (curnode.data){
+                                curnode.data.id = data["kvm_id"];
+                                curnode.data.state = '暂停'
+                            }else {
+                                curnode.original.kvm_id = data["kvm_id"];
+                                curnode.original.kvm_state = '暂停'
+                            }
                         }
                         alert(myres);
                     }
@@ -494,6 +474,7 @@ $(document).ready(function () {
             });
         }
     });
+    // 唤醒虚机
     $('#kvm_resume').click(function () {
         $.ajax({
             type: "POST",
@@ -519,8 +500,15 @@ $(document).ready(function () {
 
                         var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:red; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:green; height:24px;'></span> ");
                         $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
-                        curnode.data.id = kvm_id;
-                        curnode.data.state = '运行中'
+                        // 完成开机、关机、暂停、运行、断电后重新设置虚拟机的id和状态
+                        //  完成克隆后点击激活虚机，没有刷新页面，点击唤醒，data为空，判断data数据，重新加载虚机id和状态
+                        if (curnode.data){
+                            curnode.data.id = data["kvm_id"];
+                            curnode.data.state = '运行中'
+                        }else {
+                            curnode.original.kvm_id = data["kvm_id"];
+                            curnode.original.kvm_state = '运行中'
+                        }
                     }
                     alert(myres);
                 }
@@ -531,6 +519,7 @@ $(document).ready(function () {
         });
 
     });
+    // 关闭虚机
     $('#kvm_shutdown').click(function () {
         if (confirm("确定要关闭该虚拟机？")) {
             $.ajax({
@@ -555,8 +544,16 @@ $(document).ready(function () {
                             var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
                             var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:green; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:red; height:24px;'></span> ");
                             $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
-                            curnode.data.id = kvm_id;
-                            curnode.data.state = '关闭'
+
+                            // 完成开机、关机、暂停、运行、断电后重新设置虚拟机的id和状态
+                            //  完成克隆后点击激活虚机，没有刷新页面，点击关闭，data为空，判断data数据，重新加载虚机id和状态
+                            if (curnode.data){
+                                curnode.data.id = data["kvm_id"];
+                                curnode.data.state = '关闭'
+                            }else {
+                                curnode.original.kvm_id = data["kvm_id"];
+                                curnode.original.kvm_state = '关闭'
+                            }
                         }
                         alert(myres);
                     }
@@ -567,6 +564,7 @@ $(document).ready(function () {
             });
         }
     });
+    // 重启虚机
     $('#kvm_reboot').click(function () {
         $.ajax({
             type: "POST",
@@ -588,8 +586,16 @@ $(document).ready(function () {
                         $('#kvm_id').val(kvm_id);
                         get_kvm_task_data();
                         var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
-                        curnode.data.id = kvm_id;
-                        curnode.data.state = '运行中'
+
+                        // 完成开机、关机、暂停、运行、断电后重新设置虚拟机的id和状态
+                        //  完成克隆后点击激活虚机，没有刷新页面，点击重启，data为空，判断data数据，重新加载虚机id和状态
+                        if (curnode.data){
+                            curnode.data.id = data["kvm_id"];
+                            curnode.data.state = '运行中'
+                        }else {
+                            curnode.original.kvm_id = data["kvm_id"];
+                            curnode.original.kvm_state = '运行中'
+                        }
                     }
                     alert(myres);
                 }
@@ -600,6 +606,7 @@ $(document).ready(function () {
         });
 
     });
+    // 断电虚机
     $('#kvm_destroy').click(function () {
         if (confirm("确定要断电该虚拟机？")) {
             $.ajax({
@@ -624,8 +631,16 @@ $(document).ready(function () {
                             var curnode = $('#tree_kvm_manage').jstree('get_node', $("#id").val());
                             var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:green; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:red; height:24px;'></span> ");
                             $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
-                            curnode.data.id = kvm_id;
-                            curnode.data.state = '关闭'
+
+                            // 完成开机、关机、暂停、运行、断电后重新设置虚拟机的id和状态
+                            // 完成克隆后点击激活虚机，没有刷新页面，点击断电，data为空，判断data数据，重新加载虚机id和状态
+                            if (curnode.data){
+                                curnode.data.id = data["kvm_id"];
+                                curnode.data.state = '关闭'
+                            }else {
+                                curnode.original.kvm_id = data["kvm_id"];
+                                curnode.original.kvm_state = '关闭'
+                            }
                         }
                         alert(myres);
                     }
@@ -636,6 +651,7 @@ $(document).ready(function () {
             });
         }
     });
+    // 给电虚机
     $('#kvm_start').click(function () {
         $.ajax({
             type: "POST",
@@ -665,8 +681,14 @@ $(document).ready(function () {
                         $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
 
                         // 完成开机、关机、暂停、运行、断电后重新设置虚拟机的id和状态
-                        curnode.data.id = kvm_id;
-                        curnode.data.state = '运行中'
+                        //  完成克隆后点击激活虚机，没有刷新页面，点击开机，data为空，判断data数据，重新加载虚机id和状态
+                        if (curnode.data){
+                            curnode.data.id = data["kvm_id"];
+                            curnode.data.state = '运行中'
+                        }else {
+                            curnode.original.kvm_id = data["kvm_id"];
+                            curnode.original.kvm_state = '运行中'
+                        }
                     }
                     alert(myres);
                 }
@@ -676,7 +698,7 @@ $(document).ready(function () {
             }
         });
     });
-
+    // 删除虚机
     $('#kvm_undefine').click(function () {
         if (confirm("确定要删除该虚拟机？")) {
             $.ajax({
@@ -686,7 +708,6 @@ $(document).ready(function () {
                     {
                         utils_id: $("#utils_id").val(),
                         kvm_name: $("#kvm_name").val(),
-                        kvm_state: $("#kvm_state").val(),
                     },
                 success: function (data) {
                     if (data.ret == 0) {
@@ -694,7 +715,7 @@ $(document).ready(function () {
                     } else {
                         var myres = data["data"];
                         if (myres == "删除成功。") {
-                            //树节点删除
+                            //树节点移除此虚机
                             var ref = $('#tree_kvm_manage').jstree(true),
                             sel = ref.get_selected();
                             ref.delete_node(sel);
@@ -709,6 +730,7 @@ $(document).ready(function () {
         }
 
     });
+    // 克隆虚机弹出填写信息
     $('#kvm_clone').click(function () {
         $('#static01').modal('show');
         $('#loading1').hide();
@@ -716,6 +738,7 @@ $(document).ready(function () {
         $('#kvm_name_old').val($('#kvm_name').val());
         $('#kvm_name_new').val('')
     });
+    // 克隆虚机
     $('#kvm_clone_save').click(function () {
         $('#kvm_clone_div').hide();
         $('#loading1').show();
@@ -737,15 +760,17 @@ $(document).ready(function () {
                 } else {
                     var myres = data["data"];
                     if (myres == "克隆成功。") {
-                        // 克隆成功，树节点新增
+                        // 克隆成功，树节点新增虚拟机
                         $('#tree_kvm_manage').jstree('create_node', $("#pid").val(), {
-                            "text": $("#kvm_name_new").val(),
+                            "utils_id": data["utils_id"],
+                            "utils_ip": data["utils_ip"],
+                            "kvm_name": $("#kvm_name_new").val(),
+                            "kvm_state": '关闭',
+                            "kvm_id": '-1',
+                            "icon": false,
+                            "text": "<span class='fa fa-desktop' style='color:red; height:24px;'></span> " + $("#kvm_name_new").val(),
                         }, "last", false, false);
                         $('#tree_kvm_manage').jstree('deselect_all');
-
-                        var ref = $('#tree_kvm_manage').jstree(true);
-                        ref.refresh();
-
                     }
                     alert(myres);
                     $('#loading1').hide();
@@ -759,6 +784,7 @@ $(document).ready(function () {
             }
         });
     });
+    // 新建虚机弹出填写信息
     $('#create_kvm_div').click(function () {
         $('#static02').modal('show');
         $('#loading3').hide();
@@ -770,6 +796,7 @@ $(document).ready(function () {
         $('#alter_kvm_memory').val('');
 
     });
+    // 新建虚机
     $('#kvm_machine_create').click(function () {
         $('#create_kvm_machine').hide();
         $('#loading3').show();
@@ -794,14 +821,17 @@ $(document).ready(function () {
                 } else {
                     var myres = data["data"];
                     if (myres == "注册成功。") {
-                        // 注册成功，树节点新增
+                        // 注册成功，树节点新增虚拟机
                         $('#tree_kvm_manage').jstree('create_node', $("#id").val(), {
-                            "text": $("#kvm_template_name").val(),
+                            "utils_id": data["utils_id"],
+                            "utils_ip": data["utils_ip"],
+                            "kvm_name": $("#kvm_template_name").val(),
+                            "kvm_state": '关闭',
+                            "kvm_id": '-1',
+                            "icon": false,
+                            "text": "<span class='fa fa-desktop' style='color:red; height:24px;'></span> " + $("#kvm_template_name").val(),
                         }, "last", false, false);
                         $('#tree_kvm_manage').jstree('deselect_all');
-
-                        var ref = $('#tree_kvm_manage').jstree(true);
-                        ref.refresh();
                     }
                     alert(myres);
                     $('#loading3').hide();
@@ -815,15 +845,19 @@ $(document).ready(function () {
             }
         });
     });
+    // 激活虚机弹出填写信息
     $('#kvm_power').click(function () {
         $('#static03').modal('show');
         $('#loading4').hide();
         $('#ip_hostname_div').show();
+        $('#alter_ip').val('');
+        $('#alter_hostname').val($("#kvm_name").val());
+        $('#alter_password').val('');
     });
+    // 激活虚机
     $('#kvm_power_save').click(function () {
         $('#loading4').show();
         $('#ip_hostname_div').hide();
-
         $.ajax({
             type: "POST",
             dataType: 'json',
@@ -844,16 +878,11 @@ $(document).ready(function () {
                 } else {
                     var myres = data["data"];
                     if (myres == "激活成功。") {
-                        var kvm_id = data["kvm_id"];
-                        var kvm_ip = data["ip"];
-                        var kvm_hostname = data["hostname"];
-                        var kvm_password = data["password"];
-
                         $('#kvm_state').val('运行中');
-                        $('#kvm_id').val(kvm_id);
-                        $("#kvm_ip").val(kvm_ip);
-                        $("#kvm_hostname").val(kvm_hostname);
-                        $("#kvm_password").val(kvm_password);
+                        $('#kvm_id').val(data["kvm_id"]);
+                        $("#kvm_ip").val(data["ip"]);
+                        $("#kvm_hostname").val(data["hostname"]);
+                        $("#kvm_password").val(data["password"]);
 
                         //重新获取kvm虚拟机的cpu、内存使用信息
                         get_kvm_task_data();
@@ -863,9 +892,14 @@ $(document).ready(function () {
                         var newtext = curnode.text.replace("<span class='fa fa-desktop' style='color:red; height:24px;'></span> ", "<span class='fa fa-desktop' style='color:green; height:24px;'></span> ");
                         $('#tree_kvm_manage').jstree('set_text', $("#id").val(), newtext);
 
-                        // 完成激活后重新设置虚拟机的id和状态
-                        curnode.data.id = kvm_id;
-                        curnode.data.state = '运行中';
+                        // 完成克隆后点击激活虚机，data为空，判断data数据，重新加载虚机id和状态
+                        if (curnode.data){
+                            curnode.data.id = data["kvm_id"];
+                            curnode.data.state = '运行中'
+                        }else {
+                            curnode.original.kvm_id = data["kvm_id"];
+                            curnode.original.kvm_state = '运行中'
+                        }
                     }
                     alert(myres);
                     $('#loading4').hide();
@@ -879,6 +913,5 @@ $(document).ready(function () {
             }
         });
     });
-
 
 });

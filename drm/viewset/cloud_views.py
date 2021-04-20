@@ -636,13 +636,13 @@ def kvm_clone_save(request):
         utils_id = int(utils_id)
     except:
         pass
+    kvm_credit = kvm_credit_data(utils_id)
     if not kvm_clone_name.strip():
         return JsonResponse({
             "ret": 0,
             "data": "新虚拟机名称未填写。",
         })
     else:
-        kvm_credit = kvm_credit_data(utils_id)
         try:
             clone_giid = '6bab5454-9815-11eb-bc7a-000c29921d27'
             clone_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
@@ -671,6 +671,9 @@ def kvm_clone_save(request):
     return JsonResponse({
         'ret': ret,
         'data': data,
+        'utils_ip': kvm_credit['KvmHost'],
+        'utils_id': utils_id
+
     })
 
 
@@ -712,7 +715,6 @@ def kvm_machine_create(request):
             })
         else:
             data = '注册成功。'
-            pass
     except Exception as e:
         print(e)
         ret = 0
@@ -720,6 +722,8 @@ def kvm_machine_create(request):
     return JsonResponse({
         'ret': ret,
         'data': data,
+        'utils_ip': kvm_credit['KvmHost'],
+        'utils_id': utils_id
     })
 
 
