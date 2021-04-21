@@ -462,7 +462,6 @@ class KVMApi():
         filesystem_list = [x.replace('\t', '') for x in result['data'].split(' ') if x]
         del filesystem_list[0:2]
         end_list = self.list_of_groups(filesystem_list, 9)
-        print(end_list)
         filesystem_name = []
         for item in end_list:
             filesystem_name.append(item[8])
@@ -889,6 +888,8 @@ class KVMApi():
         return filesystem_name
 
     def hostdata(self):
+        # 监控主机信息：cpu、内存、磁盘使用情况，主机名
+        # 磁盘使用情况
         exe_cmd = r'df'
         result = self.remote_linux(exe_cmd)
         disk_info = [x for x in result['data'].split(' ') if x]
@@ -913,22 +914,27 @@ class KVMApi():
                 used += int(i['used'])
         disk_usage = round(used / total * 100, 2)
 
+        # cpu使用率
         exe_cmd = r"top -n1 | awk '/Cpu/{print $2}'"
         result = self.remote_linux(exe_cmd)
         cpu_usage = float(result['data'])
 
+        # 系统版本
         exe_cmd = r"cat /etc/centos-release"
         result = self.remote_linux(exe_cmd)
         os = result['data'].strip()
 
+        # cpu个数
         exe_cmd = r'cat /proc/cpuinfo | grep "processor"| wc -l'
         result = self.remote_linux(exe_cmd)
         cpu_count = result['data']
 
+        # 主机名
         exe_cmd = r"hostname"
         result = self.remote_linux(exe_cmd)
         hostname = result['data'].strip()
 
+        # 内存使用情况
         exe_cmd = r"head /proc/meminfo"
         result = self.remote_linux(exe_cmd)
         mem_info = [x for x in result['data'].split(' ') if x]
@@ -945,7 +951,6 @@ class KVMApi():
         free_mem = mem_free + mem_buffers + mem_cached
         used_mem = mem_total - free_mem
         memory_usage = round(100 * used_mem / mem_total, 2)
-        free_mem = mem_free + mem_buffers + mem_cached
 
         diskcpumemory = {
             'disk_total': round(total / 1024 / 1024, 2),
@@ -978,6 +983,54 @@ class KVMApi():
             filesystem_name.append(data)
         return filesystem_name
 
+    def snapshot_clone_filesystem(self):
+        # 获取所有zfs快照克隆的文件系统
+        exe_cmd = r'ls -l /data/vmdata'.format()
+        result = self.remote_linux(exe_cmd)
+        filesystem_list = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+        del filesystem_list[0:2]
+        end_list = self.list_of_groups(filesystem_list, 9)
+        filesystem_name = []
+        for item in end_list:
+            if ':' in item[8]:
+                filesystem_name.append(item[8])
+        return filesystem_name
+
+    def alter_kvm_cpu_memory(self, kvm_name, kvm_cpu, kvm_memory):
+        # 修改cpu个数和内存大小
+        try:
+            # 找出要替换的cpu
+            exe_cmd = r'cat /etc/libvirt/qemu/{0}.xml | grep vcpu'.format(kvm_name)
+            result = self.remote_linux(exe_cmd)
+            org_cpu = result['data'].strip()         # <vcpu placement='static'>2</vcpu>
+            new_cpu = "<vcpu placement='static'>{0}</vcpu>".format(kvm_cpu)
+            # 旧cpu换成新cpu
+            exe_cmd = r'sed -i "s#{0}#{1}#g" /etc/libvirt/qemu/{2}.xml'.format(org_cpu, new_cpu, kvm_name)
+            self.remote_linux(exe_cmd)
+
+            kvm_memory = int(kvm_memory)*1024
+            # 找出要替换的memory
+            exe_cmd = r'cat /etc/libvirt/qemu/{0}.xml | grep memory'.format(kvm_name)
+            result = self.remote_linux(exe_cmd)
+            org_memory = result['data'].strip()  # <memory unit='KiB'>1048576</memory>
+            new_memory = "<memory unit='KiB'>{0}</memory>".format(str(kvm_memory))
+            # 旧memory换成新memory
+            exe_cmd = r'sed -i "s#{0}#{1}#g" /etc/libvirt/qemu/{2}.xml'.format(org_memory, new_memory, kvm_name)
+            self.remote_linux(exe_cmd)
+
+            # 找出要替换的currentmemory
+            exe_cmd = r'cat /etc/libvirt/qemu/{0}.xml | grep currentMemory'.format(kvm_name)
+            result = self.remote_linux(exe_cmd)
+            org_currentmemory = result['data'].strip()  # <currentMemory unit='KiB'>1048576</currentMemory>
+            new_currentmemory = "<currentMemory unit='KiB'>{0}</currentMemory>".format(str(kvm_memory))
+            # 旧currentmemory换成新currentmemory
+            exe_cmd = r'sed -i "s#{0}#{1}#g" /etc/libvirt/qemu/{2}.xml'.format(org_currentmemory, new_currentmemory, kvm_name)
+            self.remote_linux(exe_cmd)
+            result = '修改成功。'
+        except Exception as e:
+            print(e)
+            result = '修改失败。'
+        return result
 
 linuxserver_credit = {
     'KvmHost': '192.168.1.61',
@@ -991,8 +1044,9 @@ ip = '192.168.1.61'
 # result = KVMApi(linuxserver_credit).all_kvm_name()
 # result = KVMApi(linuxserver_credit).zfs_kvm_filesystem()
 # result = KVMApi(linuxserver_credit).memory_disk_cpu_data()
-# result = KVMApi(linuxserver_credit).get_zfs_snapshot_list()
+# result = KVMApi(linuxserver_credit).alter_kvm_cpu_memory('Test-5', '1', '1048')
 # result = LibvirtApi(ip).kvm_id('Test-2')
 # result = LibvirtApi(ip).mem_cpu_hostname_info()
 # print(result)
+
 

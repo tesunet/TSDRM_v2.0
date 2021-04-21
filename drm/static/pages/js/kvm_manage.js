@@ -210,6 +210,7 @@ function getkvmtree() {
                                             $("#kvm_destroy").hide();
                                             $("#kvm_start").hide();
                                             $("#kvm_undefine").hide();
+                                            $("#kvm_edit_cpu_mem").hide();
                                             $("#kvm_power").show();
                                         } else if ($("#kvm_ip").val() != '' && $("#kvm_hostname").val() != '') {
                                             $("#kvm_suspend").show();
@@ -220,15 +221,18 @@ function getkvmtree() {
                                             $("#kvm_destroy").show();
                                             $("#kvm_start").show();
                                             $("#kvm_undefine").show();
+                                            $("#kvm_edit_cpu_mem").show();
                                             $("#kvm_power").hide();
                                             if ($("#kvm_state").val() == '运行中') {
                                                 $("#kvm_start").hide();
                                                 $("#kvm_resume").hide();
                                                 $("#kvm_undefine").hide();
+                                                $("#kvm_clone").hide();
                                                 $("#kvm_shutdown").show();
                                                 $("#kvm_destroy").show();
                                                 $("#kvm_suspend").show();
                                                 $("#kvm_reboot").show();
+                                                $("#kvm_edit_cpu_mem").hide();
                                             } else if ($("#kvm_state").val() == '关闭') {
                                                 $("#kvm_start").show();
                                                 $("#kvm_resume").hide();
@@ -236,15 +240,19 @@ function getkvmtree() {
                                                 $("#kvm_shutdown").hide();
                                                 $("#kvm_destroy").hide();
                                                 $("#kvm_reboot").hide();
+                                                $("#kvm_clone").show();
                                                 $("#kvm_undefine").show();
+                                                $("#kvm_edit_cpu_mem").show();
                                             } else if ($("#kvm_state").val() == '暂停') {
                                                 $("#kvm_start").hide();
                                                 $("#kvm_shutdown").hide();
                                                 $("#kvm_resume").show();
                                                 $("#kvm_suspend").hide();
                                                 $("#kvm_destroy").show();
+                                                $("#kvm_clone").show();
                                                 $("#kvm_reboot").hide();
                                                 $("#kvm_undefine").hide();
+                                                $("#kvm_edit_cpu_mem").hide();
                                             }
                                         }
                                         // 内存空间使用情况、cpu使用率、磁盘空间使用情况信息根据虚机的状态展示
@@ -351,6 +359,7 @@ $(document).ready(function () {
                         $("#kvm_destroy").hide();
                         $("#kvm_start").hide();
                         $("#kvm_undefine").hide();
+                        $("#kvm_edit_cpu_mem").hide();
                         $("#kvm_power").show();
                     } else if ($("#kvm_ip").val() != '' && $("#kvm_hostname").val() != '') {
                         $("#kvm_suspend").show();
@@ -361,15 +370,18 @@ $(document).ready(function () {
                         $("#kvm_destroy").show();
                         $("#kvm_start").show();
                         $("#kvm_undefine").show();
+                        $("#kvm_edit_cpu_mem").show();
                         $("#kvm_power").hide();
                         if ($("#kvm_state").val() == '运行中') {
                             $("#kvm_start").hide();
                             $("#kvm_resume").hide();
                             $("#kvm_undefine").hide();
+                            $("#kvm_clone").hide();
                             $("#kvm_shutdown").show();
                             $("#kvm_destroy").show();
                             $("#kvm_suspend").show();
                             $("#kvm_reboot").show();
+                            $("#kvm_edit_cpu_mem").hide();
                         } else if ($("#kvm_state").val() == '关闭') {
                             $("#kvm_start").show();
                             $("#kvm_resume").hide();
@@ -377,15 +389,19 @@ $(document).ready(function () {
                             $("#kvm_shutdown").hide();
                             $("#kvm_destroy").hide();
                             $("#kvm_reboot").hide();
+                            $("#kvm_clone").show();
                             $("#kvm_undefine").show();
+                            $("#kvm_edit_cpu_mem").show();
                         } else if ($("#kvm_state").val() == '暂停') {
                             $("#kvm_start").hide();
                             $("#kvm_shutdown").hide();
                             $("#kvm_resume").show();
                             $("#kvm_suspend").hide();
                             $("#kvm_destroy").show();
+                            $("#kvm_clone").show();
                             $("#kvm_reboot").hide();
                             $("#kvm_undefine").hide();
+                            $("#kvm_edit_cpu_mem").hide();
                         }
                     }
 
@@ -910,6 +926,55 @@ $(document).ready(function () {
                 alert("页面出现错误，请于管理员联系。");
                 $('#loading4').hide();
                 $('#ip_hostname_div').show();
+            }
+        });
+    });
+    // 编辑虚机弹出填写信息：cpu与内存修改
+    $('#kvm_edit_cpu_mem').click(function () {
+        $('#static04').modal('show');
+        $('#loading5').hide();
+        $('#alert_cpu_memory_div').show();
+        $('#alter_kvm_cpu').val('');
+        $('#alter_kvm_memory').val('');
+
+    });
+    // 虚机编辑：修改cpu与内存
+    $('#kvm_cpu_memory_save').click(function () {
+        $('#alert_cpu_memory_div').hide();
+        $('#loading5').show();
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../kvm_cpu_memory_save/",
+            data:
+                {
+                    utils_id: $("#utils_id").val(),
+                    kvm_name: $("#kvm_name").val(),
+                    kvm_cpu: $("#edit_kvm_cpu").val(),
+                    kvm_memory: $("#edit_kvm_memory").val(),
+                },
+            success: function (data) {
+                if (data.ret == 0) {
+                    alert(data.data);
+                    $('#loading5').hide();
+                    $('#alert_cpu_memory_div').show();
+                } else {
+                    var myres = data["data"];
+                    if (myres == "保存成功。") {
+                        //重新获取kvm虚拟机的cpu、内存使用信息
+                        $("#kvm_cpu").val($("#edit_kvm_cpu").val() + '个');
+                        $("#kvm_memory").val($("#edit_kvm_memory").val() + 'MB');
+                        get_kvm_task_data();
+                    }
+                    alert(myres);
+                    $('#loading5').hide();
+                    $('#static04').modal('hide');
+                }
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+                $('#loading5').hide();
+                $('#alert_cpu_memory_div').show();
             }
         });
     });

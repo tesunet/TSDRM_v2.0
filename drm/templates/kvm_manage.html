@@ -9,7 +9,7 @@
         background-position: center;
     }
 
-    #loading1 {
+    #loading1,#loading5 {
         height: 83px;
         width: 100%;
         background-image: url(../static/upload/loading.gif);
@@ -297,32 +297,35 @@
                                     <label class="col-md-2 control-label"></label>
                                     <div class="col-md-9">
                                         <div id="kvm_task_div">
+                                            <button type="button" id="kvm_start" name="kvm_start" class="btn green">
+                                                    给电
+                                            </button>
+                                            <button type="button" id="kvm_shutdown" name="kvm_shutdown" class="btn green">
+                                                    关闭
+                                            </button>
+                                            <button type="button" id="kvm_destroy" name="kvm_destroy" class="btn green">
+                                                    断电
+                                            </button>
+                                            <button type="button" id="kvm_reboot" name="kvm_reboot" class="btn green">
+                                                    重启
+                                            </button>
                                             <button type="button" id="kvm_suspend" name="kvm_suspend" class="btn green">
                                                     暂停
                                             </button>
                                             <button type="button" id="kvm_resume" name="kvm_resume" class="btn green">
                                                     唤醒
                                             </button>
-                                            <button type="button" id="kvm_shutdown" name="kvm_shutdown" class="btn green">
-                                                    关闭
-                                            </button>
-                                            <button type="button" id="kvm_reboot" name="kvm_reboot" class="btn green">
-                                                    重启
-                                            </button>
                                             <button type="button" id="kvm_clone" name="kvm_clone" class="btn green">
                                                     克隆
                                             </button>
-                                            <button type="button" id="kvm_destroy" name="kvm_destroy" class="btn green">
-                                                    断电
-                                            </button>
-                                            <button type="button" id="kvm_start" name="kvm_start" class="btn green">
-                                                    给电
+                                            <button type="button" id="kvm_edit_cpu_mem" name="kvm_edit_cpu_mem" class="btn green">
+                                                    编辑
                                             </button>
                                             <button type="button" id="kvm_undefine" name="kvm_undefine" class="btn green">
                                                     删除
                                             </button>
                                             <button type="button" id="kvm_power" name="kvm_power" class="btn green">
-                                                激活
+                                                    激活
                                             </button>
                                         </div>
                                     </div>
@@ -497,6 +500,47 @@
     </div>
 </div>
 
+<div id="static04" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
+                <h4 class="modal-title">编辑CPU与内存</h4>
+            </div>
+            <div class="panel-body">
+                <form class="bs-example form-horizontal activate-form">{% csrf_token %}
+                    <div id="loading5" class="portlet-body"></div>
+                    <div class="form-body" id="alert_cpu_memory_div">
+                        <div class="form-group">
+                             <label class="col-md-2 control-label"><span style="color:red; ">*</span>CPU</label>
+                            <div class="col-md-10">
+                                <input id="edit_kvm_cpu" type="text" name="edit_kvm_cpu" class="form-control"
+                                       placeholder="个">
+                                <div class="form-control-focus"></div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                             <label class="col-md-2 control-label"><span style="color:red; ">*</span>内存</label>
+                            <div class="col-md-10">
+                                <input id="edit_kvm_memory" type="text" name="edit_kvm_memory" class="form-control"
+                                       placeholder="内存大小必须为4MB的倍数">
+                                <div class="form-control-focus"></div>
+                            </div>
+                        </div>
+
+                    </div>
+                    <div class="form-actions ">
+                        <div class="modal-footer">
+                            <button type="button" data-dismiss="modal" class="btn dark btn-outline">关闭
+                            </button>
+                            <button type="button" id="kvm_cpu_memory_save" name="kvm_cpu_memory_save" class="btn green">保存</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div id="loading"  class="portlet-body"></div>
 

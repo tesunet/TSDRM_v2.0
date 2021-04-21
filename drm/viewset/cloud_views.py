@@ -806,6 +806,51 @@ def kvm_power(request):
     })
 
 
+# 执行组件，编辑KVM虚拟机：修改cpu个数和内存大小
+@login_required
+def kvm_cpu_memory_save(request):
+    utils_id = request.POST.get("utils_id", "")
+    kvm_name = request.POST.get("kvm_name", "")
+    kvm_cpu = request.POST.get("kvm_cpu", "")
+    kvm_memory = request.POST.get("kvm_memory", "")
+    ret = 1
+    try:
+        utils_id = int(utils_id)
+    except:
+        pass
+    kvm_credit = kvm_credit_data(utils_id)
+    try:
+        start_giid = '689d7bb0-98d4-11eb-9997-000c29921d27'
+        start_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
+                       {"code": "username", "value": kvm_credit['KvmUser']},
+                       {"code": "password", "value": kvm_credit['KvmPasswd']},
+                       {"code": "kvm_name", "value": kvm_name},
+                       {"code": "kvm_cpu", "value": kvm_cpu},
+                       {"code": "kvm_memory", "value": kvm_memory}
+                       ]
+        newJob = Job(userid=request.user.id)
+        state = newJob.execute_workflow(start_giid, input=start_input)
+        if state == 'NOTEXIST':
+            return JsonResponse({
+                "ret": 0,
+                "data": "组件不存在，请于管理员联系。",
+            })
+        elif state == 'ERROR':
+            return JsonResponse({
+                "ret": 0,
+                "data": newJob.jobBaseInfo['log'],
+            })
+        else:
+            data = '保存成功。'
+    except Exception as e:
+        print(e)
+        ret = 0
+        data = '保存失败。'
+    return JsonResponse({
+        'ret': ret,
+        'data': data,
+    })
+
 ######################
 # 模板管理
 ######################

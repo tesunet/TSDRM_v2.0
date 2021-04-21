@@ -271,14 +271,15 @@ urlpatterns = [
     url(r'^kvm_copy_data/$', kvm_copy_data),
     url(r'^kvm_copy_del/$', kvm_copy_del),
     url(r'^kvm_power_on/$', kvm_power_on),
-    url(r'^kvm_start/$', kvm_start),
-    url(r'^kvm_destroy/$', kvm_destroy),
+
 
     # 虚拟机管理
     url(r'^kvm_manage/$', kvm_manage, {'funid': '118'}),
     url(r'^get_kvm_tree/$', get_kvm_tree),
     url(r'^get_kvm_detail/$', get_kvm_detail),
     url(r'^get_kvm_task_data/$', get_kvm_task_data),
+    url(r'^kvm_start/$', kvm_start),
+    url(r'^kvm_destroy/$', kvm_destroy),
     url(r'^kvm_suspend/$', kvm_suspend),
     url(r'^kvm_resume/$', kvm_resume),
     url(r'^kvm_shutdown/$', kvm_shutdown),
@@ -289,6 +290,7 @@ urlpatterns = [
     url(r'^kvm_destroy/$', kvm_destroy),
     url(r'^kvm_machine_create/$', kvm_machine_create),
     url(r'^kvm_power/$', kvm_power),
+    url(r'^kvm_cpu_memory_save/$', kvm_cpu_memory_save),
 
     # 模板管理
     url(r'^kvm_template/$', kvm_template, {'funid': '119'}),
