@@ -934,9 +934,8 @@ $(document).ready(function () {
         $('#static04').modal('show');
         $('#loading5').hide();
         $('#alert_cpu_memory_div').show();
-        $('#alter_kvm_cpu').val('');
-        $('#alter_kvm_memory').val('');
-
+        $('#edit_kvm_cpu').val('');
+        $('#edit_kvm_memory').val('');
     });
     // 虚机编辑：修改cpu与内存
     $('#kvm_cpu_memory_save').click(function () {
