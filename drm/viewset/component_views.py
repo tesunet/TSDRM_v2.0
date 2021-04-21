@@ -264,34 +264,34 @@ def component_save(request):
             info = '短名称不能为空。'
             status = 0
         else:
-            db_shortname = TSDRMComponent.objects.exclude(state="9").filter(shortname=shortname)
-            if len(db_shortname) != 0:
-                info = '此名称已被其他组件占用,请更换名称。'
-                status = 0
+            input_params_xml = ''
+            if input_arr != '':
+                list_arr = split_input_option_value(input_arr)
+                input_dict = {"inputs": {"input": list_arr}}
+                input_params_xml = xmltodict.unparse(input_dict, encoding='utf-8')
             else:
-                input_params_xml = ''
-                if input_arr != '':
-                    list_arr = split_input_option_value(input_arr)
-                    input_dict = {"inputs": {"input": list_arr}}
-                    input_params_xml = xmltodict.unparse(input_dict, encoding='utf-8')
-                else:
-                    pass
-                variable_params_xml = ''
-                if variable_arr != '':
-                    list_arr = split_variable_option_value(variable_arr)
-                    variable_dict = {"variables": {"variable": list_arr}}
-                    variable_params_xml = xmltodict.unparse(variable_dict, encoding='utf-8')
-                else:
-                    pass
-                output_params_xml = ''
-                if output_arr != '':
-                    list_arr = split_output_option_value(output_arr)
-                    output_dict = {"outputs": {"output": list_arr}}
-                    output_params_xml = xmltodict.unparse(output_dict, encoding='utf-8')
-                else:
-                    pass
+                pass
+            variable_params_xml = ''
+            if variable_arr != '':
+                list_arr = split_variable_option_value(variable_arr)
+                variable_dict = {"variables": {"variable": list_arr}}
+                variable_params_xml = xmltodict.unparse(variable_dict, encoding='utf-8')
+            else:
+                pass
+            output_params_xml = ''
+            if output_arr != '':
+                list_arr = split_output_option_value(output_arr)
+                output_dict = {"outputs": {"output": list_arr}}
+                output_params_xml = xmltodict.unparse(output_dict, encoding='utf-8')
+            else:
+                pass
 
-                if id == 0:
+            if id == 0:
+                db_shortname = TSDRMComponent.objects.exclude(state="9").filter(shortname=shortname)
+                if len(db_shortname) != 0:
+                    info = '此名称已被其他组件占用,请更换名称。'
+                    status = 0
+                else:
                     try:
                         sort = 1
                         try:
@@ -333,28 +333,28 @@ def component_save(request):
                     except Exception as e:
                         # info = "保存失败：{0}".format(e)
                         status = 0
-                else:
-                    try:
-                        componentsave = TSDRMComponent.objects.get(id=id)
-                        componentsave.shortname = shortname
-                        componentsave.remark = remark
-                        componentsave.language = language
-                        componentsave.code = code
-                        componentsave.input = input_params_xml
-                        componentsave.variable = variable_params_xml
-                        componentsave.output = output_params_xml
-                        componentsave.updatetime = datetime.datetime.now()
-                        componentsave.updateuser = request.user
-                        componentsave.save()
-                        componentsave.longname = getLongname(componentsave)
-                        componentsave.save()
-                        select_id = componentsave.id
-                        updatetime = componentsave.updatetime.strftime(
-                            '%Y-%m-%d %H:%M:%S') if componentsave.updatetime else '',
-                        updateuser = request.user.userinfo.fullname
-                    except Exception as e:
-                        info = "保存失败：{0}3".format(e)
-                        status = 0
+            else:
+                try:
+                    componentsave = TSDRMComponent.objects.get(id=id)
+                    componentsave.shortname = shortname
+                    componentsave.remark = remark
+                    componentsave.language = language
+                    componentsave.code = code
+                    componentsave.input = input_params_xml
+                    componentsave.variable = variable_params_xml
+                    componentsave.output = output_params_xml
+                    componentsave.updatetime = datetime.datetime.now()
+                    componentsave.updateuser = request.user
+                    componentsave.save()
+                    componentsave.longname = getLongname(componentsave)
+                    componentsave.save()
+                    select_id = componentsave.id
+                    updatetime = componentsave.updatetime.strftime(
+                        '%Y-%m-%d %H:%M:%S') if componentsave.updatetime else '',
+                    updateuser = request.user.userinfo.fullname
+                except Exception as e:
+                    info = "保存失败：{0}3".format(e)
+                    status = 0
 
     return JsonResponse({
         "status": status,
