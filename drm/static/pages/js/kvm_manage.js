@@ -270,7 +270,7 @@ function getkvmtree() {
 
                                         if ($("#kvm_state").val() == '关闭') {
                                             $('#kvm_memory_space input').eq(0).val(0).trigger('change');
-                                            $('#kvm_memory_space h4').eq(1).text(0 + "/" + kvm_info.kvm_memory / 1024 + " GB");
+                                            $('#kvm_memory_space h4').eq(1).text(0 + "/" + (kvm_info.kvm_memory / 1024).toFixed(2) + " GB");
                                             $('#kvm_cpu_space input').eq(0).val(0).trigger('change');
                                             $('#kvm_cpu_space h4').eq(1).text('0' + " %");
                                         }
@@ -423,7 +423,7 @@ $(document).ready(function () {
                     if ($("#kvm_state").val() == '关闭') {
                         var kvm_memory = $('#kvm_memory').val().replace('MB', '');
                         $('#kvm_memory_space input').eq(0).val(0).trigger('change');
-                        $('#kvm_memory_space h4').eq(1).text(0 + "/" + parseInt(kvm_memory)/1024 + " GB");
+                        $('#kvm_memory_space h4').eq(1).text(0 + "/" + (parseInt(kvm_memory)/1024).toFixed(2) + " GB");
                         $('#kvm_cpu_space input').eq(0).val(0).trigger('change');
                         $('#kvm_cpu_space h4').eq(1).text('0' + " %");
                     }
