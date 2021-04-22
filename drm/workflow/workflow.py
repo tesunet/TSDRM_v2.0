@@ -690,65 +690,57 @@ class Job(object):
                             # 修改dos
                             change_dos = r"sed -i 's/\r$//' {0}&&sed -i 's/\r$//' {0}&&sh {0}".format(linux_script_file)
                             dos_obj = workflow_remote.ServerByPara(change_dos, host, user, password, "Linux")
-                            dos_result = dos_obj.run(isComponent=False)
-                            if dos_result["exec_tag"] == 1:
+                            excute_result = dos_obj.run(isComponent=False)
+                            # 删除脚本
+                            try:
+                                sftp.remove(linux_script_file)
+                                ssh.close()
+                            except:
+                                pass
+                            if excute_result["exec_tag"] == 1:
                                 self.jobBaseInfo["state"] = "ERROR"
-                                self.jobBaseInfo["log"] += "本地上传的脚本的dos修改失败。"
+                                self.jobBaseInfo["log"] += "linux脚本执行失败。"
                                 return
                             else:
-                                # 运行脚本
-                                excute_cmd = r"{0}".format(linux_script_file)
-                                excute_obj = workflow_remote.ServerByPara(excute_cmd, host, user, password,"Linux")
-                                excute_result = excute_obj.run(isComponent=True)
+                                # 获取数据库中原本设定好的脚本应输出的所有参数(OrderedDict格式)
+                                # 1. 得到了字典格式的db脚本输出参数，准备替换实际输出得到的json
+                                # 2. 实际脚本输出的所有参数(json格式)
+                                #   2.1 参数数量相同 原abc，现abd;或原abc，现abc
+                                #   2.2 多了参数 原abc，现abcd
+                                #   2.3 少了参数 原abc，现ab
+                                # 3.json的值写到列表上
+                                # 4.转化列表上的<type></type>类型
+                                # 5.写到componentoutput上面，字典的值就是componentoutput字典的值，字典的code内容为componentoutput字典的键
+                                self._get_db_script_output()
+                                db_script_params = self._get_db_script_output()
+                                script_json = excute_result["data"]
+                                script_message = excute_result["message"]
+                                # 调用替换函数,返回结果是列表[OrderedDict...]
+                                paramList_data = self.json_value_to_orderList(script_json, db_script_params)
+                                # 把脚本的状态放到约定好的输出json格式的messqge上
+                                paramList_message = self.replace_script_result_message(script_message,paramList_data)
+                                # 调用类型转换函数
+                                change_result = self._changeType(paramList_message)
+                                # 准备写到componentoutput
+                                for output in change_result:
+                                    componentOutput[output["code"]] = output["value"]
 
-                                # 删除脚本
-                                try:
-                                    sftp.remove(linux_script_file)
-                                    ssh.close()
-                                except:
-                                    pass
-
-                                if excute_result["exec_tag"] == 1:
+                                # 未返回执行结果
+                                if "state" not in componentOutput:
                                     self.jobBaseInfo["state"] = "ERROR"
-                                    self.jobBaseInfo["log"] += "linux脚本执行失败。"
+                                    if "message" in componentOutput:
+                                        self.jobBaseInfo["log"] += componentOutput["message"]
+                                    else:
+                                        self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,未返回状态。'
                                     return
-                                else:
-                                    # 获取数据库中原本设定好的脚本应输出的所有参数(OrderedDict格式)
-                                    # 1. 得到了字典格式的db脚本输出参数，准备替换实际输出得到的json
-                                    # 2. 实际脚本输出的所有参数(json格式)
-                                    #   2.1 参数数量相同 原abc，现abd;或原abc，现abc
-                                    #   2.2 多了参数 原abc，现abcd
-                                    #   2.3 少了参数 原abc，现ab
-                                    # 3.json的值写到列表上
-                                    # 4.转化列表上的<type></type>类型
-                                    # 5.写到componentoutput上面，字典的值就是componentoutput字典的值，字典的code内容为componentoutput字典的键
-                                    self._get_db_script_output()
-                                    db_script_params = self._get_db_script_output()
-                                    script_json = excute_result["data"]
-                                    # 调用替换函数,返回结果是列表[OrderedDict...]
-                                    paramList = self.json_value_to_orderList(script_json, db_script_params)
-                                    # 调用类型转换函数
-                                    change_result = self._changeType(paramList)
-                                    # 准备写到componentoutput
-                                    for output in change_result:
-                                        componentOutput[output["code"]] = output["value"]
-
-                                    # 未返回执行结果
-                                    if "state" not in componentOutput:
-                                        self.jobBaseInfo["state"] = "ERROR"
-                                        if "message" in componentOutput:
-                                            self.jobBaseInfo["log"] += componentOutput["message"]
-                                        else:
-                                            self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,未返回状态。'
-                                        return
-                                    # 返回执行结果为failed
-                                    if "state" in componentOutput and componentOutput["state"] == "failed":
-                                        self.jobBaseInfo["state"] = "ERROR"
-                                        if "message" in componentOutput:
-                                            self.jobBaseInfo["log"] += componentOutput["message"]
-                                        else:
-                                            self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
-                                        return
+                                # 返回执行结果为failed
+                                if "state" in componentOutput and componentOutput["state"] == "failed":
+                                    self.jobBaseInfo["state"] = "ERROR"
+                                    if "message" in componentOutput:
+                                        self.jobBaseInfo["log"] += excute_result["message"]
+                                    else:
+                                        self.jobBaseInfo["log"] += 'error(run_component)组件代码执行失败,返回错误状态。'
+                                    return
         elif self.jobModel.workflowBaseInfo["language"] == "windows":
             # 获取连接远程服务器的必要参数值
             host, user, password, = componentInput["inputhost"], componentInput["inputusername"], componentInput[
@@ -802,10 +794,12 @@ class Job(object):
                 else:
                     db_script_params = self._get_db_script_output()
                     script_json = excute_result["data"]
+                    message_str = excute_result["messqge"]
                     # 调用替换函数,返回结果是列表[OrderedDict...]
-                    paramList = self.json_value_to_orderList(script_json, db_script_params)
+                    paramList_data = self.json_value_to_orderList(script_json, db_script_params)
+                    paramList_message = self.replace_script_result_message(message_str, paramList_data)
                     # 调用类型转换函数
-                    change_result = self._changeType(paramList)
+                    change_result = self._changeType(paramList_message)
                     # 准备写到componentoutput
                     for output in change_result:
                         componentOutput[output["code"]] = output["value"]
@@ -1183,12 +1177,18 @@ class Job(object):
         # 解码脚本返回json串
         script_dict = json.loads(script_json)
         for index,item in enumerate(script_dict):
-            # print(script_dict)
-            # print(index,item)
             # 索引跟键
-            if db_script_params[index]["code"] == item:
-                db_script_params[index]["value"] = script_dict[item]
+            for param in db_script_params:
+                if param["code"] == item:
+                    param["value"] = script_dict[item]
         return db_script_params
+
+    # 把脚本的状态放到约定好的输出json格式的message上
+    def replace_script_result_message(self, message_str, paramList_data):
+        for param in paramList_data:
+            if param["code"] == "message":
+                param["value"] = message_str
+        return paramList_data
 
     # 格式化参数
     def _sourceToValue(self, paramList,sourceNode=None):

@@ -153,7 +153,6 @@ class ServerByPara(object):
                 "data": scriptResult,
                 "message": "脚本执行超时",
             }
-
         return {
             "exec_tag": exec_tag,
             "data": scriptResult,
@@ -250,5 +249,5 @@ if __name__ == '__main__':
     #                           "192.168.184.66", "root", "password", "Linux")
     # server_obj = ServerByPara(r"echo '你好你好你好你好你好你好你好';echo '你好你好你好你好你好你好你好';echo '你好你好你好你好你好你好你好'", "192.168.184.66", "root","password", "Linux")
 
-    server_obj.run()
-    print(11111111111111)
+    # server_obj.run()
+    # print(11111111111111)

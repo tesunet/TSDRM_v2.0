@@ -24,8 +24,11 @@ from ..tasks import *
 def test(request):
     newJob = Job(userid=request.user.id)
     aa = newJob.execute_workflow('2e445090-a26c-11eb-bc9a-405bd8b00cd6',
-                                  input=[{"code": "ip", "value": "www.baidu.com"}])
-    print(aa)
+                                 input=[{"code": "inputusername", "value": 'root'},
+                                        {"code": "inputhost", "value": '192.168.226.142'},
+                                        {"code": "inputpassword", "value": '123456'}],
+                                 type="COMPONENT")
+
 
     # 虚机给电：b1d51880-9751-11eb-afc2-a4bb6d10e0ef
     # 虚机断电：a55d4a56-9791-11eb-b36d-000c29921d27

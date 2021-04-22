@@ -484,5 +484,5 @@ def split_output_option_value(arr_string):
         i_list = i.split("^")
         list_double.append(i_list)
     for i in list_double:
-        list_params.append({"code": i[0], "name": i[1], "type": i[2], "remark": i[3], "sort": i[4]})
+        list_params.append({"code": i[0], "name": i[1], "type": i[2], "remark": i[3], "sort": i[4], "value": ""})
     return list_params
