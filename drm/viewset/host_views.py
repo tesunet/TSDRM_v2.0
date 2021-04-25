@@ -203,7 +203,7 @@ def hosts_node_save(request):
     node_name = request.POST.get("node_name", "")
     node_remark = request.POST.get("node_remark", "")
     ret = 0
-    info = "位置错误"
+    info = "未知错误"
     try:
         id = int(id)
     except:
@@ -301,107 +301,127 @@ def hosts_client_save(request):
     remark = request.POST.get("remark", "")
 
     ret = 0
-    info = "位置错误"
-
+    info = "未知错误"
     try:
         id = int(id)
     except:
         ret = 0
         info = "网络错误。"
     else:
-        if host_ip.strip():
-            if host_name.strip():
-                if host_type.strip():
-                    if username.strip():
-                        if password.strip():
-                            # 主机参数
-                            root = etree.Element("root")
+        if id == 0:
+            component_guid = '66171ec0-a308-11eb-8ab1-84fdd1a17907'
+            component_input = [{"code": "pid", "value": pid},
+                               {"code": "ip", "value": host_ip},
+                               {"code": "name", "value": host_name},
+                               {"code": "type", "value": host_type},
+                               {"code": "username", "value": username},
+                               {"code": "password", "value": password},
+                               {"code": "config", "value": config},
+                               {"code": "remark", "value": remark}]
 
-                            if config:
-                                config = json.loads(config)
-                                # 动态参数
-                                for c_config in config:
-                                    param_node = etree.SubElement(root, "param")
-                                    param_node.attrib["param_name"] = c_config["param_name"].strip()
-                                    param_node.attrib["variable_name"] = c_config["variable_name"].strip()
-                                    param_node.attrib["param_value"] = c_config["param_value"].strip()
-                            config = etree.tounicode(root)
-
-                            # 新增
-                            if id == 0:
-                                # 判断主机是否已经存在
-                                check_host_manage = HostsManage.objects.exclude(state="9").filter(host_name=host_name)
-                                if check_host_manage.exists():
-                                    ret = 0
-                                    info = "主机已经存在，请勿重复添加。"
-                                else:
-                                    try:
-                                        cur_host_manage = HostsManage()
-                                        cur_host_manage.pnode_id = pid
-                                        cur_host_manage.nodetype = "CLIENT"
-                                        cur_host_manage.host_ip = host_ip
-                                        cur_host_manage.host_name = host_name
-                                        cur_host_manage.os = host_os
-                                        cur_host_manage.username = username
-                                        cur_host_manage.password = password
-                                        cur_host_manage.config = config
-                                        cur_host_manage.remark = remark
-                                        # 排序
-                                        sort = 1
-                                        try:
-                                            max_sort = \
-                                                HostsManage.objects.exclude(state="9").filter(pnode_id=pid).aggregate(
-                                                    max_sort=Max('sort', distinct=True))["max_sort"]
-                                            sort = max_sort + 1
-                                        except:
-                                            pass
-                                        cur_host_manage.sort = sort
-
-                                        cur_host_manage.save()
-                                        id = cur_host_manage.id
-                                    except:
-                                        ret = 0
-                                        info = "服务器异常。"
-                                    else:
-                                        ret = 1
-                                        info = "主机信息新增成功。"
-                            else:
-                                # 修改
-                                try:
-                                    cur_host_manage = HostsManage.objects.get(id=id)
-                                    cur_host_manage.host_ip = host_ip
-                                    cur_host_manage.host_name = host_name
-                                    cur_host_manage.os = host_os
-                                    cur_host_manage.username = username
-                                    cur_host_manage.password = password
-                                    cur_host_manage.config = config
-                                    cur_host_manage.remark = remark
-                                    cur_host_manage.save()
-
-                                    ret = 1
-                                    info = "主机信息修改成功。"
-                                except:
-                                    ret = 0
-                                    info = "服务器异常。"
-                        else:
-                            ret = 0
-                            info = "管理员密码未填写。"
-                    else:
-                        ret = 0
-                        info = "管理员用户名填写。"
-                else:
-                    ret = 0
-                    info = "主机类型未选择。"
-            else:
+            newJob = Job(userid=request.user.id)
+            state = newJob.execute_workflow(component_guid, input=component_input)
+            if state == 'NOTEXIST':
                 ret = 0
-                info = "客户端名称不能为空。"
+                info = "组件不存在，请于管理员联系。。"
+            elif state == 'ERROR':
+                ret = 0
+                info = newJob.jobBaseInfo["log"]
+            else:
+                ret = 1
+                info = "客户端节点成功。"
+                for i in newJob.finalOutput:
+                    if i['code'] == 'id':
+                        id = i['value']
         else:
-            ret = 0
-            info = "连接IP未填写。"
+            # 修改
+            component_guid = '56336f1e-a30b-11eb-8b2d-84fdd1a17907'
+            component_input = [{"code": "id", "value": id},
+                               {"code": "ip", "value": host_ip},
+                               {"code": "name", "value": host_name},
+                               {"code": "type", "value": host_type},
+                               {"code": "username", "value": username},
+                               {"code": "password", "value": password},
+                               {"code": "config", "value": config},
+                               {"code": "remark", "value": remark}]
+            newJob = Job(userid=request.user.id)
+            state = newJob.execute_workflow(component_guid, input=component_input)
+            if state == 'NOTEXIST':
+                ret = 0
+                info = "组件不存在，请于管理员联系。。"
+            elif state == 'ERROR':
+                ret = 0
+                info = newJob.jobBaseInfo["log"]
+            else:
+                ret = 1
+                info = "节点信息修改成功。"
     return JsonResponse({
         "ret": ret,
         "info": info,
         "nodeid": id
+    })
+
+
+@login_required
+def hosts_client_test(request):
+    host_ip = request.POST.get("host_ip", "")
+
+    ret = 0
+    info = "未知错误"
+
+    component_guid = 'cc37675a-a312-11eb-ac9a-84fdd1a17907'
+    component_input = [{"code": "ip", "value": host_ip}]
+
+    newJob = Job(userid=request.user.id)
+    state = newJob.execute_workflow(component_guid, input=component_input)
+    if state == 'NOTEXIST':
+        ret = 0
+        info = "组件不存在，请于管理员联系。。"
+    elif state == 'ERROR':
+        ret = 0
+        info = newJob.jobBaseInfo["log"]
+    else:
+        ret = 1
+        info = "网络正常"
+
+    return JsonResponse({
+        "ret": ret,
+        "info": info,
+    })
+
+
+@login_required
+def hosts_client_refresh(request):
+    id = request.POST.get("id", "")
+
+    ret = 0
+    info = "未知错误"
+
+    data = None
+
+    component_guid = '03b36776-a34d-11eb-bdae-84fdd1a17907'
+    component_input = [{"code": "id", "value": id}]
+
+    newJob = Job(userid=request.user.id)
+    state = newJob.execute_workflow(component_guid, input=component_input)
+    if state == 'NOTEXIST':
+        ret = 0
+        info = "组件不存在，请于管理员联系。。"
+    elif state == 'ERROR':
+        ret = 0
+        info = newJob.jobBaseInfo["log"]
+    else:
+        for i in newJob.finalOutput:
+            if i['code'] == 'data':
+                data = i['value']
+
+        ret = 1
+        info = "刷新成功"
+
+    return JsonResponse({
+        "ret": ret,
+        "info": info,
+        "data": data
     })
 
 
@@ -1367,141 +1387,4 @@ def get_file_tree(request):
         treedata = json.dumps(treedata)
 
     return HttpResponse(treedata)
-
-
-def host_save(request):
-    if request.user.is_authenticated():
-        host_id = request.POST.get("host_id", "")
-        host_ip = request.POST.get("host_ip", "")
-        host_name = request.POST.get("host_name", "")
-        host_os = request.POST.get("os", "")
-        connect_type = request.POST.get("type", "")
-        username = request.POST.get("username", "")
-        password = request.POST.get("password", "")
-        ret = 0
-        info = ""
-        try:
-            host_id = int(host_id)
-        except:
-            ret = 0
-            info = "网络错误。"
-        else:
-            if host_ip.strip():
-                if host_name.strip():
-                    if host_os.strip():
-                        if connect_type.strip():
-                            if username.strip():
-                                if password.strip():
-                                    # 新增
-                                    if host_id == 0:
-                                        # 判断主机是否已经存在
-                                        check_host_manage = HostsManage.objects.filter(host_ip=host_ip)
-                                        if check_host_manage.exists():
-                                            ret = 0
-                                            info = "主机已经存在，请勿重复添加。"
-                                        else:
-                                            try:
-                                                cur_host_manage = HostsManage()
-                                                cur_host_manage.host_ip = host_ip
-                                                cur_host_manage.host_name = host_name
-                                                cur_host_manage.os = host_os
-                                                cur_host_manage.type = connect_type
-                                                cur_host_manage.username = username
-                                                cur_host_manage.password = password
-                                                cur_host_manage.save()
-                                            except:
-                                                ret = 0
-                                                info = "服务器异常。"
-                                            else:
-                                                ret = 1
-                                                info = "新增主机成功。"
-                                    else:
-                                        # 修改
-                                        try:
-                                            cur_host_manage = HostsManage.objects.get(id=host_id)
-                                            cur_host_manage.host_ip = host_ip
-                                            cur_host_manage.host_name = host_name
-                                            cur_host_manage.os = host_os
-                                            cur_host_manage.type = connect_type
-                                            cur_host_manage.username = username
-                                            cur_host_manage.password = password
-                                            cur_host_manage.save()
-
-                                            ret = 1
-                                            info = "主机信息修改成功。"
-                                        except:
-                                            ret = 0
-                                            info = "服务器异常。"
-                                else:
-                                    ret = 0
-                                    info = "密码未填写。"
-                            else:
-                                ret = 0
-                                info = "用户名未填写。"
-                        else:
-                            ret = 0
-                            info = "连接类型未选择。"
-                    else:
-                        ret = 0
-                        info = "系统未选择。"
-                else:
-                    ret = 0
-                    info = "主机名称不能为空。"
-            else:
-                ret = 0
-                info = "主机IP未填写。"
-            return JsonResponse({
-                "ret": ret,
-                "info": info
-            })
-    else:
-        return HttpResponseRedirect("/login")
-
-
-def hosts_manage_data(request):
-    if request.user.is_authenticated():
-        all_hosts_manage = HostsManage.objects.exclude(state="9")
-        all_hm_list = []
-        for host_manage in all_hosts_manage:
-            all_hm_list.append({
-                "host_id": host_manage.id,
-                "host_ip": host_manage.host_ip,
-                "host_name": host_manage.host_name,
-                "os": host_manage.os,
-                "type": host_manage.type,
-                "username": host_manage.username,
-                "password": host_manage.password
-            })
-        return JsonResponse({"data": all_hm_list})
-    else:
-        return HttpResponseRedirect("/login")
-
-
-def hosts_manage_del(request):
-    if request.user.is_authenticated():
-        host_id = request.POST.get("host_id", "")
-
-        try:
-            cur_host_manage = HostsManage.objects.get(id=int(host_id))
-        except:
-            return JsonResponse({
-                "ret": 0,
-                "info": "当前网络异常"
-            })
-        else:
-            try:
-                cur_host_manage.state = "9"
-                cur_host_manage.save()
-            except:
-                return JsonResponse({
-                    "ret": 0,
-                    "info": "服务器网络异常。"
-                })
-            else:
-                return JsonResponse({
-                    "ret": 1,
-                    "info": "删除成功。"
-                })
-    else:
-        return HttpResponseRedirect("/login")
 

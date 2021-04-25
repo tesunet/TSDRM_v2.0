@@ -235,75 +235,31 @@
 
                             <div class="row">
                                 <div class="col-md-12">
-                                    <div class="portlet light bordered" id="form_wizard_1">
-
-                                        <div class="portlet-body form">
-                                            <button type="button" id="start1" name="start1" class="btn blue">同步开始</button>
-                                            <button type="button" id="start2" name="start2" class="btn blue">异步开始</button>
-
-                                            <button type="button" id="stop" name="stop" class="btn blue">停止</button>
-                                            <button type="button" id="pause" name="pause" class="btn blue">暂停</button>
-                                            <button type="button" id="retry1" name="retry1" class="btn blue">继续同步</button>
-                                            <button type="button" id="retry2" name="retry2" class="btn blue">继续异步</button>
-                                            <button type="button" id="save" name="save" class="btn blue">保存</button>
-                                        </div>
-
-
-                                      <div style="width: 100%; display: flex; justify-content: space-between">
-                                        <div  style="width: 200px; background-color: whitesmoke; border: solid 1px black">
-                                          <div id="accordion">
-                                            <h4><b>基础控件</b></h4>
-                                            <div>
-                                              <div  id="myPaletteSmall" style="margin-left: -20px;width: 180px; height: 600px"></div>
-                                            </div>
-                                            <h4><b>主机组件</b></h4>
-                                            <div>
-                                              <div id="myPaletteTall" style="margin-left: -20px;width: 180px; height: 600px"></div>
-                                            </div>
-                                            <h4><b>数据库组件</b></h4>
-                                            <div>
-                                              <div id="myPaletteWide" style="margin-left: -20px;width: 180px; height: 600px"></div>
-                                            </div>
-                                            <h4><b>网络组件</b></h4>
-                                            <div>
-                                              <div id="myPaletteBig" style="margin-left: -20px;width: 180px; height: 600px"></div>
-                                            </div>
-                                          </div>
-                                        </div>
-                                        <div id="myDiagramDiv" style="flex-grow: 1; height: 800px; border: solid 1px black"></div>
-                                        <div  style="width: 400px; border: solid 1px black">
-                                                <span style="display: inline-block; vertical-align: top;">
-      Selected Part:<br/>
-      <div id="myInspectorDiv" class="inspector"> </div><br/>
-      First Node's data:<br />
-      <div id="myInspectorDiv2" class="inspector"> </div><br />
-      Model.modelData:<br />
-      <div id="myInspectorDiv3" class="inspector"> </div><br />
-    </span>
-
-                                        </div>
+                                    <div style="width: 200px; background-color: whitesmoke; border: solid 1px black">
+                                <div id="accordion">
+                                    <h4><b>树测试</b></h4>
+                                    <div>
+                                        <div id="myPalette2"
+                                             style="margin-left: -20px;width: 180px; height: 600px"></div>
+                                    </div>
+                                    <h4><b>基础控件</b></h4>
+                                    <div>
+                                        <div id="myPaletteSmall"
+                                             style="margin-left: -20px;width: 180px; height: 600px"></div>
+                                    </div>
+                                    <h4><b>组件</b></h4>
+                                    <div>
+                                        <div id="myPaletteTall"
+                                             style="margin-left: -20px;width: 180px; height: 600px"></div>
+                                    </div>
+                                    <h4><b>子流程</b></h4>
+                                    <div>
+                                        <div id="myPaletteWide"
+                                             style="margin-left: -20px;width: 180px; height: 600px"></div>
                                     </div>
                                 </div>
-                                <textarea id="mySavedModel" style="width:100%;height:300px">{ "class": "GraphLinksModel",
-  "linkFromPortIdProperty": "fromPort",
-  "linkToPortIdProperty": "toPort",
-  "nodeDataArray": [
-{"category":"for", "text":"循环", "geo":"for", "color":"#2a6dc0", "key":-5, "loc":"-162.96388539139508 -123.7122116853875"},
-{"category":"component", "text":"加1", "guid":"swerswersrsdf", "geo":"cogs", "color":"#2a6dc0", "key":-6, "loc":"-162.96388539139508 -7.712211685387501"},
-{"category":"end", "text":"结束", "geo":"end", "color":"#2a6dc0", "key":-8, "loc":"-4.963885391395024 -127.7122116853875"},
-{"category":"break", "text":"跳出", "geo":"break", "color":"#2a6dc0", "key":-9, "loc":"-2.9638853913950243 112.28778831461253"},
-{"category":"start", "text":"开始", "geo":"start", "color":"#2a6dc0", "key":-10, "loc":"-415.9638853913951 -123.7122116853875"},
-{"category":"if", "text":"判断", "geo":"if", "color":"#2a6dc0", "key":-11, "loc":"-162.96388539139508 115.2877883146125"}
- ],
-  "linkDataArray": [
-{"from":-5, "to":-6, "fromPort":"B", "toPort":"T", "text":"继续","visible":true, "points":[-162.96388539139508,-83.91335456868829,-162.96388539139508,-73.91335456868829,-162.96388539139508,-66.71221168538753,-162.96388539139508,-66.71221168538753,-162.96388539139508,-57.511068802086726,-162.96388539139508,-47.511068802086726]},
-{"from":-5, "to":-8, "fromPort":"R", "toPort":"L", "text":"结束","visible":true, "points":[-132.96388539139508,-123.7122116853875,-122.96388539139508,-123.7122116853875,-84.96388539139502,-123.7122116853875,-84.96388539139502,-127.71221168538744,-44.963885391395024,-127.71221168538744,-34.963885391395024,-127.71221168538744]},
-{"from":-9, "to":-8, "fromPort":"T", "toPort":"B", "points":[-2.9638853913950243,72.4889311979133,-2.9638853913950243,62.4889311979133,-2.9638853913950243,-7.712211685387466,-4.963885391395024,-7.712211685387466,-4.963885391395024,-77.91335456868823,-4.963885391395024,-87.91335456868823]},
-{"from":-10, "to":-5, "fromPort":"R", "toPort":"L", "points":[-385.963885391395,-123.7122116853875,-375.963885391395,-123.7122116853875,-289.463885391395,-123.7122116853875,-289.463885391395,-123.7122116853875,-202.96388539139508,-123.7122116853875,-192.96388539139508,-123.7122116853875]},
-{"from":-6, "to":-11, "fromPort":"B", "toPort":"T", "points":[-162.96388539139508,32.08664543131171,-162.96388539139508,42.08664543131171,-162.96388539139508,53.78778831461249,-162.96388539139508,53.78778831461249,-162.96388539139508,65.48893119791327,-162.96388539139508,75.48893119791327]},
-{"from":-11, "to":-9, "fromPort":"R", "toPort":"L", "text":"Yes","visible":true, "points":[-132.96388539139508,115.2877883146125,-122.96388539139508,115.2877883146125,-82.96388539139505,115.2877883146125,-82.96388539139505,112.28778831461253,-42.963885391395024,112.28778831461253,-32.963885391395024,112.28778831461253]},
-{"from":-11, "to":-5, "fromPort":"L", "toPort":"L", "text":"No","visible":true, "points":[-192.96388539139508,115.2877883146125,-202.96388539139508,115.2877883146125,-207.71388539139508,115.2877883146125,-207.71388539139508,-123.7122116853875,-202.96388539139508,-123.7122116853875,-192.96388539139508,-123.7122116853875]}
- ]}</textarea>
+                            </div>
+                            <div id="myDiagramDiv" style="flex-grow: 1; height: 770px; border: solid 1px black"></div>
 
 
 
@@ -361,13 +317,14 @@
     <script src="/static/assets/global/plugins/bootstrap-datetimepicker/js/bootstrap-datetimepicker.js" type="text/javascript"></script>
     <script src="/static/assets/global/scripts/app.js" type="text/javascript"></script>
 
-    <link href="/static/pages/jquery-ui.min.css" rel="stylesheet" type="text/css">
-<link href="/static/pages/DataInspector.css" rel="stylesheet" type="text/css">
-    <script src="/static/pages/jquery-ui.min.js" type="text/javascript"></script>
-    <script src="/static/pages/icons.js"></script>
-    <script src="/static/pages/go-debug.js"></script>
- <script src="/static/pages/DataInspector.js" type="text/javascript"></script>
+    <link href="/static/pages/css/workflow.css" rel="stylesheet" type="text/css"/>
+    <link href="/static/assets/global/plugins/jquery-ui/jquery-ui.min.css" rel="stylesheet" type="text/css">
+    <script src="/static/assets/global/plugins/jquery-ui/jquery-ui.min.js" type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/gojs/icons.js"></script>
+    <script src="/static/assets/global/plugins/gojs/go-debug.js"></script>
+    <script src="/static/pages/js/DataInspector.js" type="text/javascript"></script>
     <script src="/static/pages/js/test.js" type="text/javascript"></script>
+
 
 
 

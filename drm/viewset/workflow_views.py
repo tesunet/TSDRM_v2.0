@@ -440,7 +440,7 @@ def workflow_getdata(request):
 
         # 组件模型
         componentDate = []
-        componentList = TSDRMComponent.objects.exclude(state="9").filter(type='LEAF').order_by("sort")
+        componentList = TSDRMComponent.objects.exclude(state="9").order_by("sort")
         for component in componentList:
             input=[]
             if component.input and len(component.input.strip()) > 0:
@@ -463,14 +463,21 @@ def workflow_getdata(request):
                         output.append(
                             {"code": curoutput["code"], "name": curoutput["name"], "type": curoutput["type"],"remark":curoutput["remark"], "to": "",
                              "totype": ""})
-            componentDate.append(
-                {"category": "component", "modeltype": "COMPONENT", "modelguid": component.guid, "modelname": component.shortname,
-                 "text": component.shortname, "geo": component.icon, "color": "#2a6dc0", "input": json.dumps(input), "output": json.dumps(output)})
+            if component.pnode_id:
+                componentDate.append(
+                    {"key":component.id,"nodetype":component.type,"parent":component.pnode_id,"category": "component", "modeltype": "COMPONENT", "modelguid": component.guid, "modelname": component.shortname,
+                     "text": component.shortname, "geo": component.icon, "color": "#2a6dc0", "input": json.dumps(input), "output": json.dumps(output)})
+            else:
+                componentDate.append(
+                    {"key": component.id,"nodetype":component.type, "category": "component",
+                     "modeltype": "COMPONENT", "modelguid": component.guid, "modelname": component.shortname,
+                     "text": component.shortname, "geo": component.icon, "color": "#2a6dc0", "input": json.dumps(input),
+                     "output": json.dumps(output)})
         workflowData["componentDate"] = componentDate
 
         # 子流程模型
         subworkflowDate = []
-        subworkflowList = TSDRMWorkflow.objects.exclude(state="9").exclude(id=id).filter(type='LEAF').order_by("sort")
+        subworkflowList = TSDRMWorkflow.objects.exclude(state="9").exclude(id=id).order_by("sort")
         for subworkflow in subworkflowList:
             input = []
             if subworkflow.input and len(subworkflow.input.strip()) > 0:
@@ -495,10 +502,19 @@ def workflow_getdata(request):
                         output.append(
                             {"code": curoutput["code"], "name": curoutput["name"], "type": curoutput["type"], "remark":curoutput["remark"], "to": "",
                              "totype": ""})
-            subworkflowDate.append(
-                {"category": "subworkflow", "modeltype": "WORKFLOW", "modelguid": subworkflow.guid,
-                 "modelname": subworkflow.shortname,
-                 "text": subworkflow.shortname, "geo": subworkflow.icon, "color": "#2a6dc0", "input": json.dumps(input), "output": json.dumps(output)})
+            if subworkflow.pnode_id:
+                subworkflowDate.append(
+                    {"key":subworkflow.id,"nodetype":subworkflow.type,"parent":subworkflow.pnode_id,"category": "subworkflow", "modeltype": "WORKFLOW", "modelguid": subworkflow.guid,
+                     "modelname": subworkflow.shortname,
+                     "text": subworkflow.shortname, "geo": subworkflow.icon, "color": "#2a6dc0",
+                     "input": json.dumps(input), "output": json.dumps(output)})
+            else:
+                subworkflowDate.append(
+                    {"key": subworkflow.id, "nodetype": subworkflow.type,
+                     "category": "subworkflow", "modeltype": "WORKFLOW", "modelguid": subworkflow.guid,
+                     "modelname": subworkflow.shortname,
+                     "text": subworkflow.shortname, "geo": subworkflow.icon, "color": "#2a6dc0",
+                     "input": json.dumps(input), "output": json.dumps(output)})
         workflowData["subworkflowDate"] = subworkflowDate
 
         # 流程数据

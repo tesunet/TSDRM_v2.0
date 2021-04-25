@@ -1,14 +1,15 @@
-var selectedObject= {type:"base"};
+var selectedObject = {type: "base"};
+
 function loadworkflow() {
     $.ajax({
         type: "POST",
         dataType: "JSON",
         url: "../../workflow_getdata/",
-        data: {"id":$("#id").val(),"owner":"USER"},
-        success: function (data){
+        data: {"id": $("#id").val(), "owner": "USER"},
+        success: function (data) {
             var status = data.status;
-            if (status == 1){
-                var workflowData=data.workflowData;
+            if (status == 1) {
+                var workflowData = data.workflowData;
                 var $ = go.GraphObject.make;  // for conciseness in defining templates
                 myDiagram =
                     $(go.Diagram, "myDiagramDiv",  // must name or refer to the DIV HTML element
@@ -17,7 +18,7 @@ function loadworkflow() {
                             "LinkRelinked": showLinkLabel,
                             "undoManager.isEnabled": true,
                             "animationManager.isEnabled": false,
-                             //"allowCopy": false
+                            //"allowCopy": false
                             //"isReadOnly": true
                         });
 
@@ -90,23 +91,36 @@ function loadworkflow() {
                     return geo;
                 }
 
+                function imageConverter(prop, picture) {
+                    var node = picture.part;
+                    if (node.isTreeLeaf) {
+                        return "../../static/assets/global/plugins/gojs/images/document.svg";
+                    } else {
+                        if (node.isTreeExpanded) {
+                            return "../../static/assets/global/plugins/gojs/images/openFolder.svg";
+                        } else {
+                            return "../../static/assets/global/plugins/gojs/images/closedFolder.svg";
+                        }
+                    }
+                }
+
                 // define the Node templates for regular nodes
-                go.Shape.defineFigureGenerator("File", function(shape, w, h) {
-                        var geo = new go.Geometry();
-                        var fig = new go.PathFigure(0, 0, true); // starting point
-                        geo.add(fig);
-                        fig.add(new go.PathSegment(go.PathSegment.Line, .75 * w, 0));
-                        fig.add(new go.PathSegment(go.PathSegment.Line, w, .25 * h));
-                        fig.add(new go.PathSegment(go.PathSegment.Line, w, h));
-                        fig.add(new go.PathSegment(go.PathSegment.Line, 0, h).close());
-                        var fig2 = new go.PathFigure(.75 * w, 0, false);
-                        geo.add(fig2);
-                        // The Fold
-                        fig2.add(new go.PathSegment(go.PathSegment.Line, .75 * w, .25 * h));
-                        fig2.add(new go.PathSegment(go.PathSegment.Line, w, .25 * h));
-                        geo.spot1 = new go.Spot(0, .25);
-                        geo.spot2 = go.Spot.BottomRight;
-                        return geo;
+                go.Shape.defineFigureGenerator("File", function (shape, w, h) {
+                    var geo = new go.Geometry();
+                    var fig = new go.PathFigure(0, 0, true); // starting point
+                    geo.add(fig);
+                    fig.add(new go.PathSegment(go.PathSegment.Line, .75 * w, 0));
+                    fig.add(new go.PathSegment(go.PathSegment.Line, w, .25 * h));
+                    fig.add(new go.PathSegment(go.PathSegment.Line, w, h));
+                    fig.add(new go.PathSegment(go.PathSegment.Line, 0, h).close());
+                    var fig2 = new go.PathFigure(.75 * w, 0, false);
+                    geo.add(fig2);
+                    // The Fold
+                    fig2.add(new go.PathSegment(go.PathSegment.Line, .75 * w, .25 * h));
+                    fig2.add(new go.PathSegment(go.PathSegment.Line, w, .25 * h));
+                    geo.spot1 = new go.Spot(0, .25);
+                    geo.spot2 = go.Spot.BottomRight;
+                    return geo;
                 });
 
                 myDiagram.nodeTemplateMap.add("subworkflow",  // the default category
@@ -114,7 +128,7 @@ function loadworkflow() {
                         $(go.Panel, go.Panel.Vertical,
                             $(go.Panel, "Spot",
                                 $(go.Shape, "File",
-									  { fill: "#000000", stroke: "#FFFFFF", width: 60, height: 60},
+                                    {fill: "#000000", stroke: "#FFFFFF", width: 60, height: 60},
                                     new go.Binding("fill", "color")),
                                 $(go.Shape,
                                     {margin: 3, fill: "#F5F5F5", strokeWidth: 0},
@@ -356,34 +370,168 @@ function loadworkflow() {
                 // specify the contents of the Palette
                 myPaletteSmall.model = new go.GraphLinksModel(workflowData.controlDate);
 
-                // initialize the second Palette, of tall items
                 myPaletteTall =
-                    $(go.Palette, "myPaletteTall",
-                        { // share the templates with the main Diagram
-                            nodeTemplateMap: myDiagram.nodeTemplateMap,
-                        });
+                    $(go.Palette, 'myPaletteTall',
+                        {
+                            initialContentAlignment: go.Spot.Center,
+                            layout:
+                                $(go.TreeLayout,
+                                    {
+                                        alignment: go.TreeLayout.AlignmentStart,
+                                        angle: 0,
+                                        compaction: go.TreeLayout.CompactionNone,
+                                        layerSpacing: 16,
+                                        layerSpacingParentOverlap: 1,
+                                        nodeIndentPastParent: 1.0,
+                                        nodeSpacing: 0,
+                                        setsPortSpot: false,
+                                        setsChildPortSpot: false
+                                    })
+                        })
+                myPaletteTall.nodeTemplate =
+                    $(go.Node,
+                        { // no Adornment: instead change panel background color by binding to Node.isSelected
+                            selectionAdorned: false,
+                            selectable:true,
+                            // a custom function to allow expanding/collapsing on double-click
+                            // this uses similar logic to a TreeExpanderButton
+                            click: function (e, node) {
+                                var cmd = myDiagram.commandHandler;
+                                if (node.isTreeExpanded) {
+                                    if (!cmd.canCollapseTree(node)) return;
+                                } else {
+                                    if (!cmd.canExpandTree(node)) return;
+                                }
+                                e.handled = true;
+                                if (node.isTreeExpanded) {
+                                    cmd.collapseTree(node);
+                                } else {
+                                    cmd.expandTree(node);
+                                }
+                            }
+                        },
+                        new go.Binding("selectable",'nodetype',(val)=>{
+                            if(val=="LEAF"){
+                                return true
+                            }else {
+                                return false
+                            }
+                        }),
+                        $("TreeExpanderButton",
+                            {
+                                "ButtonBorder.fill": "whitesmoke",
+                                "ButtonBorder.stroke": null,
+                                "_buttonFillOver": "rgba(0,128,255,0.25)",
+                                "_buttonStrokeOver": null
+                            }),
+                        $(go.Panel, "Horizontal",
+                            {position: new go.Point(18, 0)},
+                            new go.Binding("background", "isSelected", function (s) {
+                                return (s ? "lightblue" : "white");
+                            }).ofObject(),
+                            $(go.Picture,
+                                {
+                                    width: 18, height: 18,
+                                    margin: new go.Margin(0, 4, 0, 0),
+                                    imageStretch: go.GraphObject.Uniform,
+                                },
+                                // bind the picture source on two properties of the Node
+                                // to display open folder, closed folder, or document
+                                new go.Binding("source", "isTreeExpanded", imageConverter).ofObject(),
+                                new go.Binding("source", "isTreeLeaf", imageConverter).ofObject(),
+                            ),
+                            $(go.TextBlock,
+                                {font: '11pt Verdana, sans-serif'},
+                                new go.Binding("text"))
+                        )  // end Horizontal Panel
+                    );
+                myPaletteTall.model = new go.TreeModel(workflowData.componentDate);
+                myPaletteTall.linkTemplate = $(go.Link);
 
-                // specify the contents of the Palette
-                myPaletteTall.model = new go.GraphLinksModel(workflowData.componentDate);
-
-                // initialize the third Palette, of wide items
                 myPaletteWide =
-                    $(go.Palette, "myPaletteWide",
-                        { // share the templates with the main Diagram
-                            nodeTemplateMap: myDiagram.nodeTemplateMap,
-                        });
-
-                // specify the contents of the Palette
-                myPaletteWide.model = new go.GraphLinksModel(workflowData.subworkflowDate);
+                    $(go.Palette, 'myPaletteWide',
+                        {
+                            initialContentAlignment: go.Spot.Center,
+                            layout:
+                                $(go.TreeLayout,
+                                    {
+                                        alignment: go.TreeLayout.AlignmentStart,
+                                        angle: 0,
+                                        compaction: go.TreeLayout.CompactionNone,
+                                        layerSpacing: 16,
+                                        layerSpacingParentOverlap: 1,
+                                        nodeIndentPastParent: 1.0,
+                                        nodeSpacing: 0,
+                                        setsPortSpot: false,
+                                        setsChildPortSpot: false
+                                    })
+                        })
+                myPaletteWide.nodeTemplate =
+                    $(go.Node,
+                        { // no Adornment: instead change panel background color by binding to Node.isSelected
+                            selectionAdorned: false,
+                            selectable:true,
+                            // a custom function to allow expanding/collapsing on double-click
+                            // this uses similar logic to a TreeExpanderButton
+                            click: function (e, node) {
+                                var cmd = myDiagram.commandHandler;
+                                if (node.isTreeExpanded) {
+                                    if (!cmd.canCollapseTree(node)) return;
+                                } else {
+                                    if (!cmd.canExpandTree(node)) return;
+                                }
+                                e.handled = true;
+                                if (node.isTreeExpanded) {
+                                    cmd.collapseTree(node);
+                                } else {
+                                    cmd.expandTree(node);
+                                }
+                            }
+                        },
+                        new go.Binding("selectable",'nodetype',(val)=>{
+                            if(val=="LEAF"){
+                                return true
+                            }else {
+                                return false
+                            }
+                        }),
+                        $("TreeExpanderButton",
+                            {
+                                "ButtonBorder.fill": "whitesmoke",
+                                "ButtonBorder.stroke": null,
+                                "_buttonFillOver": "rgba(0,128,255,0.25)",
+                                "_buttonStrokeOver": null
+                            }),
+                        $(go.Panel, "Horizontal",
+                            {position: new go.Point(18, 0)},
+                            new go.Binding("background", "isSelected", function (s) {
+                                return (s ? "lightblue" : "white");
+                            }).ofObject(),
+                            $(go.Picture,
+                                {
+                                    width: 18, height: 18,
+                                    margin: new go.Margin(0, 4, 0, 0),
+                                    imageStretch: go.GraphObject.Uniform,
+                                },
+                                // bind the picture source on two properties of the Node
+                                // to display open folder, closed folder, or document
+                                new go.Binding("source", "isTreeExpanded", imageConverter).ofObject(),
+                                new go.Binding("source", "isTreeLeaf", imageConverter).ofObject(),
+                            ),
+                            $(go.TextBlock,
+                                {font: '11pt Verdana, sans-serif'},
+                                new go.Binding("text"))
+                        )  // end Horizontal Panel
+                    );
+                myPaletteWide.model = new go.TreeModel(workflowData.subworkflowDate);
+                myPaletteWide.linkTemplate = $(go.Link);
 
 
                 //DataInspector
                 //myDiagram.select(myDiagram.nodes.first());
                 var inspector = new Inspector(myDiagram);
-            }
-            else
-            {
-               alert("流程不存在或无法编辑。");
+            } else {
+                alert("流程不存在或无法编辑。");
             }
         }
     });
@@ -394,29 +542,27 @@ function reloadworkflow() {
         type: "POST",
         dataType: "JSON",
         url: "../../workflow_getdata/",
-        data: {"id":$("#id").val(),"owner":"USER"},
-        success: function (data){
+        data: {"id": $("#id").val(), "owner": "USER"},
+        success: function (data) {
             var status = data.status;
-            if (status == 1){
-                var workflowData=data.workflowData;
+            if (status == 1) {
+                var workflowData = data.workflowData;
                 myDiagram.model = go.Model.fromJson(JSON.stringify(workflowData.curworkflow.content));
 
-                if (selectedObject.type=="node") {
+                if (selectedObject.type == "node") {
                     var curnode = myDiagram.findNodeForKey(selectedObject.key)
                     myDiagram.select(curnode);
                 }
-                if (selectedObject.type=="link") {
-                    var curlinks = myDiagram.findLinksByExample({from:selectedObject.from,to:selectedObject.to});
-                    curlinks.each(function(curlink) {
+                if (selectedObject.type == "link") {
+                    var curlinks = myDiagram.findLinksByExample({from: selectedObject.from, to: selectedObject.to});
+                    curlinks.each(function (curlink) {
                         myDiagram.select(curlink);
                         return false;
                     });
 
                 }
-            }
-            else
-            {
-               alert("流程不存在或无法编辑。");
+            } else {
+                alert("流程不存在或无法编辑。");
             }
         }
     });
@@ -436,7 +582,7 @@ $(document).ready(function () {
         $('#step_input_value_lable').text("变量名");
     } else if ($('#step_input_source').val() == "stepOutput") {
         $('#step_input_value_lable').text("步骤及参数");
-    }else {
+    } else {
         $('#step_input_value_lable').text("值");
     }
 
@@ -468,7 +614,7 @@ $(document).ready(function () {
         $('#workflow_output_value_lable').text("变量名");
     } else if ($('#workflow_output_source').val() == "stepOutput") {
         $('#workflow_output_value_lable').text("步骤及参数");
-    }else {
+    } else {
         $('#workflow_output_value_lable').text("值");
     }
 
@@ -481,7 +627,7 @@ $(document).ready(function () {
             $('#workflow_output_value_lable').text("变量名");
         } else if ($('#workflow_output_source').val() == "stepOutput") {
             $('#workflow_output_value_lable').text("步骤及参数");
-        }else {
+        } else {
             $('#workflow_output_value_lable').text("值");
         }
     })
@@ -496,11 +642,11 @@ $(document).ready(function () {
                 content: myDiagram.model.toJson(),
             },
 
-            success: function (data){
+            success: function (data) {
                 var status = data.status,
                     info = data.info;
                 alert(info);
-                if (status == 1){
+                if (status == 1) {
                     reloadworkflow();
                 }
             }
@@ -508,26 +654,21 @@ $(document).ready(function () {
 
     });
     $('#load').click(function () {
-        if(myDiagram.isModified == true)
-         {
-             if (confirm("数据未保存，重新载入将丢失未保存数据，是否继续?")) {
+        if (myDiagram.isModified == true) {
+            if (confirm("数据未保存，重新载入将丢失未保存数据，是否继续?")) {
                 reloadworkflow();
-             }
-         }
-        else
-        {
+            }
+        } else {
             reloadworkflow();
         }
     });
     $('#return').click(function () {
-        if(myDiagram.isModified == true)
-         {
-             if (confirm("数据未保存，返回列表将丢失未保存数据，是否继续?")) {
-                window.location.href="../../workflowlist/";
-             }
-         }
-        else{
-             window.location.href="../../workflowlist/";
+        if (myDiagram.isModified == true) {
+            if (confirm("数据未保存，返回列表将丢失未保存数据，是否继续?")) {
+                window.location.href = "../../workflowlist/";
+            }
+        } else {
+            window.location.href = "../../workflowlist/";
         }
     });
 

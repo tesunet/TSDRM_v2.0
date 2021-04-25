@@ -98,6 +98,7 @@ function getClientree() {
                                         $('#tabcheck2').attr("style", "color: #cbd5dd");
                                         $("#tabcheck2").parent().attr("style", "pointer-events:none;");
                                         $("#tabcheck1").click();
+                                        $('#client_detail').hide()
                                         $("#title").text("新建")
                                         $("#pname").val(obj.data["name"])
                                         $("#id").val("0");
@@ -231,6 +232,7 @@ function getClientree() {
                         $("#title").text(data.node.data.name);
                         $('#pname').val(data.node.data.pname);
                         if (type == "CLIENT") {
+
                             $('#tabcheck2').removeAttr("style", "color: #cbd5dd");
                             $("#tabcheck2").parent().removeAttr("style", "pointer-events:none;");
                             $('#tabcheck3').removeAttr("style", "color: #cbd5dd");
@@ -261,9 +263,18 @@ function getClientree() {
                                             $('#param_se').append('<option value="' + variable_param_list[i].variable_name + '">' + variable_param_list[i].param_name + ':' + variable_param_list[i].variable_name + ':' + variable_param_list[i].param_value + '</option>');
                                         }
 
+                                        var kvm_diskcpumemory_data = JSON.parse(data.data.monitor);
+                                        $("#detail_hostname").val(kvm_diskcpumemory_data.hostname);
+                                        $("#detail_os").val(kvm_diskcpumemory_data.os);
+                                        $("#detail_cpu").val(kvm_diskcpumemory_data.cpu_count + '个');
+                                        $('#memory_space input').eq(0).val(kvm_diskcpumemory_data["memory_usage"].toFixed(0)).trigger('change');
+                                        $('#memory_space h4').eq(1).text(kvm_diskcpumemory_data["mem_used"] + "/" + kvm_diskcpumemory_data["mem_total"] + " GB");
+                                        $('#disk_space input').eq(0).val(kvm_diskcpumemory_data["disk_usage"].toFixed(0)).trigger('change');
+                                        $('#disk_space h4').eq(1).text(kvm_diskcpumemory_data["disk_used"] + "/" + kvm_diskcpumemory_data["disk_total"] + " GB");
+                                        $('#cpu_space input').eq(0).val(kvm_diskcpumemory_data["cpu_usage"].toFixed(0)).trigger('change');
+                                        $('#cpu_space h4').eq(1).text(kvm_diskcpumemory_data["cpu_usage"] + " %")
                                     }
                                     else {
-                                        $("#host_id").val("0");
                                         $("#host_ip").val("");
                                         $("#host_name").val("");
                                         $("#os").val("");
@@ -279,6 +290,7 @@ function getClientree() {
                                 }
                             });
                             $("#client").show()
+                            $('#client_detail').show()
                             $("#node").hide()
                         }
                         if (type == "NODE") {
@@ -842,13 +854,13 @@ $(document).ready(function () {
         $.ajax({
             type: "POST",
             dataType: 'json',
-            url: "../client_client_save/",
+            url: "../hosts_client_save/",
             data: {
                 id: $("#id").val(),
                 pid: $("#pid").val(),
                 host_ip: $("#host_ip").val(),
                 host_name: $("#host_name").val(),
-                os: $("#os").val(),
+                host_type: $("#host_type").val(),
                 username: $("#username").val(),
                 password: $("#password").val(),
                 remark: $("#remark").val(),
@@ -881,6 +893,7 @@ $(document).ready(function () {
                         curnode.data["name"] = $("#host_name").val()
                         $('#tree_client').jstree('set_text', $("#id").val(), newtext);
                     }
+                    $('#client_detail').show()
                     $("#title").text($("#host_name").val())
                 }
                 alert(data.info);
@@ -910,14 +923,14 @@ $(document).ready(function () {
                     '</div>' +
                     '</div>' +
                     '<div class="form-group">' +
-                    '<label class="col-md-2 control-label"><span style="color:red; "></span>变量设置</label>' +
+                    '<label class="col-md-2 control-label"><span style="color:red; "></span>变量名</label>' +
                     '<div class="col-md-10">' +
                     '<input id="variable_name" type="text" name="variable_name" class="form-control" placeholder="">' +
                     '<div class="form-control-focus"></div>' +
                     '</div>' +
                     '</div>' +
                     '<div class="form-group">' +
-                    '<label class="col-md-2 control-label"><span style="color:red; "></span>参数值</label>' +
+                    '<label class="col-md-2 control-label"><span style="color:red; "></span>变量值</label>' +
                     '<div class="col-md-10">' +
                     '<input id="param_value" type="text" name="param_value" class="form-control" placeholder="">' +
                     '<div class="form-control-focus"></div>' +
@@ -953,14 +966,14 @@ $(document).ready(function () {
                             '</div>' +
                             '</div>' +
                             '<div class="form-group">' +
-                            '<label class="col-md-2 control-label"><span style="color:red; "></span>变量设置</label>' +
+                            '<label class="col-md-2 control-label"><span style="color:red; "></span>变量名</label>' +
                             '<div class="col-md-10">' +
                             '<input id="variable_name" readonly type="text" name="variable_name" value="' + alpha_param + '" class="form-control" placeholder="">' +
                             '<div class="form-control-focus"></div>' +
                             '</div>' +
                             '</div>' +
                             '<div class="form-group">' +
-                            '<label class="col-md-2 control-label"><span style="color:red; "></span>参数值</label>' +
+                            '<label class="col-md-2 control-label"><span style="color:red; "></span>变量值</label>' +
                             '<div class="col-md-10">' +
                             '<input id="param_value" type="text" name="param_value" value="' + v_param + '" class="form-control" placeholder="">' +
                             '<div class="form-control-focus"></div>' +
@@ -999,6 +1012,79 @@ $(document).ready(function () {
         }
         $("#static01").modal("hide");
     });
+
+    $('#client_test').click(function () {
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../hosts_client_test/",
+            data: {
+                host_ip: $("#host_ip").val(),
+            },
+            success: function (data) {
+                alert(data.info);
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+            }
+        });
+    });
+
+    $('#refresh').click(function () {
+        $.ajax({
+            type: "POST",
+            dataType: 'json',
+            url: "../hosts_client_refresh/",
+            data: {
+                id: $("#id").val(),
+            },
+            success: function (data) {
+                var kvm_diskcpumemory_data = JSON.parse(data.data);
+                $("#detail_hostname").val(kvm_diskcpumemory_data.hostname);
+                $("#detail_os").val(kvm_diskcpumemory_data.os);
+                $("#detail_cpu").val(kvm_diskcpumemory_data.cpu_count + '个');
+                $('#memory_space input').eq(0).val(kvm_diskcpumemory_data["memory_usage"].toFixed(0)).trigger('change');
+                $('#memory_space h4').eq(1).text(kvm_diskcpumemory_data["mem_used"] + "/" + kvm_diskcpumemory_data["mem_total"] + " GB");
+                $('#disk_space input').eq(0).val(kvm_diskcpumemory_data["disk_usage"].toFixed(0)).trigger('change');
+                $('#disk_space h4').eq(1).text(kvm_diskcpumemory_data["disk_used"] + "/" + kvm_diskcpumemory_data["disk_total"] + " GB");
+                $('#cpu_space input').eq(0).val(kvm_diskcpumemory_data["cpu_usage"].toFixed(0)).trigger('change');
+                $('#cpu_space h4').eq(1).text(kvm_diskcpumemory_data["cpu_usage"] + " %")
+
+                alert(data.info);
+            },
+            error: function (e) {
+                alert("页面出现错误，请于管理员联系。");
+            }
+        });
+    });
+
+    //初始化knob
+    var Dashboard = function () {
+        return {
+            componentsKnobDials: function () {
+                //knob does not support ie8 so skip it
+                if (!jQuery().knob || App.isIE8()) {
+                    return;
+                }
+                // general knob
+                $(".knob").knob({
+                    'dynamicDraw': true,
+                    'thickness': 0.2,
+                    'tickColorizeValues': true,
+                    'skin': 'tron'
+                });
+            },
+            init: function () {
+                this.componentsKnobDials();
+            }
+        };
+
+    }();
+    if (App.isAngularJsApp() === false) {
+        jQuery(document).ready(function () {
+            Dashboard.init(); // init metronic core componets
+        });
+    }
 
 
 
