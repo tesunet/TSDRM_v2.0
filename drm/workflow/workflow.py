@@ -692,12 +692,6 @@ class Job(object):
                             change_dos = r"dos2unix {0} {0}".format(linux_script_file)
                             dos_obj = workflow_remote.ServerByPara(change_dos, host, user, password, "Linux")
                             change_result = dos_obj.run(isComponent=False)
-                            # 删除脚本
-                            try:
-                                sftp.remove(linux_script_file)
-                                ssh.close()
-                            except:
-                                pass
                             if change_result["exec_tag"] == 1:
                                 self.jobBaseInfo["state"] = "ERROR"
                                 self.jobBaseInfo["log"] += "脚本unix格式修改失败。"
@@ -705,6 +699,12 @@ class Job(object):
                             else:
                                 excute_obj = workflow_remote.ServerByPara(linux_script_file, host, user, password, "Linux")
                                 excute_result = excute_obj.run(isComponent=True)
+                                # 删除脚本
+                                try:
+                                    sftp.remove(linux_script_file)
+                                    ssh.close()
+                                except:
+                                    pass
                                 if excute_result["exec_tag"] == 1:
                                     self.jobBaseInfo["state"] = "ERROR"
                                     self.jobBaseInfo["log"] += "linux脚本执行失败。"
