@@ -117,62 +117,68 @@ def get_component_detail(request):
         status = 0
         info = "获取组件信息失败。"
     else:
-        input = []
-        if component.input and len(component.input.strip()) > 0:
-            tmpInput = xmltodict.parse(component.input)
-            if "inputs" in tmpInput and "input" in tmpInput["inputs"]:
-                tmpDTL = tmpInput["inputs"]["input"]
-                if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
-                    tmpDTL = [tmpDTL]
-                for curinput in tmpDTL:
-                    input.append({"code": curinput["code"], "name": curinput["name"], "type": curinput["type"],
-                                  "remark": curinput["remark"], "source": curinput["source"], "value": curinput["value"],"sort":curinput["sort"]})
-        output = []
-        if component.output and len(component.output.strip()) > 0:
-            tmpoutput = xmltodict.parse(component.output)
-            if "outputs" in tmpoutput and "output" in tmpoutput["outputs"]:
-                tmpDTL = tmpoutput["outputs"]["output"]
-                if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
-                    tmpDTL = [tmpDTL]
-                for curoutput in tmpDTL:
-                    output.append({"code": curoutput["code"], "name": curoutput["name"], "type": curoutput["type"],
-                                  "remark": curoutput["remark"], "sort":curoutput["sort"]})
-        variable = []
-        if component.variable and len(component.variable.strip()) > 0:
-            tmpvariable = xmltodict.parse(component.variable)
-            if "variables" in tmpvariable and "variable" in tmpvariable["variables"]:
-                tmpDTL = tmpvariable["variables"]["variable"]
-                if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
-                    tmpDTL = [tmpDTL]
-                for curvariable in tmpDTL:
-                    variable.append({"code": curvariable["code"], "name": curvariable["name"], "type": curvariable["type"],
-                                   "remark": curvariable["remark"], "value": curvariable["value"],"sort":curvariable["sort"]})
+        try:
 
-        data = {
-            "pname": component.pnode.shortname if component.pnode else "",
-            "id": component.id,
-            "guid": component.guid,
-            "createtime": component.createtime.strftime(
-                '%Y-%m-%d %H:%M:%S') if component.createtime else '',
-            "updatetime": component.updatetime.strftime(
-                '%Y-%m-%d %H:%M:%S') if component.updatetime else '',
-            "createuser": component.createuser.userinfo.fullname if component.createuser else "",
-            "updateuser": component.updateuser.userinfo.fullname if component.updateuser else "",
-            "shortname": component.shortname,
-            "type": component.type,
-            "owner": component.owner,
-            "group": [x.id for x in component.group.all()],
-            "icon": component.icon,
-            "language": component.language,
-            "code": component.code,
-            "input": input,
-            "output": output,
-            "variable": variable,
-            "version": component.version,
-            "remark": component.remark,
-            "sort": component.sort,
+            input = []
+            if component.input and len(component.input.strip()) > 0:
+                tmpInput = xmltodict.parse(component.input)
+                if "inputs" in tmpInput and "input" in tmpInput["inputs"]:
+                    tmpDTL = tmpInput["inputs"]["input"]
+                    if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
+                        tmpDTL = [tmpDTL]
+                    for curinput in tmpDTL:
+                        input.append({"code": curinput["code"], "name": curinput["name"], "type": curinput["type"],
+                                      "remark": curinput["remark"], "source": curinput["source"], "value": curinput["value"],"sort":curinput["sort"]})
+            output = []
+            if component.output and len(component.output.strip()) > 0:
+                tmpoutput = xmltodict.parse(component.output)
+                if "outputs" in tmpoutput and "output" in tmpoutput["outputs"]:
+                    tmpDTL = tmpoutput["outputs"]["output"]
+                    if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
+                        tmpDTL = [tmpDTL]
+                    for curoutput in tmpDTL:
+                        output.append({"code": curoutput["code"], "name": curoutput["name"], "type": curoutput["type"],
+                                      "remark": curoutput["remark"], "sort":curoutput["sort"]})
+            variable = []
+            if component.variable and len(component.variable.strip()) > 0:
+                tmpvariable = xmltodict.parse(component.variable)
+                if "variables" in tmpvariable and "variable" in tmpvariable["variables"]:
+                    tmpDTL = tmpvariable["variables"]["variable"]
+                    if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
+                        tmpDTL = [tmpDTL]
+                    for curvariable in tmpDTL:
+                        variable.append({"code": curvariable["code"], "name": curvariable["name"], "type": curvariable["type"],
+                                       "remark": curvariable["remark"], "value": curvariable["value"],"sort":curvariable["sort"]})
 
-        }
+            data = {
+                "pname": component.pnode.shortname if component.pnode else "",
+                "id": component.id,
+                "guid": component.guid,
+                "createtime": component.createtime.strftime(
+                    '%Y-%m-%d %H:%M:%S') if component.createtime else '',
+                "updatetime": component.updatetime.strftime(
+                    '%Y-%m-%d %H:%M:%S') if component.updatetime else '',
+                "createuser": component.createuser.userinfo.fullname if component.createuser else "",
+                "updateuser": component.updateuser.userinfo.fullname if component.updateuser else "",
+                "shortname": component.shortname,
+                "type": component.type,
+                "owner": component.owner,
+                "group": [x.id for x in component.group.all()],
+                "icon": component.icon,
+                "language": component.language,
+                "code": component.code,
+                "input": input,
+                "output": output,
+                "variable": variable,
+                "version": component.version,
+                "remark": component.remark,
+                "sort": component.sort,
+
+            }
+        except Exception as e:
+            status = 0
+            info = "获取{0}参数信息失败".format(str(e))
+
     return JsonResponse({
         "status": status,
         "data": data,

@@ -1,0 +1,186 @@
+{% extends "base1.html" %} {% block content %}
+    <style>
+        #loading1 {
+            height: 132px;
+            width: 100%;
+            background-image: url(../static/upload/loading.gif);
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        #loading2 {
+            height: 132px;
+            width: 100%;
+            background-image: url(../static/upload/loading.gif);
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+    </style>
+    <div style="height:10px"></div>
+    <div class="form-group">
+        <label class="col-md-2 control-label">主机地址</label>
+        <div class="col-md-9">
+            <input id="mip" type="text" name="mip" class="form-control " placeholder="">
+            <div class="form-control-focus"></div>
+        </div>
+        <div class="col-md-1"></div>
+    </div>
+    <div class="form-group">
+        <label class="col-md-2 control-label">用户名</label>
+        <div class="col-md-9">
+            <input id="user" type="text" name="user" class="form-control " placeholder="">
+            <div class="form-control-focus"></div>
+        </div>
+        <div class="col-md-1"></div>
+    </div>
+    <div class="form-group">
+        <label class="col-md-2 control-label">用户密码</label>
+        <div class="col-md-9">
+            <input id="password" type="text" name="password" class="form-control " placeholder="">
+            <div class="form-control-focus"></div>
+        </div>
+        <div class="col-md-1"></div>
+    </div>
+    <div class="form-group">
+        <label class="col-md-2 control-label">db用户名</label>
+        <div class="col-md-9">
+            <input id="dbuser" type="text" name="dbuser" class="form-control " placeholder="">
+            <div class="form-control-focus"></div>
+        </div>
+        <div class="col-md-1"></div>
+    </div>
+    <div class="form-group">
+        <label class="col-md-2 control-label">db密码</label>
+        <div class="col-md-9">
+            <input id="dbpassword" type="text" name="dbpassword" class="form-control " placeholder="">
+            <div class="form-control-focus"></div>
+        </div>
+        <div class="col-md-1"></div>
+    </div>
+
+    <div class="form-group">
+        <label class="col-md-2 control-label">备机地址</label>
+        <div class="col-md-9">
+            <select class="form-control" id="sip" name="sip">
+                <option value="192.168.226.143">备机192.168.226.143</option>
+                <option value="192.168.226.144">备机192.168.226.144</option>
+                <option value="192.168.226.145">备机192.168.226.145</option>
+                <option value="www.baidu.com">百度www.baidu.com</option>
+            </select>
+        </div>
+        <div class="col-md-1"></div>
+    </div>
+    <div class="form-group " style="text-align:center">
+        <label class="col-md-2 control-label"></label>
+        <div class="col-md-9">
+            <button type="button" id="testnetwork" name="testnetwork" class="btn green">
+                测试网络
+            </button>
+            <button type="button" id="testdbstate" name="testdbstate" class="btn green">
+                测试数据库状态
+            </button>
+        </div>
+        <div class="col-md-1"></div>
+    </div>
+
+
+    <div id="client_detail_model" class="modal fade" tabindex="-1" data-backdrop="static" data-keyboard="false">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
+                </div>
+                <div class="panel-body">
+                    <form class="bs-example form-horizontal activate-form">
+
+                        <div class="form-group">
+                            <label class="col-md-2 control-label">主机名</label>
+                            <div class="col-md-9">
+                                <input readonly id="detail_hostname" type="text" name="detail_hostname"
+                                       class="form-control " placeholder="">
+                                <div class="form-control-focus"></div>
+                            </div>
+                            <div class="col-md-1"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-md-2 control-label">CPU</label>
+                            <div class="col-md-9">
+                                <input readonly id="detail_cpu" type="text" name="detail_cpu" class="form-control "
+                                       placeholder="">
+                                <div class="form-control-focus"></div>
+                            </div>
+                            <div class="col-md-1"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-md-2 control-label">操作系统</label>
+                            <div class="col-md-9">
+                                <input readonly id="detail_os" type="text" name="detail_os" class="form-control "
+                                       placeholder="">
+                                <div class="form-control-focus"></div>
+                            </div>
+                            <div class="col-md-1"></div>
+                        </div>
+                        <div class="form-group " style="text-align:center">
+                            <label class="col-md-2 control-label"></label>
+                            <div class="col-md-9">
+                                <button type="button" id="refresh" name="refresh" class="btn green">
+                                    刷新状态
+                                </button>
+                            </div>
+                            <div class="col-md-1"></div>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+{% endblock %} {% block script %}
+    <link href="/static/assets/global/plugins/bootstrap-fileinput/bootstrap-fileinput.css" rel="stylesheet"
+          type="text/css"/>
+    <link href="/static/assets/global/plugins/datatables/datatables.min.css" rel="stylesheet" type="text/css"/>
+    <link href="/static/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.css" rel="stylesheet"
+          type="text/css"/>
+    <link href="/static/assets/global/plugins/jquery-multi-select/css/multi-select.css" rel="stylesheet"
+          type="text/css"/>
+    <link href="/static/assets/global/plugins/jstree/dist/themes/default/style.min.css" rel="stylesheet"
+          type="text/css"/>
+    <link href="/static/assets/global/plugins/select2/css/select2.min.css" rel="stylesheet" type="text/css"/>
+    <link href="/static/assets/global/plugins/select2/css/select2-bootstrap.min.css" rel="stylesheet" type="text/css"/>
+    <link href="/static/assets/global/plugins/bootstrap-datetimepicker/css/bootstrap-datetimepicker.min.css"
+          rel="stylesheet" type="text/css"/>
+    <link href="/static/pages/css/client_manage.css" rel="stylesheet" type="text/css"/>
+    <link href="/static/assets/global/plugins/jstree/dist/themes/default/style.min.css" rel="stylesheet"
+          type="text/css"/>
+    <link href="/static/assets/global/plugins/ztree/css/zTreeStyle/zTreeStyle.css" rel="stylesheet"
+          type="text/css"/>
+
+
+
+    <script src="/static/assets/global/plugins/bootstrap-fileinput/bootstrap-fileinput.js"
+            type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/datatables/datatables.min.js" type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js"
+            type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/jstree/dist/jstree.min.js" type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/jquery-multi-select/js/jquery.multi-select.js"
+            type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/jquery-multi-select/js/jquery.quicksearch.js"
+            type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/select2/js/select2.full.min.js" type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/bootstrap-contextmenu/bootstrap-contextmenu.js"
+            type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/bootstrap-datetimepicker/js/bootstrap-datetimepicker.js"
+            type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/ztree/js/jquery.ztree.core.js" type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/ztree/js/jquery.ztree.excheck.js" type="text/javascript"></script>
+    <script src="/static/assets/global/plugins/jstree/dist/jstree.min.js" type="text/javascript"></script>
+    <script src="/static/assets/global/scripts/app.min.js" type="text/javascript"></script>
+    <script src="/static/pages/js/components-select2.min.js" type="text/javascript"></script>
+
+    <script src="/static/assets/global/plugins/jquery-knob/js/jquery.knob.js" type="text/javascript"></script>
+
+{% endblock %}

@@ -142,7 +142,7 @@ urlpatterns = [
     url(r'^verify_items/$', verify_items),
     url(r'^show_result/$', show_result),
     url(r'^reject_invited/$', reject_invited),
-    
+
     url(r'^reload_task_nums/$', reload_task_nums),
     url(r'^delete_current_process_run/$', delete_current_process_run),
     url(r'^get_celery_tasks_info/$', get_celery_tasks_info),
@@ -346,5 +346,9 @@ urlpatterns = [
     url(r'^hosts_client_test/$', hosts_client_test),
     url(r'^hosts_client_refresh/$', hosts_client_refresh),
 
+    # 测试mysql切换
+    url(r'^mysqlswitch/$', mysqlswitch, {'funid': '132'}),
+    url(r'^check_master_network/$', check_master_network),
+    url(r'^check_master_dbstate/$', check_master_dbstate),
 
 ]
