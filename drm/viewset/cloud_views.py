@@ -44,9 +44,9 @@ def get_kvm_copy_node(utils_id, parent, kvm_credit, finalOutput):
     children = []
     for i in finalOutput:
         if i['code'] == 'kvmlistonlycopy':
-            for name in i['value']:
+            for name in json.loads(i['value']):
                 if parent + '@' in name['name']:
-                    children = i['value']
+                    children = json.loads(i['value'])
     for child in children:
         data = dict()
         data['state'] = {'opened': 'True'}
@@ -95,69 +95,75 @@ def get_kvm_node(utils_id, parent, kvm_credit, children, finalOutput):
 @login_required
 def get_kvm_tree(request):
     # 循环一级菜单工具管理：kvm
-    util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
-    tree_data = []
-    for utils in util_manage:
-        utils_id = utils.id
-        kvm_credit = kvm_credit_data(utils_id)
-        root = dict()
-        root["text"] = "<img src = '/static/pages/images/ts.png' height='24px'> " + utils.code,
-        root['id'] = utils.id
-        root['state'] = {'opened': 'True'}
-        root['data'] = {
-            'utils_id': utils.id,
-            'name': utils.name,
-            'pname': '无',
-        }
-        root['kvm_credit'] = kvm_credit
-        # 获取kvm模板文件
-        kvm_template_guid = '0f298100-9b31-11eb-849b-000c29921d27'
-        kvm_template_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
-                {"code": "username", "value": kvm_credit['KvmUser']},
-                {"code": "password", "value": kvm_credit['KvmPasswd']}]
-        newJob = Job(userid=request.user.id)
-        state = newJob.execute_workflow(kvm_template_guid, input=kvm_template_input)
-        if state == 'NOTEXIST':
-            return JsonResponse({
-                "ret": 0,
-                "data": "组件不存在，请于管理员联系。",
-            })
-        elif state == 'ERROR':
-            return JsonResponse({
-                "ret": 0,
-                "data": newJob.jobBaseInfo['log'],
-            })
-        else:
-            for i in newJob.finalOutput:
-                if i['code'] == 'templatefile':
-                    root['kvm_template'] = i['value']
-        root['type'] = 'ROOT'
-        # 循环二级菜单：虚拟机
-        children = []
-        kvm_list_guid = '73c5e79c-979a-11eb-ac18-000c29921d27'
-        kvm_list_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
-                 {"code": "username", "value": kvm_credit['KvmUser']},
-                 {"code": "password", "value": kvm_credit['KvmPasswd']}]
-        newJob = Job(userid=request.user.id)
-        state = newJob.execute_workflow(kvm_list_guid, input=kvm_list_input)
-        if state == 'NOTEXIST':
-            return JsonResponse({
-                "ret": 0,
-                "data": "组件不存在，请于管理员联系。",
-            })
-        elif state == 'ERROR':
-            return JsonResponse({
-                "ret": 0,
-                "data": newJob.jobBaseInfo['log'],
-            })
-        else:
-            for i in newJob.finalOutput:
-                if i['code'] == 'kvmlistexcludecopy':
-                    children = i['value']
-        root["children"] = get_kvm_node(utils.id, utils.code, kvm_credit, children, newJob.finalOutput)
-        tree_data.append(root)
+    try:
+        util_manage = UtilsManage.objects.filter(util_type='Kvm').exclude(state='9')
+        tree_data = []
+        ret = 1
+        for utils in util_manage:
+            utils_id = utils.id
+            kvm_credit = kvm_credit_data(utils_id)
+            root = dict()
+            root["text"] = "<img src = '/static/pages/images/ts.png' height='24px'> " + utils.code,
+            root['id'] = utils.id
+            root['state'] = {'opened': 'True'}
+            root['data'] = {
+                'utils_id': utils.id,
+                'name': utils.name,
+                'pname': '无',
+            }
+            root['kvm_credit'] = kvm_credit
+            # 获取kvm模板文件
+            kvm_template_guid = '0f298100-9b31-11eb-849b-000c29921d27'
+            kvm_template_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
+                    {"code": "username", "value": kvm_credit['KvmUser']},
+                    {"code": "password", "value": kvm_credit['KvmPasswd']}]
+            newJob = Job(userid=request.user.id)
+            state = newJob.execute_workflow(kvm_template_guid, input=kvm_template_input)
+            if state == 'NOTEXIST':
+                return JsonResponse({
+                    "ret": 0,
+                    "data": "组件不存在，请于管理员联系。",
+                })
+            elif state == 'ERROR':
+                return JsonResponse({
+                    "ret": 0,
+                    "data": newJob.jobBaseInfo['log'],
+                })
+            else:
+                for i in newJob.finalOutput:
+                    if i['code'] == 'templatefile':
+                        root['kvm_template'] = json.loads(i['value'])
+            root['type'] = 'ROOT'
+            # 循环二级菜单：虚拟机
+            children = []
+            kvm_list_guid = '73c5e79c-979a-11eb-ac18-000c29921d27'
+            kvm_list_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
+                     {"code": "username", "value": kvm_credit['KvmUser']},
+                     {"code": "password", "value": kvm_credit['KvmPasswd']}]
+            newJob = Job(userid=request.user.id)
+            state = newJob.execute_workflow(kvm_list_guid, input=kvm_list_input)
+            if state == 'NOTEXIST':
+                return JsonResponse({
+                    "ret": 0,
+                    "data": "组件不存在，请于管理员联系。",
+                })
+            elif state == 'ERROR':
+                return JsonResponse({
+                    "ret": 0,
+                    "data": newJob.jobBaseInfo['log'],
+                })
+            else:
+                for i in newJob.finalOutput:
+                    if i['code'] == 'kvmlistexcludecopy':
+                        children = json.loads(i['value'])
+            root["children"] = get_kvm_node(utils.id, utils.code, kvm_credit, children, newJob.finalOutput)
+            tree_data.append(root)
+    except Exception as e:
+        print(e)
+        ret = 0
+        tree_data = '获取虚机失败。'
     return JsonResponse({
-        "ret": 1,
+        "ret": ret,
         "data": tree_data
     })
 
@@ -198,7 +204,7 @@ def get_kvm_detail(request):
             else:
                 for i in newJob.finalOutput:
                     if i['code'] == 'diskcpumemory':
-                        memory_disk_cpu_data = i['value']
+                        memory_disk_cpu_data = json.loads(i['value'])
             data = {
                     'memory_disk_cpu_data': memory_disk_cpu_data
                     }
@@ -235,7 +241,7 @@ def get_kvm_detail(request):
             else:
                 for i in newJob.finalOutput:
                     if i['code'] == 'kvminfo':
-                        kvm_info_data = i['value']
+                        kvm_info_data = json.loads(i['value'])
 
             # 虚机资源消耗情况组件
             diskcpumem_guid = '798bbe14-98d4-11eb-9499-000c29921d27'
@@ -256,7 +262,8 @@ def get_kvm_detail(request):
             else:
                 for i in newJob.finalOutput:
                     if i['code'] == 'kvmdiskcpumemory':
-                        kvm_diskcpumemory_data = i['value']
+                        kvm_diskcpumemory_data = json.loads(i['value'])
+
             data = {
                 'kvm_info_data': kvm_info_data,
                 'kvm_diskcpumemory_data': kvm_diskcpumemory_data,
@@ -299,7 +306,7 @@ def get_kvm_task_data(request):
         else:
             for i in newJob.finalOutput:
                 if i['code'] == 'kvmdiskcpumemory':
-                    kvm_diskcpumemory_data = i['value']
+                    kvm_diskcpumemory_data = json.loads(i['value'])
         data = {
             'kvm_cpu_mem_data': kvm_diskcpumemory_data,
         }

@@ -606,6 +606,7 @@ class KVMApi():
 
     def guestmount(self, kvm_machine, filesystem):
         """
+        挂载KVM虚拟机磁盘，达到可以在宿主机上修改KVM虚拟机的IP、主机名、密码
         guestmount -a /data/vmdata/CentOS-7-2020-09-14/CentOS-7.qcow2 -i /etc/libvirt/kvm_mount
         /data/vmdata/CentOS-7-2020-09-14/CentOS-7.qcow2    磁盘路径
         /etc/libvirt/kvm_mount                             要挂载的目录
@@ -625,6 +626,7 @@ class KVMApi():
 
     def alert_ip_hostname(self, copy_ip,  copy_hostname):
         """
+        通过挂载磁盘修改KVM虚机ip、删除MAC地址、修改主机名
         sed -i "/IPADDR/s/=.*/=192.168.1.180/"  /etc/libvirt/kvm_mount/etc/sysconfig/network-scripts/ifcfg-eth0 修改ip
         sed -i '/HWADDR/d' /etc/libvirt/kvm_mount/etc/sysconfig/network-scripts/ifcfg-eth0                      删除MAC地址
         echo CentOS-7@test5 > /etc/libvirt/kvm_mount/etc/hostname                                               修改主机名
@@ -646,7 +648,9 @@ class KVMApi():
         return result
 
     def alter_password(self, password):
-        # 修改密码
+        """
+        通过挂载磁盘修改KVM虚机密码
+        """
         try:
             # 找出要替换的密码
             exe_cmd = r'cat /etc/libvirt/kvm_mount/etc/shadow | grep root'
@@ -685,72 +689,64 @@ class KVMApi():
             result = '取消挂载失败。'
         return result
 
-    def disk_cpu_data(self):
-        # 查看cpu使用率/查看磁盘使用率
-        try:
-            # 磁盘
-            exe_cmd = r'df'
-            result = self.remote_linux(exe_cmd)
-            disk_info = [x for x in result['data'].split(' ') if x]
-            del disk_info[0:6]
-            end_list = self.list_of_groups(disk_info, 6)
-            disk_info_list = []
-            for item in end_list:
-                data = {}
-                data['name'] = item[0]
-                data['total'] = item[1]
-                data['used'] = item[2]
-                data['mount'] = item[5]
-                disk_info_list.append(data)
-            total = 0
-            used = 0
-            for i in disk_info_list:
-                if i['mount'] == '/' or i['mount'] == '/data' or i['mount'] == '/boot':
-                    total += int(i['total'])
-                    used += int(i['used'])
-            disk_usage = round(used / total * 100, 2)
-            # cpu使用率
-            exe_cmd = r"top -n1 | awk '/Cpu/{print $2}'"
-            result = self.remote_linux(exe_cmd)
-            cpu_usage = float(result['data'])
-            # 操作系统
-            exe_cmd = r"cat /etc/centos-release"
-            result = self.remote_linux(exe_cmd)
-            os = result['data']
-            data = {
-                'disk_total': round(total / 1024 / 1024, 2),
-                'disk_used': round(used / 1024 / 1024, 2),
-                'disk_usage': disk_usage,
-                'cpu_usage': cpu_usage,
-                'os': os,
-            }
-        except Exception as e:
-            print(e)
-            data = '获取信息失败。'
-        return data
-
     def all_kvm_template(self):
-        # 查看/home/image目录下下所有的磁盘模板
+        """
+        查看/home/image目录下所有的磁盘模板
+        """
         try:
-            exe_cmd = r'ls /home/images/os-image'
+            exe_cmd = r'ls -l /home/images/os-image'
             result = self.remote_linux(exe_cmd)
-            os_image = [x.replace('\t', ' ').split(' ') for x in result['data'].split(' ') if x][0]
+            fs = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+            del fs[0:2]
+            end_list = self.list_of_groups(fs, 9)
+            os_image = []
+            for item in end_list:
+                os_image.append(item[8])
 
-            exe_cmd = r'ls /home/images/disk-image'
+            exe_cmd = r'ls -l /home/images/disk-image'
             result = self.remote_linux(exe_cmd)
-            disk_image = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+            fs = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+            del fs[0:2]
+            end_list = self.list_of_groups(fs, 9)
+            disk_image = []
+            for item in end_list:
+                disk_image.append(item[8])
 
-            exe_cmd = r'ls /home/images/base-image'
+            exe_cmd = r'ls -l /home/images/base-image'
             result = self.remote_linux(exe_cmd)
-            base_image = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+            fs = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+            del fs[0:2]
+            end_list = self.list_of_groups(fs, 9)
+            base_image = []
+            for item in end_list:
+                base_image.append(item[8])
 
-            exe_cmd = r'ls /home/images/linuxdb-image'
+            exe_cmd = r'ls -l /home/images/linuxdb-image'
             result = self.remote_linux(exe_cmd)
-            linuxdb_image = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+            fs = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+            del fs[0:2]
+            end_list = self.list_of_groups(fs, 9)
+            linuxdb_image = []
+            for item in end_list:
+                linuxdb_image.append(item[8])
 
-            exe_cmd = r'ls /home/images/windb-image'
+            exe_cmd = r'ls -l /home/images/windb-image'
             result = self.remote_linux(exe_cmd)
-            windb_image = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+            fs = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+            del fs[0:2]
+            end_list = self.list_of_groups(fs, 9)
+            windb_image = []
+            for item in end_list:
+                windb_image.append(item[8])
+
+            exe_cmd = r'ls -l /home/xml'
+            result = self.remote_linux(exe_cmd)
+            fs = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+            del fs[0:2]
+            end_list = self.list_of_groups(fs, 9)
+            xml_image = []
+            for item in end_list:
+                xml_image.append(item[8])
 
             result = {
                 'os_image': os_image,
@@ -758,10 +754,47 @@ class KVMApi():
                 'base_image': base_image,
                 'linuxdb_image': linuxdb_image,
                 'windb_image': windb_image,
+                'xml_image': xml_image,
             }
         except Exception as e:
             print(e)
             result = '查找模板文件失败。'
+        return result
+
+    def get_os_template(self):
+        # 获取KVM虚机系统磁盘模板文件列表
+        exe_cmd = r'ls -l /home/images/os-image'
+        result = self.remote_linux(exe_cmd)
+        os_image = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+        del os_image[0:2]
+
+        end_list = self.list_of_groups(os_image, 9)
+        os_template_list = []
+        for item in end_list:
+            os_template_list.append(item[8])
+        return os_template_list
+
+    def get_xml_template(self):
+        # 获取KVM虚机xml模板文件列表
+        exe_cmd = r'ls -l /home1/xml'
+        result = self.remote_linux(exe_cmd)
+        xml_list = [x.replace('\t', '') for x in result['data'].split(' ') if x]
+        del xml_list[0:2]
+        end_list = self.list_of_groups(xml_list, 9)
+        xml_template_list = []
+        for item in end_list:
+            xml_template_list.append(item[8])
+        return xml_template_list
+
+    def judge_file_exist(self, kvm_template_name):
+        # 判断一个指定目录下指定文件是否存在
+        xml_template_file = kvm_template_name.replace('qcow2', 'xml')
+        exe_cmd = r'find /home/xml -name "{0}"'.format(xml_template_file)
+        result = self.remote_linux(exe_cmd)
+        if '/home/xml/{0}'.format(xml_template_file) == result['data'].strip():
+            result = '文件存在'
+        else:
+            result = '文件不存在'
         return result
 
     def del_kvm_template(self, path):
@@ -874,21 +907,10 @@ class KVMApi():
             zpool_dict_list.append(data)
         return zpool_dict_list
 
-    def get_os_template(self):
-        # 获取KVM模板文件列表
-        exe_cmd = r'ls -l /home/images/os-image'
-        result = self.remote_linux(exe_cmd)
-        os_image = [x.replace('\t', '') for x in result['data'].split(' ') if x]
-        del os_image[0:2]
-
-        end_list = self.list_of_groups(os_image, 9)
-        filesystem_name = []
-        for item in end_list:
-            filesystem_name.append(item[8])
-        return filesystem_name
-
     def hostdata(self):
-        # 监控主机信息：cpu、内存、磁盘使用情况，主机名
+        """
+        监控主机信息：cpu、内存、磁盘使用情况，主机名、系统版本、cpu个数
+        """
         # 磁盘使用情况
         exe_cmd = r'df'
         result = self.remote_linux(exe_cmd)
@@ -942,12 +964,10 @@ class KVMApi():
         end_list = [list(i) for i in list_of_group]
         count = len(mem_info) % 3
         end_list.append(mem_info[-count:]) if count != 0 else end_list
-
         mem_total = int(end_list[0][1])
         mem_free = int(end_list[1][1])
         mem_buffers = int(end_list[3][1])
         mem_cached = int(end_list[4][1])
-
         free_mem = mem_free + mem_buffers + mem_cached
         used_mem = mem_total - free_mem
         memory_usage = round(100 * used_mem / mem_total, 2)
@@ -967,12 +987,11 @@ class KVMApi():
         return diskcpumemory
 
     def get_zfs_snapshot_list(self):
-        # 获取KVM模板文件列表
+        # 获取ZFS快照列表
         exe_cmd = r'zfs list -t snapshot'
         result = self.remote_linux(exe_cmd)
         snapshot_list = [x.replace('\t', '') for x in result['data'].split(' ') if x]
         del snapshot_list[0:5]
-
         end_list = self.list_of_groups(snapshot_list, 5)
         filesystem_name = []
         for item in end_list:
@@ -997,7 +1016,7 @@ class KVMApi():
         return filesystem_name
 
     def alter_kvm_cpu_memory(self, kvm_name, kvm_cpu, kvm_memory):
-        # 修改cpu个数和内存大小
+        # 通过内容替换，修改cpu个数和内存大小
         try:
             # 找出要替换的cpu
             exe_cmd = r'cat /etc/libvirt/qemu/{0}.xml | grep vcpu'.format(kvm_name)
@@ -1041,12 +1060,10 @@ linuxserver_credit = {
 
 ip = '192.168.1.61'
 
-# result = KVMApi(linuxserver_credit).all_kvm_name()
-# result = KVMApi(linuxserver_credit).zfs_kvm_filesystem()
-# result = KVMApi(linuxserver_credit).memory_disk_cpu_data()
+# result = KVMApi(linuxserver_credit).all_kvm_template()
+# result = KVMApi(linuxserver_credit).remote_linux(r'ls')
+# result = KVMApi(linuxserver_credit).judge_file_exist('CentOS-7.qcow2')
 # result = KVMApi(linuxserver_credit).alter_kvm_cpu_memory('Test-5', '1', '1048')
 # result = LibvirtApi(ip).kvm_id('Test-2')
 # result = LibvirtApi(ip).mem_cpu_hostname_info()
 # print(result)
-
-

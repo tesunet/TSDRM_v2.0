@@ -8,7 +8,10 @@ function getkvmtree() {
         },
         success: function (data) {
             if (data.ret == 0) {
-                alert(data.data)
+                alert(data.data);
+                $('#loading').hide();
+                $('#loading2').hide();
+                $('#showdata').show();
             } else {
                 $('#loading').hide();
                 $('#loading2').hide();
