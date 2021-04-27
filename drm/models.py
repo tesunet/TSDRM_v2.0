@@ -545,3 +545,20 @@ class TSDRMJob(models.Model):
     jobstepoutput = models.TextField("每一步骤的输出参数及值", blank=True, null=True)
     jobvariable = models.TextField("内部参数及值", blank=True, null=True)
     finalinput = models.TextField("输入参数及值", blank=True, null=True)
+
+class SysLog(models.Model):
+    """
+    系统日志表
+    """
+    datatime = models.DateTimeField("创建时间", blank=True, null=True)
+    userid = models.ForeignKey(User, blank=True, null=True, verbose_name="用户")
+    state = models.CharField("状态", blank=True, null=True, max_length=20)
+    content = models.TextField("内容", blank=True, null=True)
+    type_choices = (
+        ("login",  '登录'),
+        ("new",    '新增'),
+        ("edit",   '修改'),
+        ("delete", '删除'),
+        ("other",  '其他'),
+    )
+    type = models.CharField("类型", null=True, max_length=20, choices=type_choices, default="other")
