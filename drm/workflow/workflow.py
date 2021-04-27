@@ -645,8 +645,13 @@ class Job(object):
             mkdir_obj = workflow_remote.ServerByPara(mkdir_cmd, host, user, password, "Linux")
             mkdir_result = mkdir_obj.run(isComponent=False)
             if mkdir_result["exec_tag"] == 1:
-                self.jobBaseInfo["state"] = "ERROR"
-                self.jobBaseInfo["log"] += "linux远程服务器创建/tmp/drm文件夹失败。"
+                if mkdir_result["message"] == "连接服务器失败":
+                    self.jobBaseInfo["state"] = "ERROR"
+                    self.jobBaseInfo["log"] += "连接服务器失败。"
+                    return
+                else:
+                    self.jobBaseInfo["state"] = "ERROR"
+                    self.jobBaseInfo["log"] += "linux远程服务器创建/tmp/drm文件夹失败。"
                 return
             else:
                 linux_script_name = "work_for_component_{0}_{1}.sh".format(self.job.modelguid, self.jobGuid)
@@ -688,8 +693,8 @@ class Job(object):
                         else:
                             sftp.chmod(linux_script_file, int("755"))
                             # 修改dos
-                            # r"sed -i 's/\r$//' {0}&&{0}"
-                            change_dos = r"dos2unix {0} {0}".format(linux_script_file)
+                            # r"sed -i 's/\r$//' {0}"
+                            change_dos = r"sed -i 's/\r$//' {0}".format(linux_script_file)
                             dos_obj = workflow_remote.ServerByPara(change_dos, host, user, password, "Linux")
                             change_result = dos_obj.run(isComponent=False)
                             if change_result["exec_tag"] == 1:
@@ -700,14 +705,14 @@ class Job(object):
                                 excute_obj = workflow_remote.ServerByPara(linux_script_file, host, user, password, "Linux")
                                 excute_result = excute_obj.run(isComponent=True)
                                 # 删除脚本
-                                try:
-                                    sftp.remove(linux_script_file)
-                                    ssh.close()
-                                except:
-                                    pass
+                                # try:
+                                #     sftp.remove(linux_script_file)
+                                #     ssh.close()
+                                # except:
+                                #     pass
                                 if excute_result["exec_tag"] == 1:
                                     self.jobBaseInfo["state"] = "ERROR"
-                                    self.jobBaseInfo["log"] += "linux脚本执行失败。"
+                                    self.jobBaseInfo["log"] += excute_result["message"]
                                     return
                                 else:
                                     # 获取数据库中原本设定好的脚本应输出的所有参数(OrderedDict格式)
@@ -722,13 +727,10 @@ class Job(object):
                                     self._get_db_script_output()
                                     db_script_params = self._get_db_script_output()
                                     script_json = excute_result["data"]
-                                    script_message = excute_result["message"]
                                     # 调用替换函数,返回结果是列表[OrderedDict...]
                                     paramList_data = self.json_value_to_orderList(script_json, db_script_params)
-                                    # 把脚本的状态放到约定好的输出json格式的messqge上
-                                    paramList_message = self.replace_script_result_message(script_message,paramList_data)
                                     # 调用类型转换函数
-                                    change_result = self._changeType(paramList_message)
+                                    change_result = self._changeType(paramList_data)
                                     # 准备写到componentoutput
                                     for output in change_result:
                                         componentOutput[output["code"]] = output["value"]
@@ -797,7 +799,7 @@ class Job(object):
 
                 if excute_result["exec_tag"] == 1:
                     self.jobBaseInfo["state"] = "ERROR"
-                    self.jobBaseInfo["log"] += "bat脚本执行失败。"
+                    self.jobBaseInfo["log"] += excute_result["message"]
                     return
                 else:
                     db_script_params = self._get_db_script_output()
@@ -805,9 +807,8 @@ class Job(object):
                     message_str = excute_result["messqge"]
                     # 调用替换函数,返回结果是列表[OrderedDict...]
                     paramList_data = self.json_value_to_orderList(script_json, db_script_params)
-                    paramList_message = self.replace_script_result_message(message_str, paramList_data)
                     # 调用类型转换函数
-                    change_result = self._changeType(paramList_message)
+                    change_result = self._changeType(paramList_data)
                     # 准备写到componentoutput
                     for output in change_result:
                         componentOutput[output["code"]] = output["value"]
@@ -1172,13 +1173,29 @@ class Job(object):
 
     # 获取数据库配置脚本的应有的输出变量列表
     def _get_db_script_output(self):
+        """
+        db_script_params:   配置的输出参数列表，只含有data一个内容
+        add_params:     现添加两个参数message,state
+        :return:
+        """
+        orerdict_params = ''
+        add_params = [{'code': 'message', 'name': '', 'type': 'string', 'source': '', 'remark': '', 'sort': '',
+              'value': ''},
+             {'code': 'state', 'name': '', 'type': 'string', 'source': '', 'remark': '', 'sort': '',
+              'value': ''}
+             ]
         if self.jobModel.workflowBaseInfo["output"] and len(self.jobModel.workflowBaseInfo["output"].strip()) > 0:
             tmpoutput = xmltodict.parse(self.jobModel.workflowBaseInfo["output"])
             if "outputs" in tmpoutput and tmpoutput["outputs"] and "output" in tmpoutput["outputs"]:
                 db_script_params = tmpoutput["outputs"]["output"]
                 if str(type(db_script_params)) == "<class 'collections.OrderedDict'>":
-                    db_script_params = [db_script_params]
-                return db_script_params
+                    add_output = {"outputs": {"output": add_params}}
+                    add_xml = xmltodict.unparse(add_output, encoding='utf-8')
+                    add_orerdict = xmltodict.parse(add_xml)
+                    # 把add_params转换成列表嵌套有序字典格式，将db_script_params添加进去并返回
+                    orerdict_params = add_orerdict["outputs"]["output"]
+                    orerdict_params.append(db_script_params)
+        return orerdict_params
 
     # 实际脚本输出的参数json串，替换到db的配置参数列表上
     def json_value_to_orderList(self, script_json, db_script_params):
@@ -1192,11 +1209,11 @@ class Job(object):
         return db_script_params
 
     # 把脚本的状态放到约定好的输出json格式的message上
-    def replace_script_result_message(self, message_str, paramList_data):
-        for param in paramList_data:
-            if param["code"] == "message":
-                param["value"] = message_str
-        return paramList_data
+    # def replace_script_result_message(self, message_str, paramList_data):
+    #     for param in paramList_data:
+    #         if param["code"] == "message":
+    #             param["value"] = message_str
+    #     return paramList_data
 
     # 格式化参数
     def _sourceToValue(self, paramList,sourceNode=None):
