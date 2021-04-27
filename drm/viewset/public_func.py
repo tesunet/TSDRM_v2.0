@@ -10,6 +10,15 @@ import base64
 from ..api.commvault import SQLApi
 
 
+# 保存系统日志信息
+def save_syslog(user, type, content):
+    SysLog.objects.create(**{
+        'datatime': datetime.datetime.now(),
+        'content': content,
+        'user_id': user,
+        'type': type
+    })
+
 
 def get_credit_info(content, util_type="COMMVAULT"):
     commvault_credit = {

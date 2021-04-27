@@ -200,6 +200,9 @@ def org_user_save(request):
                                     except Exception:
                                         raise Http404()
                                 id = profile.id
+
+                                save_syslog(request.user.id, 'new', '用户{0}'.format(fullname))
+
                             except Exception as e:
                                 info = "保存用户失败。"
                                 status = 0
@@ -235,6 +238,9 @@ def org_user_save(request):
                                     alluserinfo.group.add(mygroup)
                                 except ValueError:
                                     raise Http404()
+
+                            save_syslog(request.user.id, 'edit', '用户{0}'.format(fullname))
+
                         except:
                             info = '保存失败。'
                             status = 0
@@ -271,6 +277,9 @@ def org_user_save(request):
                         profile.sort = sort
                         profile.save()
                         id = profile.id
+
+                        save_syslog(request.user.id, 'new', '组织{0}'.format(orgname))
+
                     except ValueError:
                         raise Http404()
         else:
@@ -292,6 +301,9 @@ def org_user_save(request):
                         alluserinfo.fullname = orgname
                         alluserinfo.remark = remark
                         alluserinfo.save()
+
+                        save_syslog(request.user.id, 'edit', '组织{0}'.format(orgname))
+
                     except:
                         info = '保存失败。'
                         status = 0
@@ -330,6 +342,12 @@ def orgdel(request):
                     myuserinfo.save()
                 except:
                     pass
+        content = ''
+        if userinfo.type == 'org':
+            content = '组织{0}'.format(userinfo.fullname)
+        if userinfo.type == 'user':
+            content = '用户{0}'.format(userinfo.fullname)
+        save_syslog(request.user.id, 'delete', content)
 
         return HttpResponse(1)
     else:
@@ -401,6 +419,9 @@ def orgmove(request):
                     myuserinfo.pnode = puserinfo
                     myuserinfo.sort = sort
                     myuserinfo.save()
+
+                    save_syslog(request.user.id, 'edit', '{0}节点位置'.format(myuserinfo.fullname))
+
                 except:
                     pass
                 if parent != old_parent:
@@ -464,6 +485,9 @@ def groupsave(request):
                     groupsave.name = name
                     groupsave.remark = remark
                     groupsave.save()
+
+                    save_syslog(request.user.id, 'new', '角色{0}'.format(name))
+
                     result["res"] = "新增成功。"
                     result["data"] = groupsave.id
             else:
@@ -476,7 +500,11 @@ def groupsave(request):
                         groupsave.name = name
                         groupsave.remark = remark
                         groupsave.save()
+
+                        save_syslog(request.user.id, 'edit', '角色{0}'.format(name))
+
                         result["res"] = "修改成功。"
+
                     except:
                         result["res"] = "修改失败。"
         return HttpResponse(json.dumps(result))
@@ -497,6 +525,9 @@ def groupdel(request):
             groupsave = allgroup[0]
             groupsave.state = "9"
             groupsave.save()
+
+            save_syslog(request.user.id, 'delete', '角色{0}'.format(allgroup[0].name))
+
             result = "删除成功。"
         else:
             result = '角色不存在。'
@@ -550,6 +581,9 @@ def groupsaveusertree(request):
                     myuser = UserInfo.objects.get(id=int(selecteduser.replace("user_", "")))
                     if myuser.type == "user":
                         myuser.group.add(groupsave)
+
+                        save_syslog(request.user.id, 'edit', '角色{0}配置用户'.format(groupsave.name))
+
                 except:
                     pass
         return HttpResponse("保存成功。")
@@ -602,6 +636,9 @@ def groupsavefuntree(request):
                     myfun = Fun.objects.get(id=int(selectedfun.replace("fun_", "")))
                     if myfun.type == "fun":
                         groupsave.fun.add(myfun)
+
+                        save_syslog(request.user.id, 'edit', '角色{0}功能权限'.format(groupsave.name))
+
                 except:
                     pass
         return HttpResponse("保存成功。")
@@ -704,6 +741,9 @@ def group_save_host_tree(request):
 
         try:
             groupsave.host.add(*hosts)
+
+            save_syslog(request.user.id, 'edit', '角色{0}主机权限'.format(groupsave.name))
+
         except Exception:
             status = 0
             info = "关联主机失败。"
@@ -946,6 +986,9 @@ def fun_save(request):
                     funsave.if_new_wd = new_window
                     funsave.save()
                     id = funsave.id
+
+                    save_syslog(request.user.id, 'new', '功能{0}'.format(name))
+
                 else:
                     funsave = Fun.objects.get(id=id)
                     if funsave.type == "node" and mytype == "fun" and len(funsave.children.all()) > 0:
@@ -958,6 +1001,9 @@ def fun_save(request):
                         funsave.icon = icon
                         funsave.if_new_wd = new_window
                         funsave.save()
+
+                        save_syslog(request.user.id, 'edit', '功能{0}'.format(name))
+
             except Exception as e:
                 print(e)
                 info = '保存失败。'
@@ -991,6 +1037,9 @@ def fundel(request):
                         sortfun.save()
                     except:
                         pass
+
+            save_syslog(request.user.id, 'delete', '功能{0}'.format(allfun[0].name))
+
             return HttpResponse(1)
         else:
             return HttpResponse(0)
@@ -1055,6 +1104,9 @@ def funmove(request):
                 myfun.pnode = pfun
                 myfun.sort = sort
                 myfun.save()
+
+                save_syslog(request.user.id, 'edit', '{0}功能位置'.format(myfun.name))
+
             except:
                 pass
             if parent != old_parent:
@@ -1091,6 +1143,9 @@ def dictdel(request):
             dictsave = alldict[0]
             dictsave.state = "9"
             dictsave.save()
+
+            save_syslog(request.user.id, 'delete', '字典{0}'.format(alldict[0].name))
+
             result = "删除成功。"
         else:
             result = '字典不存在。'
@@ -1111,6 +1166,9 @@ def dictlistdel(request):
             listsave = alllist[0]
             listsave.state = "9"
             listsave.save()
+
+            save_syslog(request.user.id, 'delete', '条目{0}'.format(alllist[0].name))
+
             result = "删除成功。"
         else:
             result = '条目不存在。'
@@ -1165,8 +1223,10 @@ def dictsave(request):
                     dictsave.sort = dictsort
                     dictsave.remark = dictremark
                     dictsave.save()
-                    dictsave = DictIndex.objects.filter(
-                        name=dictname).exclude(state="9")
+                    dictsave = DictIndex.objects.filter(name=dictname).exclude(state="9")
+
+                    save_syslog(request.user.id, 'new', '字典{0}'.format(dictname))
+
                     result["res"] = "新增成功。"
                     result["data"] = dictsave[0].id
             else:
@@ -1181,6 +1241,9 @@ def dictsave(request):
                         dictsave.sort = dictsort
                         dictsave.remark = dictremark
                         dictsave.save()
+
+                        save_syslog(request.user.id, 'edit', '字典{0}'.format(dictname))
+
                         result["res"] = "修改成功。"
                     except:
                         result["res"] = "修改失败。"
@@ -1229,8 +1292,10 @@ def dictlistsave(request):
                     listsave.remark = listremark
                     listsave.content = listcontent
                     listsave.save()
-                    listsave = DictList.objects.filter(
-                        name=listname, dictindex=alldict).exclude(state="9")
+                    listsave = DictList.objects.filter(name=listname, dictindex=alldict).exclude(state="9")
+
+                    save_syslog(request.user.id, 'new', '条目{0}'.format(listname))
+
                     result["res"] = "新增成功。"
                     result["data"] = listsave[0].id
             else:
@@ -1246,6 +1311,9 @@ def dictlistsave(request):
                         listsave.remark = listremark
                         listsave.content = listcontent
                         listsave.save()
+
+                        save_syslog(request.user.id, 'edit', '条目{0}'.format(listname))
+
                         result["res"] = "修改成功。"
                     except:
                         result["res"] = "修改失败。"

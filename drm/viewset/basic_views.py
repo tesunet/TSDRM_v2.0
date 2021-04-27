@@ -15,6 +15,7 @@ from drm.api.commvault.RestApi import *
 from .public_func import *
 from ..workflow.workflow import *
 from ..tasks import *
+from .public_func import *
 
 #walkthroughinfo = {}
 
@@ -163,6 +164,9 @@ def userlogin(request):
                 else:
                     request.session['ispuser'] = False
                 request.session['isadmin'] = myuser.is_superuser
+
+                save_syslog(request.user.id, 'login', '平台')
+
             else:
                 result = "登录失败，请于客服联系。"
         else:
@@ -266,6 +270,9 @@ def userpassword(request):
                     else:
                         request.session['ispuser'] = False
                     request.session['isadmin'] = alluser[0].is_superuser
+
+                save_syslog(request.user.id, 'edit', '密码')
+
             else:
                 result = "用户异常，修改密码失败。"
         else:
@@ -783,10 +790,10 @@ def custom_personal_fun_list(if_superuser, userinfo_id):
         try:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "select datacenter_fun.id from datacenter_group,datacenter_fun,datacenter_userinfo,datacenter_userinfo_group,datacenter_group_fun "
-                    "where datacenter_group.id=datacenter_userinfo_group.group_id and datacenter_group.id=datacenter_group_fun.group_id and "
-                    "datacenter_group_fun.fun_id=datacenter_fun.id and datacenter_userinfo.id=datacenter_userinfo_group.userinfo_id and userinfo_id= "
-                    + str(userinfo_id) + " order by datacenter_fun.sort"
+                    "select drm_fun.id from drm_group,drm_fun,drm_userinfo,drm_userinfo_group,drm_group_fun "
+                    "where drm_group.id=drm_userinfo_group.group_id and drm_group.id=drm_group_fun.group_id and "
+                    "drm_group_fun.fun_id=drm_fun.id and drm_userinfo.id=drm_userinfo_group.userinfo_id and userinfo_id= "
+                    + str(userinfo_id) + " order by drm_fun.sort"
                 )
 
                 rows = cursor.fetchall()
