@@ -100,7 +100,7 @@ class ServerByPara(object):
         self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
             self.client.connect(hostname=self.host, username=self.user, password=self.pwd, timeout=5, port=port)
-        except (socket.timeout, paramiko.ssh_exception.SSHException) as e:
+        except Exception as e:
             print("连接服务器失败")
             return {
                 "exec_tag": 1,
@@ -167,7 +167,7 @@ class ServerByPara(object):
         try:
             s = Session(self.host, auth=(self.user, self.pwd))
             ret = s.run_cmd(self.cmd)
-        except (ConnectionError, WinRMOperationTimeoutError, WinRMTransportError, WinRMError) as e:
+        except Exception as e:
             if type(e) == WinRMOperationTimeoutError:
                 print("脚本执行超时")
                 exec_tag = 1

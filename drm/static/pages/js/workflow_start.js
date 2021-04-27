@@ -198,7 +198,9 @@ $('#instance_table tbody').on('click', 'button#play', function () {
                 pre_group_div = '<div class="form-group">';
                 aft_group_div = '</div>';
                 var valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input   id="process_param_value_' + param.code + '" type="text" class="form-control" name="process_param_' + param.code + '"  value="' + param.value + '"></div></div>';
-                if (param.type == "int" || param.type == "decimal") {
+                if (param.type == "password") {
+                    valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input  id="process_param_value_' + param.code + '" type="password" class="form-control" name="process_param_' + param.code + '"  value="' + param.value + '"></div></div>';
+                }else if (param.type == "int" || param.type == "decimal") {
                     valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input  id="process_param_value_' + param.code + '" type="number" class="form-control" name="process_param_' + param.code + '"  value="' + param.value + '"></div></div>';
                 } else if (param.type == "bool") {
                     if (param.value == "True") {
@@ -224,7 +226,9 @@ $('#instance_table tbody').on('click', 'button#play', function () {
                 pre_group_div = '<div class="form-group">';
                 aft_group_div = '</div>';
                 var valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input readonly   id="process_param_value_' + param.code + '" type="text" class="form-control" name="process_param_' + param.code + '"  value="' + param.value + '"></div></div>';
-                if (param.type == "int" || param.type == "decimal") {
+                if (param.type == "password") {
+                    valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input  id="process_param_value_' + param.code + '" type="password" class="form-control" name="process_param_' + param.code + '"  value="' + param.value + '"></div></div>';
+                }else if (param.type == "int" || param.type == "decimal") {
                     valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input readonly  id="process_param_value_' + param.code + '" type="number" class="form-control" name="process_param_' + param.code + '"  value="' + param.value + '"></div></div>';
                 } else if (param.type == "bool") {
                     if (param.value == "True") {
@@ -296,7 +300,9 @@ $('#play_workflow').click(function () {
             pre_group_div = '<div class="form-group">';
             aft_group_div = '</div>';
             var valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input   id="process_param_value_' + param.code + '" type="text" class="form-control" name="process_param_' + param.code + '"  value="' + param.value + '"></div></div>';
-            if (param.type == "int" || param.type == "decimal") {
+            if (param.type == "password") {
+                valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input  id="process_param_value_' + param.code + '" type="password" class="form-control" name="process_param_' + param.code + '"  value="' + param.value + '"></div></div>';
+            }else if (param.type == "int" || param.type == "decimal") {
                 valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input  id="process_param_value_' + param.code + '" type="number" class="form-control" name="process_param_' + param.code + '"  value="' + param.value + '"></div></div>';
             } else if (param.type == "bool") {
                 if (param.value == "True") {

@@ -19,6 +19,7 @@ class WorkFlow(object):
         self.workflowGuid = guid
         self.workflowBaseInfo = None
         self.workflow = None
+        self.disabled = False
         self.massage = ""
         # 实例化传入guid时，从数据库中查找，guid为None时，视为新建
         if self.workflowGuid and len(self.workflowGuid.strip()) > 0:
@@ -79,6 +80,7 @@ class WorkFlow(object):
                 self.workflowBaseInfo["language"] = self.workflow.language
                 self.workflowBaseInfo["code"] = self.workflow.code
         else:
+            self.disabled = True
             self.massage = 'error(get_workflow):流程' + workflowGuid + '不存在'
 
     def set_workflow(self, jsonFromPage):
@@ -236,6 +238,7 @@ class Instance(WorkFlow):
             self.instanceBaseInfo["sort"] = self.instance.sort
             self.instanceBaseInfo["state"] = self.instance.state
         else:
+            self.disabled = True
             self.massage = 'error(get_instance):实例' + instanceGuid + '不存在'
 
     # 设置实例
@@ -530,6 +533,9 @@ class Job(object):
         """
         if self.jobGuid is None:
             self.jobBaseInfo["log"] += 'error(run_job):任务未初始化'
+            self.jobBaseInfo["state"] = "ERROR"
+        elif self.jobModel.disabled:
+            self.jobBaseInfo["log"] += 'error(run_job):模型不可用'
             self.jobBaseInfo["state"] = "ERROR"
         else:
             self.jobBaseInfo["starttime"] = datetime.datetime.now()

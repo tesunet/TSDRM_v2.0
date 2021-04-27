@@ -1114,7 +1114,9 @@ def workflow_monitor_getdata(request):
                 instance=instance[0]
                 workflow=instance.workflow
         else:
-            workflow = TSDRMWorkflow.objects.exclude(state="9").filter(guid=modelguid)
+            workflowlist = TSDRMWorkflow.objects.exclude(state="9").filter(guid=modelguid)
+            if len(workflowlist)>0:
+                workflow = workflowlist[0]
         if workflow:
             content = {"class": "GraphLinksModel", "linkFromPortIdProperty": "fromPort",
                        "linkToPortIdProperty": "toPort"}
