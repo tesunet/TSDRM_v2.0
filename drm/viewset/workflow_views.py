@@ -87,6 +87,7 @@ def get_workflow_node(parent, select_id):
             "pname": parent.shortname,
             "name": child.shortname,
             "remark": child.remark,
+            "guid":child.guid,
             "input":input
         }
 
@@ -1048,7 +1049,8 @@ def workflow_instance_run(request):
     name = request.POST.get('name', '')
     reason = request.POST.get('reason', '')
     params = request.POST.get('params', '')
-    type= "INSTANCE"
+    type= request.POST.get('type', '')
+
 
 
     if len(params.strip())>0:

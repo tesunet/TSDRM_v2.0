@@ -36,6 +36,7 @@ function getProcessTree(){
                     .bind('select_node.jstree', function (event, data) {
                         var node = data.node;
                         $('#id').val(node.id);
+                        $('#guid').val(node.data.guid);
                         $("#title").text(node.text);
 
                         if (node.type == "LEAF") {
@@ -171,7 +172,8 @@ $('#instance_table tbody').on('click', 'button#play', function () {
     $('#run_name').val("");
     $('#run_reason').val("");
     $('#confirmtext').val("");
-    $('#i_guid').val(data.guid);
+    $('#i_guid').val($('#guid').val());
+    $('#type').val("INSTANCE");
 
 
     /**
@@ -215,6 +217,32 @@ $('#instance_table tbody').on('click', 'button#play', function () {
                     '    <div class="col-md-2"><label class="control-label" for="form_control_1">类型：</label><label class="control-label" style="padding-left: 0;">' + param.type + '</label></div>' +
                     valuetext +   aft_group_div;
             }
+            else{
+                hasparam=true
+                var pre_group_div = '',
+                    aft_group_div = '';
+                pre_group_div = '<div class="form-group">';
+                aft_group_div = '</div>';
+                var valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input readonly   id="process_param_value_' + param.code + '" type="text" class="form-control" name="process_param_' + param.code + '"  value="' + param.value + '"></div></div>';
+                if (param.type == "int" || param.type == "decimal") {
+                    valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input readonly  id="process_param_value_' + param.code + '" type="number" class="form-control" name="process_param_' + param.code + '"  value="' + param.value + '"></div></div>';
+                } else if (param.type == "bool") {
+                    if (param.value == "True") {
+                        valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><select disabled  name="instancetype" id="process_param_value_' + param.code + '" class="form-control"><option selected value="True">True</option><option value="False">False</option></select></div></div>';
+                    } else {
+                        valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><select disabled  name="instancetype" id="process_param_value_' + param.code + '" class="form-control"><option  value="True">True</option><option selected value="False">False</option></select></div></div>';
+                    }
+                } else if (param.type == "datetime") {
+                    valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input readonly  id="process_param_value_' + param.code + '" value="' + param.value + '" autoComplete="off" name="process_param_' + param.code + '" type="datetime"  class="form-control datetime"></div></div>';
+                }
+
+
+                pro_param_html += pre_group_div +
+                    '    <div class="col-md-offset-1 col-md-2"><label class="control-label" for="form_control_1">名称：</label><label class="control-label" style="padding-left: 0;">' + param.name + '</label></div>' +
+                    '    <div class="col-md-2"><label class="control-label" for="form_control_1">编码：</label><label class="control-label" style="padding-left: 0;">' + param.code + '</label></div>' +
+                    '    <div class="col-md-2"><label class="control-label" for="form_control_1">类型：</label><label class="control-label" style="padding-left: 0;">' + param.type + '</label></div>' +
+                    valuetext +   aft_group_div;
+            }
         }
         if(hasparam) {
             $('#run_param_ribbon').append(pro_param_html);
@@ -238,6 +266,78 @@ $('#instance_table tbody').on('click', 'button#play', function () {
             });
         });
 });
+
+$('#play_workflow').click(function () {
+    $('#run_name').val("");
+    $('#run_reason').val("");
+    $('#confirmtext').val("");
+    $('#i_guid').val($('#guid').val());
+    $('#type').val("WORKFLOW");
+
+
+    /**
+     * 加载流程参数
+     */
+    $('#run_param_ribbon').empty();
+
+    var input = selectednode_input
+
+    if (input.length > 0) {
+        $('#run_div').show();
+
+        var process_param_list = input
+        var pro_param_html = '';
+        var hasparam=false;
+        for (var k = 0; k < process_param_list.length; k++) {
+            var param = process_param_list[k];
+            hasparam=true
+            var pre_group_div = '',
+                aft_group_div = '';
+            pre_group_div = '<div class="form-group">';
+            aft_group_div = '</div>';
+            var valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input   id="process_param_value_' + param.code + '" type="text" class="form-control" name="process_param_' + param.code + '"  value="' + param.value + '"></div></div>';
+            if (param.type == "int" || param.type == "decimal") {
+                valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input  id="process_param_value_' + param.code + '" type="number" class="form-control" name="process_param_' + param.code + '"  value="' + param.value + '"></div></div>';
+            } else if (param.type == "bool") {
+                if (param.value == "True") {
+                    valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><select  name="instancetype" id="process_param_value_' + param.code + '" class="form-control"><option selected value="True">True</option><option value="False">False</option></select></div></div>';
+                } else {
+                    valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><select  name="instancetype" id="process_param_value_' + param.code + '" class="form-control"><option  value="True">True</option><option selected value="False">False</option></select></div></div>';
+                }
+            } else if (param.type == "datetime") {
+                valuetext = '    <div class="col-md-5"><label class="col-md-2 control-label" for="form_control_1">值：</label><div class="col-md-10"><input  id="process_param_value_' + param.code + '" value="' + param.value + '" autoComplete="off" name="process_param_' + param.code + '" type="datetime"  class="form-control datetime"></div></div>';
+            }
+
+
+            pro_param_html += pre_group_div +
+                '    <div class="col-md-offset-1 col-md-2"><label class="control-label" for="form_control_1">名称：</label><label class="control-label" style="padding-left: 0;">' + param.name + '</label></div>' +
+                '    <div class="col-md-2"><label class="control-label" for="form_control_1">编码：</label><label class="control-label" style="padding-left: 0;">' + param.code + '</label></div>' +
+                '    <div class="col-md-2"><label class="control-label" for="form_control_1">类型：</label><label class="control-label" style="padding-left: 0;">' + param.type + '</label></div>' +
+                valuetext +   aft_group_div;
+
+        }
+        if(hasparam) {
+            $('#run_param_ribbon').append(pro_param_html);
+        }else {
+            $('#run_div').hide();
+        }
+    } else {
+        $('#run_div').hide();
+    }
+
+    layui.use('laydate', function () {
+            var laydate = layui.laydate;
+
+            $('.datetime').each(function () {
+                var d_ele = $(this).prop("id");
+                laydate.render({
+                    elem: '#' + d_ele,
+                    type: 'datetime',
+                    theme: '#428bca'
+                });
+            });
+        });
+    });
 
 $('#confirm').click(function () {
     $('#confirm').hide();
@@ -278,6 +378,7 @@ $('#confirm').click(function () {
             url: "../workflow_instance_run/",
             data: {
                 modelguid: $('#i_guid').val(),
+                type: $('#type').val(),
                 name: $('#run_name').val(),
                 reason: $('#run_reason').val(),
                 params: process_params,
