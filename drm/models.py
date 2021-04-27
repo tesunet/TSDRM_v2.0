@@ -551,7 +551,7 @@ class SysLog(models.Model):
     系统日志表
     """
     datatime = models.DateTimeField("创建时间", blank=True, null=True)
-    userid = models.ForeignKey(User, blank=True, null=True, verbose_name="用户")
+    user = models.ForeignKey(User, blank=True, null=True, verbose_name="用户")
     state = models.CharField("状态", blank=True, null=True, max_length=20)
     content = models.TextField("内容", blank=True, null=True)
     type_choices = (
