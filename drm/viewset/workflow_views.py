@@ -1338,27 +1338,23 @@ def workflow_job_data(request):
 
         cursor = connection.cursor()
 
-        exec_sql="select starttime, endtime,startuser_id, state, id, reson, name,createtime from drm_tsdrmjob where (state is null or (state != '9' and state!='REJECT')) and pjob_id is null"
+        exec_sql="select drm_tsdrmjob.starttime, drm_tsdrmjob.endtime,drm_tsdrmjob.startuser_id,drm_tsdrmjob.state, drm_tsdrmjob.id, drm_tsdrmjob.reson, drm_tsdrmjob.name,drm_tsdrmjob.createtime,drm_userinfo.fullname from drm_tsdrmjob,drm_userinfo where drm_tsdrmjob.startuser_id=drm_userinfo.id and (drm_tsdrmjob.state is null or (drm_tsdrmjob.state != '9' and drm_tsdrmjob.state!='REJECT')) and drm_tsdrmjob.pjob_id is null and drm_tsdrmjob.type in ('WORKFLOW','INSTANCE')"
 
         if len(start_time.strip())>0:
-            exec_sql+= " and createtime >='" + start_time + "'"
+            exec_sql+= " and drm_tsdrmjob.createtime >='" + start_time + "'"
         if len(end_time.strip()) > 0:
-            exec_sql += " and createtime <='" + end_time + "'"
+            exec_sql += " and drm_tsdrmjob.createtime <='" + end_time + "'"
 
         if runperson:
-            user_info = UserInfo.objects.filter(fullname=runperson)
-            if user_info:
-                user_info = user_info[0]
-                runperson = user_info.user.id
-                exec_sql += " and startuser_id =" + str(runperson) + ""
+            exec_sql += " and drm_userinfo.fullname like '%" + runperson + "%'"
 
         if runstate != "":
             if runstate!="EDIT":
-                exec_sql += " and state ='" + str(runperson) + "'"
+                exec_sql += " and drm_tsdrmjob.state ='" + str(runperson) + "'"
             else:
-                exec_sql += " and (state ='' or state is null)"
+                exec_sql += " and (drm_tsdrmjob.state ='' or drm_tsdrmjob.state is null)"
 
-        exec_sql += " order by createtime desc"
+        exec_sql += " order by drm_tsdrmjob.createtime desc"
 
         state_dict = {
             "PAUSE": "暂停",
@@ -1375,21 +1371,15 @@ def workflow_job_data(request):
         rows = cursor.fetchall()
 
         for processrun_obj in rows:
-            startuser_fullname=""
-            if processrun_obj[2]:
-                startusers = processrun_obj[2]
-                startuser_objs = User.objects.filter(id=startusers)
-                startuser_fullname = startuser_objs[0].userinfo.fullname if startuser_objs else ""
-
             result.append({
                 "starttime": processrun_obj[0].strftime('%Y-%m-%d %H:%M:%S') if processrun_obj[0] else "",
                 "endtime": processrun_obj[1].strftime('%Y-%m-%d %H:%M:%S') if processrun_obj[1] else "",
-                "startuser": startuser_fullname,
                 "state": state_dict["{0}".format(processrun_obj[3])] if processrun_obj[3] else "",
                 "id": processrun_obj[4] if processrun_obj[4] else "",
                 "reson": processrun_obj[5][:20] if processrun_obj[5] else "",
                 "name": processrun_obj[6] if processrun_obj[6] else "",
                 "createtime": processrun_obj[7].strftime('%Y-%m-%d %H:%M:%S') if processrun_obj[7] else "",
+                "startuser": processrun_obj[8] if processrun_obj[8] else "",
             })
         return HttpResponse(json.dumps({"data": result}))
 
