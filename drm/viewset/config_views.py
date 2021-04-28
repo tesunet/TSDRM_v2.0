@@ -4080,6 +4080,9 @@ def util_manage_save(request):
                         'name': name,
                         'content': credit
                     })
+
+                    save_syslog(request.user.id, 'edit', '工具{0}'.format(name))
+
                 else:
                     cur_util_manage.create(**{
                         'util_type': util_type,
@@ -4087,6 +4090,9 @@ def util_manage_save(request):
                         'name': name,
                         'content': credit
                     })
+
+                    save_syslog(request.user.id, 'new', '工具{0}'.format(name))
+
             except Exception as e:
                 print(e)
                 status = 0
@@ -4113,6 +4119,9 @@ def util_manage_del(request):
         util_manage = UtilsManage.objects.filter(id=util_manage_id)
         if util_manage.exists():
             util_manage.update(**{'state': '9'})
+
+            save_syslog(request.user.id, 'delete', '工具{0}'.format(util_manage[0].name))
+
         else:
             status = 0
             info = '该工具不存在，删除失败。'

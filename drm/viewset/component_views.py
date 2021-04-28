@@ -245,6 +245,8 @@ def component_save(request):
                     componentsave.longname = getLongname(componentsave)
                     componentsave.save()
 
+                    save_syslog(request.user.id, 'new', '组件节点{0}'.format(node_name))
+
                     select_id = componentsave.id
                 except Exception as e:
                     info = "保存失败：{0}1".format(e)
@@ -253,7 +255,7 @@ def component_save(request):
                 # 修改
                 try:
                     componentsave = TSDRMComponent.objects.get(id=id)
-                    componentsave.name = node_name
+                    componentsave.shortname = node_name
                     componentsave.remark = node_remark
                     componentsave.updatetime = datetime.datetime.now()
                     componentsave.updateuser = request.user
@@ -262,6 +264,9 @@ def component_save(request):
                     componentsave.save()
 
                     select_id = componentsave.id
+
+                    save_syslog(request.user.id, 'edit', '组件节点{0}'.format(node_name))
+
                 except Exception as e:
                     info = "保存失败：{0}2".format(e)
                     status = 0
@@ -336,6 +341,9 @@ def component_save(request):
                             '%Y-%m-%d %H:%M:%S') if componentsave.updatetime else '',
                         createuser = request.user.userinfo.fullname
                         updateuser = request.user.userinfo.fullname
+
+                        save_syslog(request.user.id, 'new', '组件{0}'.format(shortname))
+
                     except Exception as e:
                         # info = "保存失败：{0}".format(e)
                         status = 0
@@ -358,6 +366,9 @@ def component_save(request):
                     updatetime = componentsave.updatetime.strftime(
                         '%Y-%m-%d %H:%M:%S') if componentsave.updatetime else '',
                     updateuser = request.user.userinfo.fullname
+
+                    save_syslog(request.user.id, 'edit', '组件{0}'.format(shortname))
+
                 except Exception as e:
                     info = "保存失败：{0}3".format(e)
                     status = 0
@@ -432,6 +443,9 @@ def component_move(request):
                 my_component.save()
                 my_component.longname = getLongname(my_component)
                 my_component.save()
+
+                save_syslog(request.user.id, 'edit', '组件{0}位置'.format(my_component.shortname))
+
             except:
                 pass
 
@@ -452,6 +466,8 @@ def component_del(request):
         component = TSDRMComponent.objects.get(id=id)
         component.state = "9"
         component.save()
+
+        save_syslog(request.user.id, 'delete', '组件{0}位置'.format(component.shortname))
 
         return HttpResponse(1)
     else:

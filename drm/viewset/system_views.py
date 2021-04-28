@@ -442,6 +442,9 @@ def orgpassword(request):
             user = userinfo.user
             user.set_password(password1)
             user.save()
+
+            save_syslog(request.user.id, 'edit', '{0}密码'.format(userinfo.fullname))
+
             return HttpResponse("1")
         except:
             HttpResponse('修改密码失败，请于管理员联系。')
@@ -1318,3 +1321,87 @@ def dictlistsave(request):
                     except:
                         result["res"] = "修改失败。"
         return HttpResponse(json.dumps(result))
+
+
+# 系统日志
+
+def syslog_index(request, funid):
+    if request.user.is_authenticated():
+        starttime = (datetime.datetime.now() - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+        endtime = datetime.datetime.now().strftime("%Y-%m-%d")
+        type_dict = {
+            'login': '登录',
+            'new': '新增',
+            'edit': '修改',
+            'delete': '删除',
+            'other': '其他',
+        }
+        return render(request, 'syslog.html',
+                      {'username': request.user.userinfo.fullname,
+                       "pagefuns": getpagefuns(funid,request),
+                       "starttime": starttime,
+                       "endtime": endtime,
+                       "type_dict": type_dict
+                       })
+    else:
+        return HttpResponseRedirect("/login")
+
+
+def syslog_data(request):
+    if request.user.is_authenticated():
+        startdate = request.GET.get('startdate', '')
+        enddate = request.GET.get('enddate', '')
+        start_time = datetime.datetime.strptime(startdate, '%Y-%m-%d').strftime('%Y-%m-%d %H:%M:%S')
+        end_time = (datetime.datetime.strptime(enddate, '%Y-%m-%d') + datetime.timedelta(days=1) - datetime.timedelta(
+            seconds=1)).strftime('%Y-%m-%d %H:%M:%S')
+        user = request.GET.get('user', '')
+        type = request.GET.get('type', '')
+
+        cursor = connection.cursor()
+        exec_sql = "select drm_syslog.id, drm_syslog.datatime, drm_syslog.type, drm_syslog.content, " \
+                   "drm_userinfo.fullname from drm_syslog,drm_userinfo where drm_syslog.user_id=drm_userinfo.user_id " \
+                   "and (drm_syslog.state is null or drm_syslog.state != '9')"
+        if len(start_time.strip()) > 0:
+            exec_sql += " and drm_syslog.datatime >='" + start_time + "'"
+        if len(end_time.strip()) > 0:
+            exec_sql += " and drm_syslog.datatime <='" + end_time + "'"
+        if user:
+            exec_sql += " and drm_userinfo.fullname like '%" + user + "%'"
+        if type != "":
+            exec_sql += " and drm_syslog.type ='" + str(type) + "'"
+        exec_sql += " order by drm_syslog.id desc"
+        cursor.execute(exec_sql)
+        rows = cursor.fetchall()
+        type_dict = {
+            'login': '登录',
+            'new': '新增',
+            'edit': '修改',
+            'delete': '删除',
+            'other': '其他',
+        }
+        syslog_list = []
+        for syslog in rows:
+            id = syslog[0]
+            datatime = syslog[1].strftime('%Y-%m-%d %H:%M:%S') if syslog[1] else ""
+            type = type_dict[syslog[2]]
+            content = syslog[3]
+            user = syslog[4]
+            log = '{user}{type}{content}。'.format(**{
+                'user': '<span style="color:#3598DC">{0}</span>'.format(user),
+                'type': '<span style="color:#F7CA18">{0}</span>'.format(type),
+                'content': '<span style="color:#26C281">{0}</span>'.format(content),
+            })
+            syslog_list.append({
+                'id': id,
+                'datatime': datatime,
+                'user': user,
+                'type': type,
+                'log': log,
+            })
+        return JsonResponse({
+            'data': syslog_list
+        })
+    else:
+        return HttpResponseRedirect('/login')
+
+
