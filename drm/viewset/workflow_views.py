@@ -71,7 +71,7 @@ def get_workflow_node(parent, select_id):
             childtype="LEAF"
             if child.input and len(child.input.strip()) > 0:
                 tmpInput = xmltodict.parse(child.input)
-                if "inputs" in tmpInput and "input" in tmpInput["inputs"]:
+                if tmpInput and "inputs" in tmpInput and tmpInput["inputs"] and "input" in tmpInput["inputs"]:
                     tmpDTL = tmpInput["inputs"]["input"]
                     if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
                         tmpDTL = [tmpDTL]
@@ -483,7 +483,7 @@ def workflow_getdata(request):
             input = []
             if subworkflow.input and len(subworkflow.input.strip()) > 0:
                 tmpInput = xmltodict.parse(subworkflow.input)
-                if "inputs" in tmpInput and "input" in tmpInput["inputs"]:
+                if tmpInput and  "inputs" in tmpInput and tmpInput["inputs"] and "input" in tmpInput["inputs"]:
                     tmpDTL = tmpInput["inputs"]["input"]
                     if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
                         tmpDTL = [tmpDTL]

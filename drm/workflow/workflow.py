@@ -1214,13 +1214,6 @@ class Job(object):
                     param["value"] = script_dict[item]
         return db_script_params
 
-    # 把脚本的状态放到约定好的输出json格式的message上
-    # def replace_script_result_message(self, message_str, paramList_data):
-    #     for param in paramList_data:
-    #         if param["code"] == "message":
-    #             param["value"] = message_str
-    #     return paramList_data
-
     # 格式化参数
     def _sourceToValue(self, paramList,sourceNode=None):
         """
@@ -1243,6 +1236,11 @@ class Job(object):
 
         # 1.根据source，从workfolwInput、workfolwVariable、stepOutput、_getFunctionValue中获取参数值；常数和input不需要额外获取
         for param in paramList:
+            param_key=None
+            param_value_list = param["value"].split('-->')
+            param["value"]=param_value_list[0]
+            if len(param_value_list)>1:
+                param_key=param_value_list[1]
 
             if param["source"] == "workfolwInput":
                 for tmpInput in curSourceNode.finalInput:
@@ -1277,6 +1275,12 @@ class Job(object):
                             break
             elif param["source"] == "function":
                 param["value"] = self._getFunctionValue(param["value"])
+            if param_key:
+                try:
+                    tempdict=json.loads(param["value"])
+                    param["value"]=tempdict[param_key]
+                except:
+                    param["value"] = None
         # 2.转换参数类型
         paramList = self._changeType(paramList)
         return paramList

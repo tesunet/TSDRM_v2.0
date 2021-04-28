@@ -166,9 +166,17 @@ Inspector.prototype.inspectObject = function (object) {
                                 {"data": "type"},
                                 {"data": "remark"},
                                 {"data": null},
+                                {"data": null},
                             ],
                             "columnDefs": [
                                 {
+                                    "targets": -2,
+                                    "render": function (data, type, full) {
+                                        if (data.type == "json") {
+                                            return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_workflowinput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                        }
+                                    }
+                                }, {
                                     "targets": -1,
                                     "data": null,
                                     "defaultContent": "<button  id='select' title='选择'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-check'></i></button>"
@@ -192,7 +200,12 @@ Inspector.prototype.inspectObject = function (object) {
                     } );
                         $('#table_workflowinput tbody').on('click', 'button#select', function () {
                             var table = $('#table_workflowinput').DataTable();
-                            $('#step_criteria_value_left').val(table.row($(this).parents('tr')).data().code)
+                            var param_key = ""
+                            var param_key_value = $('#table_workflowinput_type_' + table.row($(this).parents('tr')).data().code).val()
+                            if (param_key_value!="" && param_key_value!=undefined){
+                                param_key = "-->" + param_key_value;
+                            }
+                            $('#step_criteria_value_left').val(table.row($(this).parents('tr')).data().code + param_key)
                             $('#modal_workflowinput').modal('hide');
                         });
 
@@ -218,9 +231,17 @@ Inspector.prototype.inspectObject = function (object) {
                                 {"data": "type"},
                                 {"data": "remark"},
                                 {"data": null},
+                                {"data": null},
                             ],
                             "columnDefs": [
                                 {
+                                    "targets": -2,
+                                    "render": function (data, type, full) {
+                                        if (data.type == "json") {
+                                            return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_variable_type_" + data.code + "' name='table_variable_type'  type='text'></input>"
+                                        }
+                                    }
+                                }, {
                                     "targets": -1,
                                     "data": null,
                                     "defaultContent": "<button  id='select' title='选择'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-check'></i></button>"
@@ -244,7 +265,12 @@ Inspector.prototype.inspectObject = function (object) {
                     } );
                         $('#table_workfolwvariable tbody').on('click', 'button#select', function () {
                             var table = $('#table_workfolwvariable').DataTable();
-                            $('#step_criteria_value_left').val(table.row($(this).parents('tr')).data().code)
+                            var param_key = ""
+                            var param_key_value = $('#table_workfolwvariable_type_' + table.row($(this).parents('tr')).data().code).val()
+                            if (param_key_value!="" && param_key_value!=undefined){
+                                param_key = "-->" + param_key_value;
+                            }
+                            $('#step_criteria_value_left').val(table.row($(this).parents('tr')).data().code+param_key)
                             $('#modal_workfolwvariable').modal('hide');
                         });
                     }
@@ -277,8 +303,17 @@ Inspector.prototype.inspectObject = function (object) {
                                         {"data": "type"},
                                         {"data": "remark"},
                                         {"data": null},
+                                        {"data": null},
                                     ],
                                     "columnDefs": [
+                                        {
+                                            "targets": -2,
+                                            "render": function (data, type, full) {
+                                                if (data.type == "json") {
+                                                    return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                                }
+                                            }
+                                        },
                                         {
                                             "targets": -1,
                                             "data": null,
@@ -303,7 +338,13 @@ Inspector.prototype.inspectObject = function (object) {
                             } );
                                 $('#table_stepoutput tbody').on('click', 'button#select', function () {
                                     var table = $('#table_stepoutput').DataTable();
-                                    $('#step_criteria_value_left').val(table.row($(this).parents('tr')).data().code)
+                                    var param_key = ""
+                                    var param_key_value = $('#table_stepoutput_type_' + table.row($(this).parents('tr')).data().code).val()
+                                    if (param_key_value!="" && param_key_value!=undefined){
+                                        param_key = "-->" + param_key_value;
+                                    }
+                                    $('#step_criteria_value_left').val($("#modal_stepoutput_step").val()+ "^" + table.row($(this).parents('tr')).data().code + param_key)
+
                                     $('#modal_stepoutput').modal('hide');
                                 });
                                 break;
@@ -333,9 +374,17 @@ Inspector.prototype.inspectObject = function (object) {
                                             {"data": "type"},
                                             {"data": "remark"},
                                             {"data": null},
+                                            {"data": null},
                                         ],
                                         "columnDefs": [
                                             {
+                                                "targets": -2,
+                                                "render": function (data, type, full) {
+                                                    if (data.type == "json") {
+                                                        return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                                    }
+                                                }
+                                            },{
                                                 "targets": -1,
                                                 "data": null,
                                                 "defaultContent": "<button  id='select' title='选择'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-check'></i></button>"
@@ -359,7 +408,13 @@ Inspector.prototype.inspectObject = function (object) {
                                 } );
                                     $('#table_stepoutput tbody').on('click', 'button#select', function () {
                                         var table = $('#table_stepoutput').DataTable();
-                                        $('#step_criteria_value_left').val($("#modal_stepoutput_step").val()+ "^" + table.row($(this).parents('tr')).data().code)
+                                        var param_key = ""
+                                        var param_key_value = $('#table_stepoutput_type_' + table.row($(this).parents('tr')).data().code).val()
+                                        if (param_key_value!="" && param_key_value!=undefined){
+                                            param_key = "-->" + param_key_value;
+                                        }
+                                        $('#step_criteria_value_left').val($("#modal_stepoutput_step").val()+ "^" + table.row($(this).parents('tr')).data().code + param_key)
+
                                         $('#modal_stepoutput').modal('hide');
                                     });
                                     break;
@@ -394,9 +449,17 @@ Inspector.prototype.inspectObject = function (object) {
                                 {"data": "type"},
                                 {"data": "remark"},
                                 {"data": null},
+                                {"data": null},
                             ],
                             "columnDefs": [
                                 {
+                                    "targets": -2,
+                                    "render": function (data, type, full) {
+                                        if (data.type == "json") {
+                                            return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_workflowinput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                        }
+                                    }
+                                }, {
                                     "targets": -1,
                                     "data": null,
                                     "defaultContent": "<button  id='select' title='选择'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-check'></i></button>"
@@ -420,7 +483,12 @@ Inspector.prototype.inspectObject = function (object) {
                     } );
                         $('#table_workflowinput tbody').on('click', 'button#select', function () {
                             var table = $('#table_workflowinput').DataTable();
-                            $('#step_criteria_value_right').val(table.row($(this).parents('tr')).data().code)
+                            var param_key = ""
+                            var param_key_value = $('#table_workflowinput_type_' + table.row($(this).parents('tr')).data().code).val()
+                            if (param_key_value!="" && param_key_value!=undefined){
+                                param_key = "-->" + param_key_value;
+                            }
+                            $('#step_criteria_value_right').val(table.row($(this).parents('tr')).data().code+param_key)
                             $('#modal_workflowinput').modal('hide');
                         });
 
@@ -446,9 +514,17 @@ Inspector.prototype.inspectObject = function (object) {
                                 {"data": "type"},
                                 {"data": "remark"},
                                 {"data": null},
+                                {"data": null},
                             ],
                             "columnDefs": [
                                 {
+                                    "targets": -2,
+                                    "render": function (data, type, full) {
+                                        if (data.type == "json") {
+                                            return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_variable_type_" + data.code + "' name='table_variable_type'  type='text'></input>"
+                                        }
+                                    }
+                                },{
                                     "targets": -1,
                                     "data": null,
                                     "defaultContent": "<button  id='select' title='选择'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-check'></i></button>"
@@ -472,7 +548,12 @@ Inspector.prototype.inspectObject = function (object) {
                     } );
                         $('#table_workfolwvariable tbody').on('click', 'button#select', function () {
                             var table = $('#table_workfolwvariable').DataTable();
-                            $('#step_criteria_value_right').val(table.row($(this).parents('tr')).data().code)
+                            var param_key = ""
+                            var param_key_value = $('#table_workfolwvariable_type_' + table.row($(this).parents('tr')).data().code).val()
+                            if (param_key_value!="" && param_key_value!=undefined){
+                                param_key = "-->" + param_key_value;
+                            }
+                            $('#step_criteria_value_right').val(table.row($(this).parents('tr')).data().code+param_key)
                             $('#modal_workfolwvariable').modal('hide');
                         });
                     }
@@ -505,9 +586,17 @@ Inspector.prototype.inspectObject = function (object) {
                                         {"data": "type"},
                                         {"data": "remark"},
                                         {"data": null},
+                                        {"data": null},
                                     ],
                                     "columnDefs": [
                                         {
+                                            "targets": -2,
+                                            "render": function (data, type, full) {
+                                                if (data.type == "json") {
+                                                    return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                                }
+                                            }
+                                        },{
                                             "targets": -1,
                                             "data": null,
                                             "defaultContent": "<button  id='select' title='选择'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-check'></i></button>"
@@ -531,7 +620,12 @@ Inspector.prototype.inspectObject = function (object) {
                             } );
                                 $('#table_stepoutput tbody').on('click', 'button#select', function () {
                                     var table = $('#table_stepoutput').DataTable();
-                                    $('#step_criteria_value_right').val(table.row($(this).parents('tr')).data().code)
+                                    var param_key = ""
+                                    var param_key_value = $('#table_stepoutput_type_' + table.row($(this).parents('tr')).data().code).val()
+                                    if (param_key_value!="" && param_key_value!=undefined){
+                                        param_key = "-->" + param_key_value;
+                                    }
+                                    $('#step_criteria_value_right').val($("#modal_stepoutput_step").val()+ "^" + table.row($(this).parents('tr')).data().code + param_key)
                                     $('#modal_stepoutput').modal('hide');
                                 });
                                 break;
@@ -561,9 +655,17 @@ Inspector.prototype.inspectObject = function (object) {
                                             {"data": "type"},
                                             {"data": "remark"},
                                             {"data": null},
+                                            {"data": null},
                                         ],
                                         "columnDefs": [
                                             {
+                                                "targets": -2,
+                                                "render": function (data, type, full) {
+                                                    if (data.type == "json") {
+                                                        return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                                    }
+                                                }
+                                            },{
                                                 "targets": -1,
                                                 "data": null,
                                                 "defaultContent": "<button  id='select' title='选择'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-check'></i></button>"
@@ -587,7 +689,13 @@ Inspector.prototype.inspectObject = function (object) {
                                 } );
                                     $('#table_stepoutput tbody').on('click', 'button#select', function () {
                                         var table = $('#table_stepoutput').DataTable();
-                                        $('#step_criteria_value_right').val($("#modal_stepoutput_step").val()+ "^" + table.row($(this).parents('tr')).data().code)
+                                        var param_key = ""
+                                        var param_key_value = $('#table_stepoutput_type_' + table.row($(this).parents('tr')).data().code).val()
+                                        if (param_key_value!="" && param_key_value!=undefined){
+                                            param_key = "-->" + param_key_value;
+                                        }
+                                        $('#step_criteria_value_right').val($("#modal_stepoutput_step").val()+ "^" + table.row($(this).parents('tr')).data().code + param_key)
+
                                         $('#modal_stepoutput').modal('hide');
                                     });
                                     break;
@@ -921,8 +1029,20 @@ Inspector.prototype.inspectObject = function (object) {
                                 {"data": "type"},
                                 {"data": "remark"},
                                 {"data": null},
+                                {"data": null},
                             ],
                             "columnDefs": [
+                                {
+                                    "targets": -2,
+                                    "render": function (data, type, full) {
+                                        if (data.type == "json") {
+                                            return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_workflowinput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                        }
+                                        else{
+                                            return ""
+                                        }
+                                    }
+                                },
                                 {
                                     "targets": -1,
                                     "data": null,
@@ -947,7 +1067,12 @@ Inspector.prototype.inspectObject = function (object) {
                         });
                         $('#table_workflowinput tbody').on('click', 'button#select', function () {
                             var table = $('#table_workflowinput').DataTable();
-                            $('#step_input_value').val(table.row($(this).parents('tr')).data().code)
+                            var param_key = ""
+                            var param_key_value = $('#table_workflowinput_type_' + table.row($(this).parents('tr')).data().code).val()
+                            if (param_key_value!="" && param_key_value!=undefined){
+                                param_key = "-->" + param_key_value;
+                            }
+                            $('#step_input_value').val(table.row($(this).parents('tr')).data().code+param_key)
                             $('#step_input_value').change();
                             $('#modal_workflowinput').modal('hide');
                         });
@@ -973,9 +1098,17 @@ Inspector.prototype.inspectObject = function (object) {
                                 {"data": "type"},
                                 {"data": "remark"},
                                 {"data": null},
+                                {"data": null},
                             ],
                             "columnDefs": [
                                 {
+                                    "targets": -2,
+                                    "render": function (data, type, full) {
+                                        if (data.type == "json") {
+                                            return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_variable_type_" + data.code + "' name='table_variable_type'  type='text'></input>"
+                                        }
+                                    }
+                                },{
                                     "targets": -1,
                                     "data": null,
                                     "defaultContent": "<button  id='select' title='选择'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-check'></i></button>"
@@ -999,7 +1132,12 @@ Inspector.prototype.inspectObject = function (object) {
                         });
                         $('#table_workfolwvariable tbody').on('click', 'button#select', function () {
                             var table = $('#table_workfolwvariable').DataTable();
-                            $('#step_input_value').val(table.row($(this).parents('tr')).data().code)
+                            var param_key = ""
+                            var param_key_value = $('#table_workfolwvariable_type_' + table.row($(this).parents('tr')).data().code).val()
+                            if (param_key_value!="" && param_key_value!=undefined){
+                                param_key = "-->" + param_key_value;
+                            }
+                            $('#step_input_value').val(table.row($(this).parents('tr')).data().code+param_key)
                             $('#step_input_value').change();
                             $('#modal_workfolwvariable').modal('hide');
                         });
@@ -1032,9 +1170,17 @@ Inspector.prototype.inspectObject = function (object) {
                                         {"data": "type"},
                                         {"data": "remark"},
                                         {"data": null},
+                                        {"data": null},
                                     ],
                                     "columnDefs": [
                                         {
+                                            "targets": -2,
+                                            "render": function (data, type, full) {
+                                                if (data.type == "json") {
+                                                    return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                                }
+                                            }
+                                        },{
                                             "targets": -1,
                                             "data": null,
                                             "defaultContent": "<button  id='select' title='选择'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-check'></i></button>"
@@ -1058,7 +1204,12 @@ Inspector.prototype.inspectObject = function (object) {
                                 });
                                 $('#table_stepoutput tbody').on('click', 'button#select', function () {
                                     var table = $('#table_stepoutput').DataTable();
-                                    $('#step_input_value').val(table.row($(this).parents('tr')).data().code)
+                                    var param_key = ""
+                                    var param_key_value = $('#table_stepoutput_type_' + table.row($(this).parents('tr')).data().code).val()
+                                    if (param_key_value!="" && param_key_value!=undefined){
+                                        param_key = "-->" + param_key_value;
+                                    }
+                                    $('#step_input_value').val($("#modal_stepoutput_step").val()+ "^" + table.row($(this).parents('tr')).data().code + param_key)
                                     $('#step_input_value').change();
                                     $('#modal_stepoutput').modal('hide');
                                 });
@@ -1089,9 +1240,17 @@ Inspector.prototype.inspectObject = function (object) {
                                             {"data": "type"},
                                             {"data": "remark"},
                                             {"data": null},
+                                            {"data": null},
                                         ],
                                         "columnDefs": [
                                             {
+                                                "targets": -2,
+                                                "render": function (data, type, full) {
+                                                    if (data.type == "json") {
+                                                        return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                                    }
+                                                }
+                                            },{
                                                 "targets": -1,
                                                 "data": null,
                                                 "defaultContent": "<button  id='select' title='选择'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-check'></i></button>"
@@ -1115,7 +1274,13 @@ Inspector.prototype.inspectObject = function (object) {
                                     });
                                     $('#table_stepoutput tbody').on('click', 'button#select', function () {
                                         var table = $('#table_stepoutput').DataTable();
-                                        $('#step_input_value').val($("#modal_stepoutput_step").val() + "^" + table.row($(this).parents('tr')).data().code)
+                                        var param_key = ""
+                                        var param_key_value = $('#table_stepoutput_type_' + table.row($(this).parents('tr')).data().code).val()
+                                        if (param_key_value!="" && param_key_value!=undefined){
+                                            param_key = "-->" + param_key_value;
+                                        }
+                                        $('#step_input_value').val($("#modal_stepoutput_step").val()+ "^" + table.row($(this).parents('tr')).data().code + param_key)
+
                                         $('#step_input_value').change()
                                         $('#modal_stepoutput').modal('hide');
                                     });
@@ -1698,9 +1863,17 @@ Inspector.prototype.inspectObject = function (object) {
                         {"data": "type"},
                         {"data": "remark"},
                         {"data": null},
+                        {"data": null},
                     ],
                     "columnDefs": [
                         {
+                            "targets": -2,
+                            "render": function (data, type, full) {
+                                if (data.type == "json") {
+                                    return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_workflowinput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                }
+                            }
+                        }, {
                             "targets": -1,
                             "data": null,
                             "defaultContent": "<button  id='select' title='选择'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-check'></i></button>"
@@ -1724,7 +1897,12 @@ Inspector.prototype.inspectObject = function (object) {
             } );
                 $('#table_workflowinput tbody').on('click', 'button#select', function () {
                     var table = $('#table_workflowinput').DataTable();
-                    $('#workflow_output_value').val(table.row($(this).parents('tr')).data().code)
+                    var param_key = ""
+                    var param_key_value = $('#table_workflowinput_type_' + table.row($(this).parents('tr')).data().code).val()
+                    if (param_key_value!="" && param_key_value!=undefined){
+                        param_key = "-->" + param_key_value;
+                    }
+                    $('#workflow_output_value').val(table.row($(this).parents('tr')).data().code+param_key)
                     $('#modal_workflowinput').modal('hide');
                 });
 
@@ -1749,9 +1927,17 @@ Inspector.prototype.inspectObject = function (object) {
                         {"data": "type"},
                         {"data": "remark"},
                         {"data": null},
+                        {"data": null},
                     ],
                     "columnDefs": [
                         {
+                            "targets": -2,
+                            "render": function (data, type, full) {
+                                if (data.type == "json") {
+                                    return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_variable_type_" + data.code + "' name='table_variable_type'  type='text'></input>"
+                                }
+                            }
+                        },{
                             "targets": -1,
                             "data": null,
                             "defaultContent": "<button  id='select' title='选择'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-check'></i></button>"
@@ -1775,7 +1961,12 @@ Inspector.prototype.inspectObject = function (object) {
             } );
                 $('#table_workfolwvariable tbody').on('click', 'button#select', function () {
                     var table = $('#table_workfolwvariable').DataTable();
-                    $('#workflow_output_value').val(table.row($(this).parents('tr')).data().code)
+                    var param_key = ""
+                    var param_key_value = $('#table_workfolwvariable_type_' + table.row($(this).parents('tr')).data().code).val()
+                    if (param_key_value!="" && param_key_value!=undefined){
+                        param_key = "-->" + param_key_value;
+                    }
+                    $('#workflow_output_value').val(table.row($(this).parents('tr')).data().code+param_key)
                     $('#modal_workfolwvariable').modal('hide');
                 });
             }else if(source == "stepOutput"){
@@ -1807,9 +1998,17 @@ Inspector.prototype.inspectObject = function (object) {
                                 {"data": "type"},
                                 {"data": "remark"},
                                 {"data": null},
+                                {"data": null},
                             ],
                             "columnDefs": [
                                 {
+                                    "targets": -2,
+                                    "render": function (data, type, full) {
+                                        if (data.type == "json") {
+                                            return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                        }
+                                    }
+                                },{
                                     "targets": -1,
                                     "data": null,
                                     "defaultContent": "<button  id='select' title='选择'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-check'></i></button>"
@@ -1833,7 +2032,13 @@ Inspector.prototype.inspectObject = function (object) {
                     } );
                         $('#table_stepoutput tbody').on('click', 'button#select', function () {
                             var table = $('#table_stepoutput').DataTable();
-                            $('#workflow_output_value').val(table.row($(this).parents('tr')).data().code)
+                            var param_key = ""
+                            var param_key_value = $('#table_stepoutput_type_' + table.row($(this).parents('tr')).data().code).val()
+                            if (param_key_value!="" && param_key_value!=undefined){
+                                param_key = "-->" + param_key_value;
+                            }
+                            $('#workflow_output_value').val($("#modal_stepoutput_step").val()+ "^" + table.row($(this).parents('tr')).data().code + param_key)
+
                             $('#modal_stepoutput').modal('hide');
                         });
                         break;
@@ -1863,9 +2068,17 @@ Inspector.prototype.inspectObject = function (object) {
                                     {"data": "type"},
                                     {"data": "remark"},
                                     {"data": null},
+                                    {"data": null},
                                 ],
                                 "columnDefs": [
                                     {
+                                        "targets": -2,
+                                        "render": function (data, type, full) {
+                                            if (data.type == "json") {
+                                                return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                            }
+                                        }
+                                    },{
                                         "targets": -1,
                                         "data": null,
                                         "defaultContent": "<button  id='select' title='选择'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-check'></i></button>"
@@ -1889,7 +2102,13 @@ Inspector.prototype.inspectObject = function (object) {
                         } );
                             $('#table_stepoutput tbody').on('click', 'button#select', function () {
                                 var table = $('#table_stepoutput').DataTable();
-                                $('#workflow_output_value').val($("#modal_stepoutput_step").val()+ "^" + table.row($(this).parents('tr')).data().code)
+                                var param_key = ""
+                                var param_key_value = $('#table_stepoutput_type_' + table.row($(this).parents('tr')).data().code).val()
+                                if (param_key_value!="" && param_key_value!=undefined){
+                                    param_key = "-->" + param_key_value;
+                                }
+                                $('#workflow_output_value').val($("#modal_stepoutput_step").val()+ "^" + table.row($(this).parents('tr')).data().code + param_key)
+
                                 $('#modal_stepoutput').modal('hide');
                             });
                             break;
