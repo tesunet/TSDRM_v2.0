@@ -3,7 +3,8 @@ $(document).ready(function () {
 
     $('#sample_1').dataTable({
         "bAutoWidth": true,
-        "bSort": false,
+        "bSort": true,
+        "order": [[1, "desc" ]],
         "iDisplayLength": 25,
         "bProcessing": true,
         "ajax": default_url,
@@ -19,8 +20,14 @@ $(document).ready(function () {
             {
                 "targets": -1,
                 "data": null,
-                "width": "40px",
-                "defaultContent": "<button  id='edit' title='详情' data-toggle='modal'  data-target='#static'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-edit'></i></button>"
+                "width": "10px",
+                "mRender": function (data, type, full) {
+                    var disabled = "disabled";
+                    if (full.type == '执行组件' || full.type == '执行流程'){
+                        disabled = ""
+                    }
+                    return "<button  " + disabled +  " id='edit' title='详情' data-toggle='modal'  data-target='#static'  class='btn btn-xs btn-primary' type='button'><i class='fa fa-edit'></i></button>"
+                },
             }
         ],
 
@@ -45,7 +52,33 @@ $(document).ready(function () {
     $('#sample_1 tbody').on('click', 'button#edit', function () {
         var table = $('#sample_1').DataTable();
         var data = table.row($(this).parents('tr')).data();
+        $('#guid').val(data.guid);
+        $('#shortname').val(data.shortname);
+        $('#state').val(data.state);
+        $('#finalinput').empty();
+        var finalinput = '';
+        for (var i = 0; i < data.finalinput.length; i++) {
+            finalinput += '<ul>' +
+                '<li>参数编码：' + data.finalinput[i].code + '</li>' +
+                '<li>参数名称：' + data.finalinput[i].name + '</li>' +
+                '<li>参数值：' + data.finalinput[i].value + '</li>' +
+                '<li>参数类型：' + data.finalinput[i].type + '</li>' +
+                '</ul>'
+        }
+        $('#finalinput').append(finalinput);
 
+        $('#output').empty();
+        var output = '';
+        for (var i = 0; i < data.output.length; i++) {
+            output += '<ul>' +
+                '<li>参数编码：' + data.output[i].code + '</li>' +
+                '<li>参数名称：' + data.output[i].name + '</li>' +
+                '<li>参数名称：' + data.output[i].name + '</li>' +
+                '<li>参数值：' + data.output[i].value + '</li>' +
+                '<li>参数类型：' + data.output[i].type + '</li>' +
+                '</ul>'
+        }
+        $('#output').append(output);
     });
 
     $('#startdate').datetimepicker({
