@@ -175,6 +175,9 @@ Inspector.prototype.inspectObject = function (object) {
                                         if (data.type == "json") {
                                             return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_workflowinput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
                                         }
+                                        else{
+                                            return ""
+                                        }
                                     }
                                 }, {
                                     "targets": -1,
@@ -239,6 +242,9 @@ Inspector.prototype.inspectObject = function (object) {
                                     "render": function (data, type, full) {
                                         if (data.type == "json") {
                                             return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_variable_type_" + data.code + "' name='table_variable_type'  type='text'></input>"
+                                        }
+                                        else{
+                                            return ""
                                         }
                                     }
                                 }, {
@@ -312,6 +318,9 @@ Inspector.prototype.inspectObject = function (object) {
                                                 if (data.type == "json") {
                                                     return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
                                                 }
+                                                else{
+                                                    return ""
+                                                }
                                             }
                                         },
                                         {
@@ -383,6 +392,9 @@ Inspector.prototype.inspectObject = function (object) {
                                                     if (data.type == "json") {
                                                         return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
                                                     }
+                                                    else{
+                                                    return ""
+                                                }
                                                 }
                                             },{
                                                 "targets": -1,
@@ -458,6 +470,9 @@ Inspector.prototype.inspectObject = function (object) {
                                         if (data.type == "json") {
                                             return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_workflowinput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
                                         }
+                                        else{
+                                            return ""
+                                        }
                                     }
                                 }, {
                                     "targets": -1,
@@ -522,6 +537,9 @@ Inspector.prototype.inspectObject = function (object) {
                                     "render": function (data, type, full) {
                                         if (data.type == "json") {
                                             return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_variable_type_" + data.code + "' name='table_variable_type'  type='text'></input>"
+                                        }
+                                        else{
+                                            return ""
                                         }
                                     }
                                 },{
@@ -595,6 +613,9 @@ Inspector.prototype.inspectObject = function (object) {
                                                 if (data.type == "json") {
                                                     return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
                                                 }
+                                                else{
+                                                    return ""
+                                                }
                                             }
                                         },{
                                             "targets": -1,
@@ -663,6 +684,9 @@ Inspector.prototype.inspectObject = function (object) {
                                                 "render": function (data, type, full) {
                                                     if (data.type == "json") {
                                                         return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                                    }
+                                                    else{
+                                                        return ""
                                                     }
                                                 }
                                             },{
@@ -1107,6 +1131,10 @@ Inspector.prototype.inspectObject = function (object) {
                                         if (data.type == "json") {
                                             return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_variable_type_" + data.code + "' name='table_variable_type'  type='text'></input>"
                                         }
+                                        else{
+                                            return ""
+                                        }
+
                                     }
                                 },{
                                     "targets": -1,
@@ -1179,6 +1207,9 @@ Inspector.prototype.inspectObject = function (object) {
                                                 if (data.type == "json") {
                                                     return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
                                                 }
+                                                else{
+                                                    return ""
+                                                }
                                             }
                                         },{
                                             "targets": -1,
@@ -1248,6 +1279,9 @@ Inspector.prototype.inspectObject = function (object) {
                                                 "render": function (data, type, full) {
                                                     if (data.type == "json") {
                                                         return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                                    }
+                                                    else{
+                                                        return ""
                                                     }
                                                 }
                                             },{
@@ -1872,6 +1906,9 @@ Inspector.prototype.inspectObject = function (object) {
                                 if (data.type == "json") {
                                     return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_workflowinput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
                                 }
+                                else{
+                                    return ""
+                                }
                             }
                         }, {
                             "targets": -1,
@@ -1935,6 +1972,9 @@ Inspector.prototype.inspectObject = function (object) {
                             "render": function (data, type, full) {
                                 if (data.type == "json") {
                                     return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_variable_type_" + data.code + "' name='table_variable_type'  type='text'></input>"
+                                }
+                                else{
+                                    return ""
                                 }
                             }
                         },{
@@ -2007,6 +2047,9 @@ Inspector.prototype.inspectObject = function (object) {
                                         if (data.type == "json") {
                                             return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
                                         }
+                                        else{
+                                            return ""
+                                        }
                                     }
                                 },{
                                     "targets": -1,
@@ -2076,6 +2119,9 @@ Inspector.prototype.inspectObject = function (object) {
                                         "render": function (data, type, full) {
                                             if (data.type == "json") {
                                                 return "<input style='margin-top:-5px;width:134px;height:24px;' id='table_stepoutput_type_" + data.code + "' name='table_workflowinput_type'  type='text'></input>"
+                                            }
+                                            else{
+                                                return ""
                                             }
                                         }
                                     },{
