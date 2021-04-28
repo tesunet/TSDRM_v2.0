@@ -442,6 +442,9 @@ def orgpassword(request):
             user = userinfo.user
             user.set_password(password1)
             user.save()
+
+            save_syslog(request.user.id, 'edit', '{0}密码'.format(userinfo.fullname))
+
             return HttpResponse("1")
         except:
             HttpResponse('修改密码失败，请于管理员联系。')

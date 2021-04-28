@@ -201,6 +201,9 @@ def workflow_move(request):
                 my_workflow.save()
                 my_workflow.longname = getLongname(my_workflow)
                 my_workflow.save()
+
+                save_syslog(request.user.id, 'edit', '流程设计{0}位置'.format(my_workflow.shortname))
+
             except:
                 pass
 
@@ -268,6 +271,8 @@ def workflow_save(request):
                     workflowsave.longname = getLongname(workflowsave)
                     workflowsave.save()
 
+                    save_syslog(request.user.id, 'new', '流程设计节点{0}'.format(node_name))
+
                     select_id = workflowsave.id
                 except Exception as e:
                     info = "保存失败：{0}".format(e)
@@ -283,6 +288,8 @@ def workflow_save(request):
                     workflowsave.save()
                     workflowsave.longname = getLongname(workflowsave)
                     workflowsave.save()
+
+                    save_syslog(request.user.id, 'edit', '流程设计节点{0}'.format(node_name))
 
                     select_id = workflowsave.id
                 except Exception as e:
@@ -328,6 +335,9 @@ def workflow_save(request):
                                 '%Y-%m-%d %H:%M:%S') if workflowsave.updatetime else '',
                     createuser = request.user.userinfo.fullname
                     updateuser = request.user.userinfo.fullname
+
+                    save_syslog(request.user.id, 'new', '流程设计流程{0}'.format(shortname))
+
                 except Exception as e:
                     info = "保存失败：{0}".format(e)
                     status = 0
@@ -349,6 +359,9 @@ def workflow_save(request):
                     updatetime = workflowsave.updatetime.strftime(
                         '%Y-%m-%d %H:%M:%S') if workflowsave.updatetime else '',
                     updateuser = request.user.userinfo.fullname
+
+                    save_syslog(request.user.id, 'edit', '流程设计流程{0}'.format(shortname))
+
                 except Exception as e:
                     info = "保存失败：{0}".format(e)
                     status = 0
@@ -375,6 +388,8 @@ def workflow_del(request):
         workflow = TSDRMWorkflow.objects.get(id=id)
         workflow.state = "9"
         workflow.save()
+
+        save_syslog(request.user.id, 'delete', '流程设计节点{0}'.format(workflow.shortname))
 
         return HttpResponse(1)
     else:
@@ -835,6 +850,8 @@ def workflow_draw_save(request):
                 workflowsave.longname = getLongname(workflowsave)
                 workflowsave.save()
 
+                save_syslog(request.user.id, 'edit', '流程设计{0}绘制流程'.format(workflowsave.shortname))
+
     return JsonResponse({
         "status": status,
         "info": info,
@@ -984,6 +1001,9 @@ def workflow_instance_save(request):
                     '%Y-%m-%d %H:%M:%S') if instancesave.updatetime else '',
                 createuser = request.user.userinfo.fullname
                 updateuser = request.user.userinfo.fullname
+
+                save_syslog(request.user.id, 'new', '流程配置实例{0}'.format(name))
+
             except Exception as e:
                 info = "保存失败：{0}".format(e)
                 status = 0
@@ -1005,6 +1025,8 @@ def workflow_instance_save(request):
                 updatetime = instancesave.updatetime.strftime(
                     '%Y-%m-%d %H:%M:%S') if instancesave.updatetime else ''
                 updateuser = request.user.userinfo.fullname
+
+                save_syslog(request.user.id, 'edit', '流程配置实例{0}'.format(name))
 
             except Exception as e:
                 info = "保存失败：{0}".format(e)
@@ -1033,6 +1055,8 @@ def workflow_instance_del(request):
         workflow = TSDRMInstance.objects.get(id=id)
         workflow.state = "9"
         workflow.save()
+
+        save_syslog(request.user.id, 'delete', '流程配置实例{0}'.format(workflow.name))
 
         return HttpResponse(1)
     else:
@@ -1074,6 +1098,8 @@ def workflow_instance_run(request):
             run_workflow.delay(str(newJob.jobGuid), 'start',userid=request.user.id)
             #newJob.run_job()
             id=newJob.jobBaseInfo["id"]
+
+            save_syslog(request.user.id, 'new', '流程启动{0}'.format(name))
 
         # except Exception as e:
         #     info = "运行失败：{0}".format(e)

@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 
 from ..remote import ServerByPara
 from ..api.kvm import libvirtApi
+from .public_func import *
 
 
 ######################
@@ -1003,6 +1004,9 @@ def kvm_template_save(request):
                                                 template_save.utils_id = utils_id
                                                 template_save.save()
                                                 result['res'] = '保存成功。'
+
+                                                save_syslog(request.user.id, 'new', '模板{0}'.format(file_name))
+
                                             ssh.close()
 
         else:
@@ -1032,6 +1036,9 @@ def kvm_template_save(request):
                         template_save.utils_id = utils_id
                         template_save.save()
                         result['res'] = '保存成功。'
+
+                        save_syslog(request.user.id, 'new', '模板{0}'.format(remote_template_file))
+
                 # 编辑
                 else:
                     name_exist = DiskTemplate.objects.filter(name=name).filter(utils_id=utils_id).exclude(id=id).exclude(state="9")
@@ -1061,6 +1068,9 @@ def kvm_template_save(request):
                                 template_save.path = path + '/' + remote_template_file
                                 template_save.save()
                                 result['res'] = '保存成功。'
+
+                        save_syslog(request.user.id, 'edit', '模板{0}'.format(remote_template_file))
+
         return JsonResponse(result)
 
 
@@ -1082,6 +1092,9 @@ def kvm_template_del(request):
             template_save = DiskTemplate.objects.get(id=id)
             template_save.state = "9"
             template_save.save()
+
+            save_syslog(request.user.id, 'delete', '模板{0}'.format(template_save.file_name))
+
             result = '删除成功。'
         else:
             status = 0
