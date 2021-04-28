@@ -1353,27 +1353,30 @@ def syslog_index(request, funid):
 def job_xml_to_dict(component_xmlinfo, info_type):
     if component_xmlinfo and len(component_xmlinfo.strip()) > 0:
         info = []
-        if info_type == 'finalinput':
-            tmpInput = xmltodict.parse(component_xmlinfo)
-            if "inputs" in tmpInput and tmpInput["inputs"] and "input" in tmpInput["inputs"] and tmpInput["inputs"][
-                "input"]:
-                tmpDTL = tmpInput["inputs"]["input"]
-                if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
-                    tmpDTL = [tmpDTL]
-                for curinput in tmpDTL:
-                    info.append({"code": curinput["code"], "name": curinput["name"], "type": curinput["type"],
-                                       "remark": curinput["remark"], "source": curinput["source"],
-                                       "value": curinput["value"]})
-        else:
-            tmpoutput = xmltodict.parse(component_xmlinfo)
-            if "outputs" in tmpoutput and tmpoutput["outputs"] and "output" in tmpoutput["outputs"] and \
-                    tmpoutput["outputs"]["output"]:
-                tmpDTL = tmpoutput["outputs"]["output"]
-                if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
-                    tmpDTL = [tmpDTL]
-                for curoutput in tmpDTL:
-                    info.append({"code": curoutput["code"], "name": curoutput["name"], "type": curoutput["type"],
-                                   "remark": curoutput["remark"],"value": curoutput["value"]})
+        try:
+            if info_type == 'finalinput':
+                tmpInput = xmltodict.parse(component_xmlinfo)
+                if "inputs" in tmpInput and tmpInput["inputs"] and "input" in tmpInput["inputs"] and tmpInput["inputs"][
+                    "input"]:
+                    tmpDTL = tmpInput["inputs"]["input"]
+                    if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
+                        tmpDTL = [tmpDTL]
+                    for curinput in tmpDTL:
+                        info.append({"code": curinput["code"], "name": curinput["name"], "type": curinput["type"],
+                                        "remark": curinput["remark"], "source": curinput["source"],
+                                        "value": curinput["value"]})
+            else:
+                tmpoutput = xmltodict.parse(component_xmlinfo)
+                if "outputs" in tmpoutput and tmpoutput["outputs"] and "output" in tmpoutput["outputs"] and \
+                        tmpoutput["outputs"]["output"]:
+                    tmpDTL = tmpoutput["outputs"]["output"]
+                    if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
+                        tmpDTL = [tmpDTL]
+                    for curoutput in tmpDTL:
+                        info.append({"code": curoutput["code"], "name": curoutput["name"], "type": curoutput["type"],
+                                    "remark": curoutput["remark"], "value": curoutput["value"]})
+        except:
+            pass
         return info
 
 

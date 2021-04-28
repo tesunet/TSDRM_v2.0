@@ -52,10 +52,14 @@ $(document).ready(function () {
     $('#sample_1 tbody').on('click', 'button#edit', function () {
         var table = $('#sample_1').DataTable();
         var data = table.row($(this).parents('tr')).data();
-        $('#guid').val(data.guid);
-        $('#shortname').val(data.shortname);
-        $('#state').val(data.state);
+        $('#guid').empty();
+        $('#shortname').empty();
+        $('#state').empty();
         $('#finalinput').empty();
+        $('#output').empty();
+        $('#guid').append('<ul>' + data.guid + '</ul>');
+        $('#shortname').append('<ul>'+ data.shortname + '</ul>');
+        $('#state').append('<ul>'+ data.state + '</ul>');
         var finalinput = '';
         for (var i = 0; i < data.finalinput.length; i++) {
             finalinput += '<ul>' +
@@ -66,8 +70,6 @@ $(document).ready(function () {
                 '</ul>'
         }
         $('#finalinput').append(finalinput);
-
-        $('#output').empty();
         var output = '';
         for (var i = 0; i < data.output.length; i++) {
             output += '<ul>' +
