@@ -78,6 +78,11 @@ urlpatterns = [
     url(r'^dictdel/$', dictdel),
     url(r'^dictlistdel/$', dictlistdel),
 
+    # 系统日志
+    url(r'^syslog/$', syslog_index, {'funid': '135'}),
+    url(r'^syslog_data/$', syslog_data),
+
+
     # 工具管理
     url(r'^util_manage/$', util_manage, {'funid': '88'}),
     url(r'^util_manage_save/$', util_manage_save),
