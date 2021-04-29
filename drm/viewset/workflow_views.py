@@ -625,7 +625,7 @@ def workflow_getdata(request):
                             input = []
                             if stepObject.input and len(stepObject.input.strip()) > 0:
                                 tmpInput = xmltodict.parse(stepObject.input)
-                                if "inputs" in tmpInput and "input" in tmpInput["inputs"]:
+                                if "inputs" in tmpInput and tmpInput["inputs"] and "input" in tmpInput["inputs"] and tmpInput["inputs"]["input"]:
                                     tmpDTL = tmpInput["inputs"]["input"]
                                     if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
                                         tmpDTL = [tmpDTL]
@@ -645,7 +645,7 @@ def workflow_getdata(request):
                             output = []
                             if stepObject.output and len(stepObject.output.strip()) > 0:
                                 tmpOutput = xmltodict.parse(stepObject.output)
-                                if "outputs" in tmpOutput and "output" in tmpOutput["outputs"]:
+                                if "outputs" in tmpOutput and tmpOutput["outputs"] and "output" in tmpOutput["outputs"] and tmpOutput["outputs"]["output"]:
                                     tmpDTL = tmpOutput["outputs"]["output"]
                                     if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
                                         tmpDTL = [tmpDTL]
