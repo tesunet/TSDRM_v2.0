@@ -1327,7 +1327,7 @@ def dictlistsave(request):
 
 def syslog_index(request, funid):
     if request.user.is_authenticated():
-        starttime = (datetime.datetime.now() - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
+        starttime = (datetime.datetime.now() - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
         endtime = datetime.datetime.now().strftime("%Y-%m-%d")
         type_dict = {
             'login': '登录',
@@ -1335,6 +1335,9 @@ def syslog_index(request, funid):
             'edit': '修改',
             'delete': '删除',
             'other': '其他',
+            'WORKFLOW': '执行流程',
+            'COMPONENT': '执行组件',
+
         }
         return render(request, 'syslog.html',
                       {'username': request.user.userinfo.fullname,
@@ -1347,6 +1350,36 @@ def syslog_index(request, funid):
         return HttpResponseRedirect("/login")
 
 
+def job_xml_to_dict(component_xmlinfo, info_type):
+    if component_xmlinfo and len(component_xmlinfo.strip()) > 0:
+        info = []
+        try:
+            if info_type == 'finalinput':
+                tmpInput = xmltodict.parse(component_xmlinfo)
+                if "inputs" in tmpInput and tmpInput["inputs"] and "input" in tmpInput["inputs"] and tmpInput["inputs"][
+                    "input"]:
+                    tmpDTL = tmpInput["inputs"]["input"]
+                    if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
+                        tmpDTL = [tmpDTL]
+                    for curinput in tmpDTL:
+                        info.append({"code": curinput["code"], "name": curinput["name"], "type": curinput["type"],
+                                        "remark": curinput["remark"], "source": curinput["source"],
+                                        "value": curinput["value"]})
+            else:
+                tmpoutput = xmltodict.parse(component_xmlinfo)
+                if "outputs" in tmpoutput and tmpoutput["outputs"] and "output" in tmpoutput["outputs"] and \
+                        tmpoutput["outputs"]["output"]:
+                    tmpDTL = tmpoutput["outputs"]["output"]
+                    if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
+                        tmpDTL = [tmpDTL]
+                    for curoutput in tmpDTL:
+                        info.append({"code": curoutput["code"], "name": curoutput["name"], "type": curoutput["type"],
+                                    "remark": curoutput["remark"], "value": curoutput["value"]})
+        except:
+            pass
+        return info
+
+
 def syslog_data(request):
     if request.user.is_authenticated():
         startdate = request.GET.get('startdate', '')
@@ -1354,52 +1387,152 @@ def syslog_data(request):
         start_time = datetime.datetime.strptime(startdate, '%Y-%m-%d').strftime('%Y-%m-%d %H:%M:%S')
         end_time = (datetime.datetime.strptime(enddate, '%Y-%m-%d') + datetime.timedelta(days=1) - datetime.timedelta(
             seconds=1)).strftime('%Y-%m-%d %H:%M:%S')
-        user = request.GET.get('user', '')
-        type = request.GET.get('type', '')
-
-        cursor = connection.cursor()
-        exec_sql = "select drm_syslog.id, drm_syslog.datatime, drm_syslog.type, drm_syslog.content, " \
-                   "drm_userinfo.fullname from drm_syslog,drm_userinfo where drm_syslog.user_id=drm_userinfo.user_id " \
-                   "and (drm_syslog.state is null or drm_syslog.state != '9')"
-        if len(start_time.strip()) > 0:
-            exec_sql += " and drm_syslog.datatime >='" + start_time + "'"
-        if len(end_time.strip()) > 0:
-            exec_sql += " and drm_syslog.datatime <='" + end_time + "'"
-        if user:
-            exec_sql += " and drm_userinfo.fullname like '%" + user + "%'"
-        if type != "":
-            exec_sql += " and drm_syslog.type ='" + str(type) + "'"
-        exec_sql += " order by drm_syslog.id desc"
-        cursor.execute(exec_sql)
-        rows = cursor.fetchall()
+        sys_user = request.GET.get('user', '')
+        sys_type = request.GET.get('type', '')
         type_dict = {
             'login': '登录',
             'new': '新增',
             'edit': '修改',
             'delete': '删除',
             'other': '其他',
+            'WORKFLOW': '执行流程',
+            'COMPONENT': '执行组件',
+            'ERROR': '错误',
+            'DONE': '成功',
+            'NOTEXIST': '组件不存在',
+            'RUN': '组件运行中',
+            'STOP': '停止'
         }
-        syslog_list = []
-        for syslog in rows:
+        log_list = []
+        # syslog表中日志信息
+        cursor = connection.cursor()
+        syslog_sql = "select drm_syslog.id, drm_syslog.datatime, drm_syslog.type, drm_syslog.content, " \
+                   "drm_userinfo.fullname from drm_syslog,drm_userinfo where drm_syslog.user_id=drm_userinfo.user_id " \
+                   "and (drm_syslog.state is null or drm_syslog.state != '9')"
+        if len(start_time.strip()) > 0:
+            syslog_sql += " and drm_syslog.datatime >='" + start_time + "'"
+        if len(end_time.strip()) > 0:
+            syslog_sql += " and drm_syslog.datatime <='" + end_time + "'"
+        if sys_user:
+            syslog_sql += " and drm_userinfo.fullname like '%" + sys_user + "%'"
+        if sys_type != "":
+            syslog_sql += " and drm_syslog.type ='" + str(sys_type) + "'"
+        syslog_sql += " order by drm_syslog.datatime desc"
+        cursor.execute(syslog_sql)
+        syslog_rows = cursor.fetchall()
+        for syslog in syslog_rows:
             id = syslog[0]
             datatime = syslog[1].strftime('%Y-%m-%d %H:%M:%S') if syslog[1] else ""
-            type = type_dict[syslog[2]]
+            log_type = type_dict[syslog[2]]
             content = syslog[3]
             user = syslog[4]
             log = '{user}{type}{content}。'.format(**{
                 'user': '<span style="color:#3598DC">{0}</span>'.format(user),
-                'type': '<span style="color:#F7CA18">{0}</span>'.format(type),
+                'type': '<span style="color:#F7CA18">{0}</span>'.format(log_type),
                 'content': '<span style="color:#26C281">{0}</span>'.format(content),
             })
-            syslog_list.append({
+            log_list.append({
                 'id': id,
                 'datatime': datatime,
                 'user': user,
-                'type': type,
+                'type': log_type,
                 'log': log,
             })
+
+        # job表中组件日志信息
+        joblog_zj_sql = "select drm_tsdrmjob.id, drm_tsdrmjob.createtime, drm_tsdrmjob.type, drm_userinfo.fullname," \
+                        "drm_tsdrmcomponent.shortname, drm_tsdrmjob.state,drm_tsdrmjob.guid,drm_tsdrmjob.finalinput," \
+                        "drm_tsdrmjob.output from drm_tsdrmjob,drm_userinfo,drm_tsdrmcomponent " \
+                        "where drm_tsdrmjob.startuser_id=drm_userinfo.id and drm_tsdrmjob.modelguid = drm_tsdrmcomponent.guid " \
+                        "and (drm_tsdrmjob.state is null or (drm_tsdrmjob.state != '9' and drm_tsdrmjob.state!='REJECT')) " \
+                        "and drm_tsdrmjob.pjob_id is null and drm_tsdrmjob.type = 'COMPONENT'"
+        if len(start_time.strip()) > 0:
+            joblog_zj_sql += " and drm_tsdrmjob.createtime >='" + start_time + "'"
+        if len(end_time.strip()) > 0:
+            joblog_zj_sql += " and drm_tsdrmjob.createtime <='" + end_time + "'"
+        if sys_user:
+            joblog_zj_sql += " and drm_userinfo.fullname like '%" + sys_user + "%'"
+        if sys_type != "":
+            joblog_zj_sql += " and drm_tsdrmjob.type ='" + str(sys_type) + "'"
+        joblog_zj_sql += " order by drm_tsdrmjob.createtime desc"
+        cursor.execute(joblog_zj_sql)
+        joblog_zj_rows = cursor.fetchall()
+        for joblog_zj in joblog_zj_rows:
+            id_zj = joblog_zj[0]
+            datatime_zj = joblog_zj[1].strftime('%Y-%m-%d %H:%M:%S') if joblog_zj[1] else ""
+            type_zj = type_dict[joblog_zj[2]]
+            user_zj = joblog_zj[3]
+            shortname_zj = joblog_zj[4]
+            state_zj = type_dict[joblog_zj[5]]
+            guid_zj = joblog_zj[6]
+            content_zj = shortname_zj + state_zj
+            finalinput_zj = job_xml_to_dict(joblog_zj[7], 'finalinput')
+            output_zj = job_xml_to_dict(joblog_zj[8], 'output')
+            log_zj = '{user}{type}{content}。'.format(**{
+                'user': '<span style="color:#3598DC">{0}</span>'.format(user_zj),
+                'type': '<span style="color:#F7CA18">{0}</span>'.format(type_zj),
+                'content': '<span style="color:#26C281">{0}</span>'.format(content_zj),
+            })
+            log_list.append({
+                'id': id_zj,
+                'datatime': datatime_zj,
+                'type': type_zj,
+                'user': user_zj,
+                'shortname': shortname_zj,
+                'state': state_zj,
+                'guid': guid_zj,
+                'finalinput': finalinput_zj,
+                'output': output_zj,
+                'log': log_zj,
+            })
+
+        # job表中流程日志信息
+        joblog_lc_sql = "select drm_tsdrmjob.id,drm_tsdrmjob.createtime,drm_tsdrmjob.type,drm_userinfo.fullname," \
+                        "drm_tsdrmjob.name,drm_tsdrmjob.state,drm_tsdrmjob.guid,drm_tsdrmjob.finalinput," \
+                        "drm_tsdrmjob.output from drm_tsdrmjob,drm_userinfo where drm_tsdrmjob.startuser_id=drm_userinfo.id " \
+                        "and (drm_tsdrmjob.state is null or (drm_tsdrmjob.state != '9' and drm_tsdrmjob.state!='REJECT')) " \
+                        "and drm_tsdrmjob.pjob_id is null and drm_tsdrmjob.type = 'WORKFLOW'"
+        if len(start_time.strip()) > 0:
+            joblog_lc_sql += " and drm_tsdrmjob.createtime >='" + start_time + "'"
+        if len(end_time.strip()) > 0:
+            joblog_lc_sql += " and drm_tsdrmjob.createtime <='" + end_time + "'"
+        if sys_user:
+            joblog_lc_sql += " and drm_userinfo.fullname like '%" + sys_user + "%'"
+        if sys_type != "":
+            joblog_lc_sql += " and drm_tsdrmjob.type ='" + str(sys_type) + "'"
+        joblog_lc_sql += " order by drm_tsdrmjob.createtime desc"
+        cursor.execute(joblog_lc_sql)
+        joblog_lc_rows = cursor.fetchall()
+        for joblog_lc in joblog_lc_rows:
+            id_lc = joblog_lc[0]
+            datatime_lc = joblog_lc[1].strftime('%Y-%m-%d %H:%M:%S') if joblog_lc[1] else ""
+            type_lc = type_dict[joblog_lc[2]]
+            user_lc = joblog_lc[3]
+            shortname_lc = joblog_lc[4]
+            state_lc = type_dict[joblog_lc[5]]
+            guid_lc = joblog_lc[6]
+            content_lc = shortname_lc + state_lc
+            finalinput_lc = job_xml_to_dict(joblog_lc[7], 'finalinput')
+            output_lc = job_xml_to_dict(joblog_lc[8], 'output')
+            log_lc = '{user}{type}{content}。'.format(**{
+                'user': '<span style="color:#3598DC">{0}</span>'.format(user_lc),
+                'type': '<span style="color:#F7CA18">{0}</span>'.format(type_lc),
+                'content': '<span style="color:#26C281">{0}</span>'.format(content_lc),
+            })
+            log_list.append({
+                'id': id_lc,
+                'datatime': datatime_lc,
+                'type': type_lc,
+                'user': user_lc,
+                'shortname': shortname_lc,
+                'state': state_lc,
+                'guid': guid_lc,
+                'finalinput': finalinput_lc,
+                'output': output_lc,
+                'log': log_lc,
+            })
         return JsonResponse({
-            'data': syslog_list
+            'data': log_list
         })
     else:
         return HttpResponseRedirect('/login')
