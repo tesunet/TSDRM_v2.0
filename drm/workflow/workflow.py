@@ -1103,6 +1103,28 @@ class Job(object):
                                             variable["value"] = output["value"]
                                     except:
                                         pass
+                                elif outputSet["type"] == "and":
+                                    try:
+                                        if "value" in variable and variable["value"] is not None:
+                                            try:
+                                                variable["value"] = variable["value"] and output["value"]
+                                            except:
+                                                variable["value"] = output["value"]
+                                        else:
+                                            variable["value"] = output["value"]
+                                    except:
+                                        pass
+                                elif outputSet["type"] == "or":
+                                    try:
+                                        if "value" in variable and variable["value"] is not None:
+                                            try:
+                                                variable["value"] = variable["value"] or output["value"]
+                                            except:
+                                                variable["value"] = output["value"]
+                                        else:
+                                            variable["value"] = output["value"]
+                                    except:
+                                        pass
                                 break
                         break
 
