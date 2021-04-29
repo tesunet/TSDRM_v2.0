@@ -5,6 +5,8 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Max
 from xml.dom.minidom import Document
 
+from .system_views import *
+
 ######################
 # 流程管理
 ######################
@@ -1183,6 +1185,11 @@ def workflow_monitor_getdata(request):
                 "DONE":"#2a6dc0",
                 "": "#A9A9A9"
             }
+            # 流程输入参数
+            finalinput = job_xml_to_dict(job.finalinput, 'finalinput') if job.finalinput else ""
+            # 流程输出参数
+            output = job_xml_to_dict(job.output, 'output') if job.output else ""
+
             baseinfo = {
                 "guid": job.guid,
                 "workflowname": workflow.shortname,
@@ -1198,6 +1205,8 @@ def workflow_monitor_getdata(request):
                 "state_code": job.state,
                 "state": state_dict["{0}".format(job.state)] if job.state else "未开始",
                 "color": color_dict["{0}".format(job.state)] if job.state else "#A9A9A9",
+                "finalinput": finalinput,
+                "output": output,
             }
             content["modelData"] = baseinfo
 
@@ -1255,6 +1264,10 @@ def workflow_monitor_getdata(request):
                                         hour, minute, second = str(delta_seconds).split(":")
                                         delta_time = "{0}时{1}分{2}秒".format(
                                             hour, minute, second)
+                                    # 步骤输入参数
+                                    stepinput = job_xml_to_dict(curstepjob.input, 'finalinput', 'CONTROL') if curstepjob.input else ""
+                                    # 步骤输出参数
+                                    stepoutput = job_xml_to_dict(curstepjob.jobstepoutput, 'output', 'CONTROL') if curstepjob.jobstepoutput else ""
                                     stepbaseinfo = {
                                         "id":curstepjob.id,
                                         "guid": curstepjob.guid,
@@ -1267,6 +1280,8 @@ def workflow_monitor_getdata(request):
                                         "state_code": curstepjob.state,
                                         "state": state_dict["{0}".format(curstepjob.state)] if curstepjob.state else "未开始",
                                         "color": color_dict["{0}".format(curstepjob.state)] if curstepjob.state else "#A9A9A9",
+                                        "stepinput": stepinput,
+                                        "stepoutput": stepoutput,
                                     }
                                     stepjoblist.append(stepbaseinfo)
 
@@ -1279,7 +1294,7 @@ def workflow_monitor_getdata(request):
                                 "color": color_dict["{0}".format(stepstate)] if stepstate else "#A9A9A9",
                                 "key":  curstep["baseInfo"]["stepid"],
                                 "loc": curstep["baseInfo"]["loc"],
-                                "stepjob":json.dumps(stepjoblist)
+                                "stepjob": json.dumps(stepjoblist),
                             })
 
                         # 线条

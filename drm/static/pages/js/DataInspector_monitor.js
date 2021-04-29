@@ -74,15 +74,34 @@ Inspector.prototype.inspectObject = function (object) {
             selectedObject= {type:"node",key:stepData['key']};
 
             //步骤信息
-
             var stepjob = JSON.parse(stepData['stepjob']);
-
             $('#step_name').val(stepData['name']);
             $('#step_starttime').val("");
             $('#step_endtime').val("");
             $('#step_rto').val(stepData['rto']);
             $('#step_state').text(stepData['state']);
             $('#step_state').css("background-color",stepData['color']);
+
+            // 步骤参数数据
+            $('#bz_finalinput').empty();
+            $('#bz_output').empty();
+            for (var i = 0; i < stepjob.length; i++) {
+                if (stepjob[i]['stepinput']){
+                    for (var j = 0; j < stepjob[i]['stepinput'].length; j++) {
+                        $('#bz_finalinput').append('参数编码：' + stepjob[i]['stepinput'][j].code + '&#10;');
+                        $('#bz_finalinput').append('数据来源：' + stepjob[i]['stepinput'][j].source + '&#10;');
+                        $('#bz_finalinput').append('参数数值：' + stepjob[i]['stepinput'][j].value + '&#10;');
+                        $('#bz_finalinput').append('&#10;');
+                    }
+                }
+                if (stepjob[i]['stepoutput']){
+                    for (var j = 0; j < stepjob[i]['stepoutput'].length; j++) {
+                        $('#bz_output').append('参数编码：' + stepjob[i]['stepoutput'][j].code + '&#10;');
+                        $('#bz_output').append('参数数值：' + stepjob[i]['stepoutput'][j].value + '&#10;');
+                        $('#bz_output').append('&#10;');
+                    }
+                }
+            }
 
             $("#step_list").empty();
             for (var i = 0; i < stepjob.length; i++) {
@@ -105,8 +124,6 @@ Inspector.prototype.inspectObject = function (object) {
                     $("#step_list").append('<option value="' + stepjob[i]["id"] + '">' + stepjob[i]["starttime"] + '</option>')
                 }
             }
-
-
 
             $('#step_list').unbind("click");
 
@@ -195,6 +212,28 @@ Inspector.prototype.inspectObject = function (object) {
         $('#state').text(modelData['state']);
         $('#state').css("background-color",modelData['color']);
 
+        // 流程参数数据
+        $('#lc_finalinput').empty();
+        $('#lc_output').empty();
+
+        if (modelData['finalinput']){
+            for (var i = 0; i < modelData['finalinput'].length; i++) {
+                $('#lc_finalinput').append('参数编码：' + modelData['finalinput'][i].code + '&#10;');
+                $('#lc_finalinput').append('参数名称：' + modelData['finalinput'][i].name + '&#10;');
+                $('#lc_finalinput').append('参数类型：' + modelData['finalinput'][i].type + '&#10;');
+                $('#lc_finalinput').append('参数数值：' + modelData['finalinput'][i].value + '&#10;');
+                $('#lc_finalinput').append('&#10;');
+            }
+        }
+        if (modelData['output']){
+             for (var i = 0; i < modelData['output'].length; i++) {
+                $('#lc_output').append('参数编码：' + modelData['output'][i].code + '&#10;');
+                $('#lc_output').append('参数名称：' + modelData['output'][i].name + '&#10;');
+                $('#lc_output').append('参数类型：' + modelData['output'][i].type + '&#10;');
+                $('#lc_output').append('参数数值：' + modelData['output'][i].value + '&#10;');
+                $('#lc_output').append('&#10;');
+            }
+        }
         if(modelData['state_code']=="RUN"||modelData['state_code']=="ERROR"||modelData['state_code']=="PAUSE"||modelData['state_code']==""){
             $('#stop').show();
         }
