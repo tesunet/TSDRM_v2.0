@@ -115,6 +115,12 @@ function getkvmtree() {
                                         $('#disk_space h4').eq(1).text(data["disk_used"] + "/" + data["disk_total"] + " GB");
                                         $('#cpu_space input').eq(0).val(data["cpu_usage"].toFixed(0)).trigger('change');
                                         $('#cpu_space h4').eq(1).text(data["cpu_usage"] + " %")
+
+
+                                        $("#all_host_ip").val(data.all_host_ip);
+                                        $("#host_file").val(data.host_file);
+
+
                                     } else {
                                         alert(data.data);
                                         $("#loading2").hide();
@@ -200,6 +206,10 @@ function getkvmtree() {
                                         $("#kvm_ip").val(data.data.ip);
                                         $("#kvm_hostname").val(data.data.hostname);
                                         $("#kvm_password").val(data.data.password);
+
+                                        $("#kvm_all_host_ip").val(kvm_info.all_host_ip);
+                                        $("#kvm_host_file").val(kvm_info.host_file);
+
 
                                         // 任务栏：给电、断电、关闭、重启、暂停、唤醒、克隆、删除、激活按钮展示
                                         // kvmcopy表中没有此kvm虚拟机的信息，意为此虚机没有激活，只展示激活按钮，

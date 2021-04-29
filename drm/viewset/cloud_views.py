@@ -226,7 +226,10 @@ def get_kvm_detail(request):
             # 虚机硬件资源信息组件
             kvm_info_guid = '0cf3fd1e-9813-11eb-a964-000c29921d27'
             kvm_info_input = [{"code": "ip", "value": kvm_credit['KvmHost']},
-                          {"code": "kvm_name", "value": kvm_name}]
+                             {"code": "kvm_name", "value": kvm_name},
+                              {"code": "kvm_ip", "value": ip},
+                              {"code": "kvm_username", "value": 'root'},
+                              {"code": "kvm_password", "value": password}]
             newJob = Job(userid=request.user.id)
             state = newJob.execute_workflow(kvm_info_guid, input=kvm_info_input)
             if state == 'NOTEXIST':
