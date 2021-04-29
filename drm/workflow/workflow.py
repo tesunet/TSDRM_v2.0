@@ -1315,9 +1315,9 @@ class Job(object):
                     except:
                         param["value"] = None
                 elif param["type"] == "bool":
-                    if param["value"]=="True":
+                    if param["value"].upper()=="TRUE":
                         param["value"] = True
-                    elif param["value"]=="False":
+                    elif param["value"].upper()=="FALSE":
                         param["value"] = False
                 # elif param["type"] == "json":
                 #     try:
