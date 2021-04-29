@@ -1401,6 +1401,7 @@ def syslog_data(request):
             'DONE': '成功',
             'NOTEXIST': '组件不存在',
             'RUN': '组件运行中',
+            'STOP': '停止'
         }
         log_list = []
         # syslog表中日志信息
@@ -1438,53 +1439,97 @@ def syslog_data(request):
                 'log': log,
             })
 
-        # job表中日志信息
-        joblog_sql = "select drm_tsdrmjob.id, drm_tsdrmjob.createtime, drm_tsdrmjob.type, drm_userinfo.fullname," \
-                     "drm_tsdrmcomponent.shortname,drm_tsdrmjob.state,drm_tsdrmjob.guid,drm_tsdrmjob.finalinput," \
-                     "drm_tsdrmjob.output from drm_tsdrmjob,drm_userinfo,drm_tsdrmcomponent " \
-                     "where drm_tsdrmjob.startuser_id=drm_userinfo.id and drm_tsdrmjob.modelguid = drm_tsdrmcomponent.guid " \
-                     "and (drm_tsdrmjob.state is null or (drm_tsdrmjob.state != '9' and drm_tsdrmjob.state!='REJECT')) " \
-                     "and drm_tsdrmjob.pjob_id is null and drm_tsdrmjob.type in ('WORKFLOW','COMPONENT')"
+        # job表中组件日志信息
+        joblog_zj_sql = "select drm_tsdrmjob.id, drm_tsdrmjob.createtime, drm_tsdrmjob.type, drm_userinfo.fullname," \
+                        "drm_tsdrmcomponent.shortname, drm_tsdrmjob.state,drm_tsdrmjob.guid,drm_tsdrmjob.finalinput," \
+                        "drm_tsdrmjob.output from drm_tsdrmjob,drm_userinfo,drm_tsdrmcomponent " \
+                        "where drm_tsdrmjob.startuser_id=drm_userinfo.id and drm_tsdrmjob.modelguid = drm_tsdrmcomponent.guid " \
+                        "and (drm_tsdrmjob.state is null or (drm_tsdrmjob.state != '9' and drm_tsdrmjob.state!='REJECT')) " \
+                        "and drm_tsdrmjob.pjob_id is null and drm_tsdrmjob.type = 'COMPONENT'"
         if len(start_time.strip()) > 0:
-            joblog_sql += " and drm_tsdrmjob.createtime >='" + start_time + "'"
+            joblog_zj_sql += " and drm_tsdrmjob.createtime >='" + start_time + "'"
         if len(end_time.strip()) > 0:
-            joblog_sql += " and drm_tsdrmjob.createtime <='" + end_time + "'"
+            joblog_zj_sql += " and drm_tsdrmjob.createtime <='" + end_time + "'"
         if sys_user:
-            joblog_sql += " and drm_userinfo.fullname like '%" + sys_user + "%'"
+            joblog_zj_sql += " and drm_userinfo.fullname like '%" + sys_user + "%'"
         if sys_type != "":
-            joblog_sql += " and drm_tsdrmjob.type ='" + str(sys_type) + "'"
-        joblog_sql += " order by drm_tsdrmjob.createtime desc"
-        cursor.execute(joblog_sql)
-        joblog_rows = cursor.fetchall()
-        for joblog in joblog_rows:
-            id = joblog[0]
-            datatime = joblog[1].strftime('%Y-%m-%d %H:%M:%S') if joblog[1] else ""
-            log_type = type_dict[joblog[2]]
-            user = joblog[3]
-            shortname = joblog[4]
-            state = type_dict[joblog[5]]
-            guid = joblog[6]
-            content = shortname + state
-            finalinput = job_xml_to_dict(joblog[7], 'finalinput')
-            output = job_xml_to_dict(joblog[8], 'output')
-
-            log = '{user}{type}{content}。'.format(**{
-                'user': '<span style="color:#3598DC">{0}</span>'.format(user),
-                'type': '<span style="color:#F7CA18">{0}</span>'.format(log_type),
-                'content': '<span style="color:#26C281">{0}</span>'.format(content),
+            joblog_zj_sql += " and drm_tsdrmjob.type ='" + str(sys_type) + "'"
+        joblog_zj_sql += " order by drm_tsdrmjob.createtime desc"
+        cursor.execute(joblog_zj_sql)
+        joblog_zj_rows = cursor.fetchall()
+        for joblog_zj in joblog_zj_rows:
+            id_zj = joblog_zj[0]
+            datatime_zj = joblog_zj[1].strftime('%Y-%m-%d %H:%M:%S') if joblog_zj[1] else ""
+            type_zj = type_dict[joblog_zj[2]]
+            user_zj = joblog_zj[3]
+            shortname_zj = joblog_zj[4]
+            state_zj = type_dict[joblog_zj[5]]
+            guid_zj = joblog_zj[6]
+            content_zj = shortname_zj + state_zj
+            finalinput_zj = job_xml_to_dict(joblog_zj[7], 'finalinput')
+            output_zj = job_xml_to_dict(joblog_zj[8], 'output')
+            log_zj = '{user}{type}{content}。'.format(**{
+                'user': '<span style="color:#3598DC">{0}</span>'.format(user_zj),
+                'type': '<span style="color:#F7CA18">{0}</span>'.format(type_zj),
+                'content': '<span style="color:#26C281">{0}</span>'.format(content_zj),
+            })
+            log_list.append({
+                'id': id_zj,
+                'datatime': datatime_zj,
+                'type': type_zj,
+                'user': user_zj,
+                'shortname': shortname_zj,
+                'state': state_zj,
+                'guid': guid_zj,
+                'finalinput': finalinput_zj,
+                'output': output_zj,
+                'log': log_zj,
             })
 
+        # job表中流程日志信息
+        joblog_lc_sql = "select drm_tsdrmjob.id,drm_tsdrmjob.createtime,drm_tsdrmjob.type,drm_userinfo.fullname," \
+                        "drm_tsdrmjob.name,drm_tsdrmjob.state,drm_tsdrmjob.guid,drm_tsdrmjob.finalinput," \
+                        "drm_tsdrmjob.output from drm_tsdrmjob,drm_userinfo where drm_tsdrmjob.startuser_id=drm_userinfo.id " \
+                        "and (drm_tsdrmjob.state is null or (drm_tsdrmjob.state != '9' and drm_tsdrmjob.state!='REJECT')) " \
+                        "and drm_tsdrmjob.pjob_id is null and drm_tsdrmjob.type = 'WORKFLOW'"
+        if len(start_time.strip()) > 0:
+            joblog_lc_sql += " and drm_tsdrmjob.createtime >='" + start_time + "'"
+        if len(end_time.strip()) > 0:
+            joblog_lc_sql += " and drm_tsdrmjob.createtime <='" + end_time + "'"
+        if sys_user:
+            joblog_lc_sql += " and drm_userinfo.fullname like '%" + sys_user + "%'"
+        if sys_type != "":
+            joblog_lc_sql += " and drm_tsdrmjob.type ='" + str(sys_type) + "'"
+        joblog_lc_sql += " order by drm_tsdrmjob.createtime desc"
+        cursor.execute(joblog_lc_sql)
+        joblog_lc_rows = cursor.fetchall()
+        for joblog_lc in joblog_lc_rows:
+            id_lc = joblog_lc[0]
+            datatime_lc = joblog_lc[1].strftime('%Y-%m-%d %H:%M:%S') if joblog_lc[1] else ""
+            type_lc = type_dict[joblog_lc[2]]
+            user_lc = joblog_lc[3]
+            shortname_lc = joblog_lc[4]
+            state_lc = type_dict[joblog_lc[5]]
+            guid_lc = joblog_lc[6]
+            content_lc = shortname_lc + state_lc
+            finalinput_lc = job_xml_to_dict(joblog_lc[7], 'finalinput')
+            output_lc = job_xml_to_dict(joblog_lc[8], 'output')
+            log_lc = '{user}{type}{content}。'.format(**{
+                'user': '<span style="color:#3598DC">{0}</span>'.format(user_lc),
+                'type': '<span style="color:#F7CA18">{0}</span>'.format(type_lc),
+                'content': '<span style="color:#26C281">{0}</span>'.format(content_lc),
+            })
             log_list.append({
-                'id': id,
-                'datatime': datatime,
-                'type': log_type,
-                'user': user,
-                'shortname': shortname,
-                'state': state,
-                'guid': guid,
-                'finalinput': finalinput,
-                'output': output,
-                'log': log,
+                'id': id_lc,
+                'datatime': datatime_lc,
+                'type': type_lc,
+                'user': user_lc,
+                'shortname': shortname_lc,
+                'state': state_lc,
+                'guid': guid_lc,
+                'finalinput': finalinput_lc,
+                'output': output_lc,
+                'log': log_lc,
             })
         return JsonResponse({
             'data': log_list
