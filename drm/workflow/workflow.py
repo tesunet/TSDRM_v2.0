@@ -711,11 +711,11 @@ class Job(object):
                                 excute_obj = workflow_remote.ServerByPara(linux_script_file, host, user, password, "Linux")
                                 excute_result = excute_obj.run(isComponent=True)
                                 # 删除脚本
-                                # try:
-                                #     sftp.remove(linux_script_file)
-                                #     ssh.close()
-                                # except:
-                                #     pass
+                                try:
+                                    sftp.remove(linux_script_file)
+                                    ssh.close()
+                                except:
+                                    pass
                                 if excute_result["exec_tag"] == 1:
                                     self.jobBaseInfo["state"] = "ERROR"
                                     self.jobBaseInfo["log"] += excute_result["message"]
