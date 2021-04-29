@@ -1267,14 +1267,15 @@ def workflow_monitor_getdata(request):
                                         delta_time = "{0}时{1}分{2}秒".format(
                                             hour, minute, second)
                                     # 步骤输入参数
-                                    stepinput = job_xml_to_dict(curstepjob.input, 'finalinput', 'CONTROL') if curstepjob.input else ""
+                                    stepinput = job_xml_to_dict(curstepjob.finalinput, 'finalinput') if curstepjob.finalinput else ""
                                     # 步骤输出参数
-                                    stepoutput = job_xml_to_dict(curstepjob.jobstepoutput, 'output', 'CONTROL') if curstepjob.jobstepoutput else ""
+                                    stepoutput = job_xml_to_dict(curstepjob.output, 'output') if curstepjob.output else ""
                                     stepbaseinfo = {
-                                        "id":curstepjob.id,
+                                        "id": curstepjob.id,
                                         "type": curstepjob.type,
                                         "guid": curstepjob.guid,
-                                        "name": curstep["baseInfo"]["name"],
+                                        "name": curstepjob.name,
+                                        # "name": curstep["baseInfo"]["name"],
                                         "starttime": curstepjob.starttime.strftime(
                                             '%Y-%m-%d %H:%M:%S') if curstepjob.starttime else '',
                                         "endtime": curstepjob.starttime.strftime(
