@@ -1509,6 +1509,7 @@ class Job(object):
                 if input["code"]=="criteria":
                     criteriaList = input["value"]
                     break
+        criteriaList = json.loads(criteriaList)
         if criteriaList:
             for criteria in criteriaList:
                 #2.解析每个条件不等式左右两边参数

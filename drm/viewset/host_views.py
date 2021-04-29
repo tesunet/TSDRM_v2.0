@@ -383,7 +383,7 @@ def hosts_client_test(request):
     else:
         result=False
         for i in newJob.finalOutput:
-            if i['code'] == 'result':
+            if i['code'] == 'check_result':
                 result = i['value']
                 break
         if result:

@@ -349,6 +349,7 @@ $('#confirm').click(function () {
     $('#confirm').hide();
     if ($("#confirmtext").val() != "确认启动流程") {
         alert("请在文本框内输入\"确认启动流程\"");
+        $('#confirm').show();
     } else {
         var process_params = [];
         $('#run_param_div').find('input').each(function (index, el) {
