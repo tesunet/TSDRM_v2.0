@@ -93,6 +93,8 @@ function loadworkflow() {
 
                 function imageConverter(prop, picture) {
                     var node = picture.part;
+                    var cmd = myDiagram.commandHandler;
+                    cmd.collapseTree(node);
                     if (node.isTreeLeaf) {
                         return "../../static/assets/global/plugins/gojs/images/document.svg";
                     } else {

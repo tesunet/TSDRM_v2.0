@@ -381,8 +381,21 @@ def hosts_client_test(request):
         ret = 0
         info = newJob.jobBaseInfo["log"]
     else:
-        ret = 1
-        info = "网络正常"
+        result=False
+        for i in newJob.finalOutput:
+            if i['code'] == 'result':
+                result = i['value']
+                break
+        if result:
+            ret = 1
+            info = "网络正常"
+        else:
+            ret = 0
+            info = "连接失败"
+            for i in newJob.finalOutput:
+                if i['code'] == 'message':
+                    info = i['value']
+                    break
 
     return JsonResponse({
         "ret": ret,

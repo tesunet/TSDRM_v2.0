@@ -1236,11 +1236,12 @@ class Job(object):
 
         # 1.根据source，从workfolwInput、workfolwVariable、stepOutput、_getFunctionValue中获取参数值；常数和input不需要额外获取
         for param in paramList:
-            param_key=None
-            param_value_list = param["value"].split('-->')
-            param["value"]=param_value_list[0]
-            if len(param_value_list)>1:
-                param_key=param_value_list[1]
+            param_key = None
+            if param["value"]:
+                param_value_list = param["value"].split('-->')
+                param["value"]=param_value_list[0]
+                if len(param_value_list)>1:
+                    param_key=param_value_list[1]
 
             if param["source"] == "workfolwInput":
                 for tmpInput in curSourceNode.finalInput:

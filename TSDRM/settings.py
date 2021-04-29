@@ -23,7 +23,8 @@ djcelery.setup_loader()
 # BROKER_URL = 'django://'
 # CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
 
-BROKER_URL = 'redis://:tesunet@192.168.1.67:6379/0'
+BROKER_URL = 'redis://:tesunet@127.0.0.1:6379/0'
+#BROKER_URL = 'redis://:tesunet@192.168.1.67:6379/0'
 # BROKER_URL = 'redis://:tesunet@223.247.155.54:6379/0'
 # CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/1'
 # BROKER_URL = 'amqp://root:password@localhost:5672/myvhost'
@@ -110,7 +111,7 @@ DATABASES = {
         'NAME': "tesudrm_v2.0",
         'USER': "root",
         'PASSWORD': "password",
-        # 'HOST': "127.0.0.1",
+        #'HOST': "127.0.0.1",
         'HOST': "192.168.1.66",
         'PORT': '3306',
     }
@@ -154,10 +155,12 @@ STATIC_URL = '/static/'
 SITE_ROOT = os.path.join(os.path.abspath(os.path.dirname(__file__)), '..')
 STATIC_ROOT = os.path.join(SITE_ROOT, 'static')
 
+EMAIL_USE_SSL = True
 EMAIL_HOST = 'smtp.exmail.qq.com'
-EMAIL_HOST_USER = 'huangzx@tesunet.com.cn'
-EMAIL_HOST_PASSWORD = 'tesunet'
-EMAIL_PORT = 25
+EMAIL_HOST_USER = 'support@tesunet.com.cn'
+EMAIL_HOST_PASSWORD = 'Tesu2021'
+EMAIL_PORT = 465
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # STATICFILES_DIRS = [
 #     os.path.join(BASE_DIR, "static")
