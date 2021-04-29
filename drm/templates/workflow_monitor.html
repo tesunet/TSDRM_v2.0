@@ -161,6 +161,8 @@
                                                 </div>
                                                 <div class="form-group" style="margin-left:0px;margin-right:0px">
                                                     <div class="col-md-12">
+                                                        <input hidden="hidden" type="text" id="step_id" name="step_id" >
+                                                        <input hidden="hidden" type="text" id="step_type" name="step_type" >
                                                         <input hidden="hidden" type="text" id="step_guid" name="step_guid" >
                                                         <select id="step_list" size="10" class="form-control"
                                                                 style="overflow-y:auto;">
@@ -197,6 +199,13 @@
                                                     <div class="col-md-9">
                                                         <input readonly id="step_rto" type="text" name="step_rto"
                                                                class="form-control " placeholder="">
+                                                        <div class="form-control-focus"></div>
+                                                    </div>
+                                                </div>
+                                                <div class="form-group" style="margin-right:0px" id="child_workflow_div">
+                                                    <label class="col-md-3 control-label">子流程</label>
+                                                    <div class="col-md-9" style="margin-top: 7px">
+                                                        <a href="" id="child_workflow_info" target="_blank"></a>
                                                         <div class="form-control-focus"></div>
                                                     </div>
                                                 </div>

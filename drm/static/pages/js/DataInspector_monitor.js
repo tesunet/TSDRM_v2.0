@@ -106,6 +106,8 @@ Inspector.prototype.inspectObject = function (object) {
             $("#step_list").empty();
             for (var i = 0; i < stepjob.length; i++) {
                 if (i == stepjob.length-1) {
+                    $('#step_id').val(stepjob[i]['id']);
+                    $('#step_type').val(stepjob[i]['type']);
                     $('#step_guid').val(stepjob[i]['guid']);
                     $('#step_name').val(stepjob[i]['name']);
                     $('#step_starttime').val(stepjob[i]['starttime']);
@@ -123,6 +125,15 @@ Inspector.prototype.inspectObject = function (object) {
                 } else {
                     $("#step_list").append('<option value="' + stepjob[i]["id"] + '">' + stepjob[i]["starttime"] + '</option>')
                 }
+            }
+            // 判断流程中的步骤是否是子流程
+            if ($('#step_type').val() == 'WORKFLOW'){
+                $('#child_workflow_div').show();
+                $('#child_workflow_info').attr("href",'/workflow_monitor/' + $('#step_id').val() +'/?s=true');
+                $('#child_workflow_info').text($('#step_name').val());
+            }
+            else {
+                $('#child_workflow_div').hide()
             }
 
             $('#step_list').unbind("click");
