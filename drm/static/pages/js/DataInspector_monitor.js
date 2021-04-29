@@ -175,9 +175,7 @@ Inspector.prototype.inspectObject = function (object) {
             var steps = diagram.model.wc;
             for (var i = 0; i < steps.length; i++) {
                 if(steps[i]["key"]==lineData['from']){
-                    if(steps[i]["category"]=="for" || steps[i]["category"]=="if"){
-                        $('#div_criteria').show();
-                    }
+                    $('#div_criteria').show();
                     formnode_category=steps[i]["category"]
                     formnode_text=steps[i]["text"]
                 }
@@ -191,6 +189,10 @@ Inspector.prototype.inspectObject = function (object) {
             } else if (formnode_category == "if") {
                 $("#line_criteria").append('<option value="True">Yes</option>')
                 $("#line_criteria").append('<option value="False">No</option>')
+            }else{
+                $("#line_criteria").append('<option value="True">成功</option>')
+                $("#line_criteria").append('<option value="False">失败</option>')
+                $("#line_criteria").append('<option value="All">全部</option>')
             }
 
             $('#line_from').val(lineData['from']);

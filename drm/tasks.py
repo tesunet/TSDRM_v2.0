@@ -28,19 +28,22 @@ logger = logging.getLogger('tasks')
 
 @shared_task
 def run_workflow(jobGuid,type,skipJobGuid=None,userid=None):
-    """
-    启动任务进程
-    """
-    job = Job(jobGuid,userid)
-    if type=="start":
-        #开始流程
-        job.run_job()
-    elif type=="retry":
-        #重试/继续流程
-        job.retry_job()
-    elif type=="skip":
-        #跳过步骤并继续流程
-        job.skip_step(skipJobGuid)
+    try:
+        """
+        启动任务进程
+        """
+        job = Job(jobGuid,userid)
+        if type=="start":
+            #开始流程
+            job.run_job()
+        elif type=="retry":
+            #重试/继续流程
+            job.retry_job()
+        elif type=="skip":
+            #跳过步骤并继续流程
+            job.skip_step(skipJobGuid)
+    except:
+        pass
 
 
 

@@ -587,7 +587,7 @@ class Job(object):
         if self.jobModelguid =="0aa259dc-50ad-11eb-a8a3-84fdd1a17907":
             if len(self.finalOutput) > 0:
                 for output in self.finalOutput:
-                    if output["code"] == "result":
+                    if output["code"] == "workflow_result":
                         if output["value"]==False:
                             isRunLoop = True
                         break
@@ -958,12 +958,12 @@ class Job(object):
         self.save_job()
 
         #5.如果任务运行成功，运行下一步，否则直接返回状态
-        if returnState=="DONE" or returnState=="WAIT":
-            returnState = self._run_nextStep(curStep,stepJob.finalOutput)
+        if returnState=="DONE" or returnState=="WAIT"  or returnState=="ERROR"  or returnState=="WARNING":
+            returnState = self._run_nextStep(curStep,stepJob)
         return returnState
 
     # 运行下一步
-    def _run_nextStep(self, curStep,stepOutput):
+    def _run_nextStep(self, curStep,curChildJob):
         """
         运行下一步
 
@@ -975,7 +975,7 @@ class Job(object):
 
         Args:
             curStep (dict): dict格式的上一步骤信息
-            stepOutput(dict):上一步骤的任务输出
+            stepOutput(dict):上一步骤的子任务输出
 
         Returns:
             无
@@ -993,26 +993,46 @@ class Job(object):
                 if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
                     tmpDTL = [tmpDTL]
                 nextcount=0
+                if curChildJob.jobBaseInfo["state"] == "ERROR" and curChildJob.jobModel.workflowType == "CONTROL":
+                    return curChildJob.jobBaseInfo["state"]
+                updateCurChildJob = False
                 for line in tmpDTL:
                     if "nextPoint" in line:
                         nextStepId = line["nextPoint"]
                         criteria = True
                         #4.解析line的条件criteria，判断条件是否成立
                         #判断上一步是否未判断控件，如果是，对比判断结果和线条条件；如果不是，无视条件直接继续
-                        for lastOutput in stepOutput:
-                            if "code" in lastOutput and lastOutput["code"]=="result":
-                                criteriaStr = "True"
-                                try:
-                                    criteriaStr = line["criteria"]
-                                except:
-                                    pass
-                                if lastOutput["value"]==False:
-                                    if criteriaStr != "False":
-                                        criteria = False
+                        if curChildJob.jobModel.workflowType == "CONTROL":
+                            for lastOutput in curChildJob.finalOutput:
+                                if "code" in lastOutput and lastOutput["code"]=="workflow_result":
+                                    criteriaStr = "True"
+                                    try:
+                                        criteriaStr = line["criteria"]
+                                    except:
+                                        pass
+                                    if lastOutput["value"]==False:
+                                        if criteriaStr != "False":
+                                            criteria = False
+                                    else:
+                                        if criteriaStr == "False":
+                                            criteria = False
+                                    break
+                        else:
+                            if curChildJob.jobBaseInfo["state"]=="ERROR":
+                                if line["criteria"]!="False" and line["criteria"]!="All" :
+                                    criteria = False
                                 else:
-                                    if criteriaStr == "False":
-                                        criteria = False
-                                break
+                                    if not updateCurChildJob:
+                                        curChildJob.jobBaseInfo["state"] = "WARNING"
+                                        curChildJob.save_job()
+                                        updateCurChildJob=True
+                            else:
+                                if line["criteria"]=="False":
+                                    criteria = False
+                                    if not updateCurChildJob:
+                                        curChildJob.jobBaseInfo["state"] = "WARNING"
+                                        curChildJob.save_job()
+                                        updateCurChildJob=True
                         #5.执行下一步
                         if criteria:
                             xml = etree.fromstring(self.jobModel.workflowBaseInfo["content"])
@@ -1023,10 +1043,13 @@ class Job(object):
                                 if returnState=="ERROR":
                                     break
                 if nextcount<=0:
-                    self.jobBaseInfo["log"] += 'error(_run_step)步骤未找到下一步'
-                    self.jobBaseInfo["state"] = "ERROR"
-                    self.save_job()
-                    returnState = "ERROR"
+                    if curChildJob.jobBaseInfo["state"] == "ERROR":
+                        return curChildJob.jobBaseInfo["state"]
+                    else:
+                        self.jobBaseInfo["log"] += 'error(_run_step)步骤未找到下一步'
+                        self.jobBaseInfo["state"] = "ERROR"
+                        self.save_job()
+                        returnState = "ERROR"
             else:
                 self.jobBaseInfo["log"] += 'error(_run_step)步骤未找到下一步'
                 self.jobBaseInfo["state"] = "ERROR"
@@ -1383,7 +1406,7 @@ class Job(object):
             childJob = Job(childrenJobList[0].guid)
             #2.重试子步骤，成功运行（state=DONE），执行子步骤的下一步骤
             curstate = childJob.retry_job()
-            if curstate=="DONE" or curstate=="WAIT":
+            if curstate == "DONE" or curstate == "WAIT" or curstate == "ERROR" or curstate == "WARNING":
                 xml = etree.fromstring(self.jobModel.workflowBaseInfo["content"])
                 curStep = xml.xpath("//stepid[text()='" + childJob.jobBaseInfo["step"] + "'][1]/parent::*/parent::*")
                 if len(curStep) > 0:
@@ -1393,7 +1416,7 @@ class Job(object):
                     self.save_job()
                     self._update_stepOutput(curStep, childJob.finalOutput)
                     # 4.运行子任务的后续步骤，直至结束或出错，结果返回给前任务状态
-                    self.jobBaseInfo["state"] = self._run_nextStep(curStep,childJob.finalOutput)
+                    self.jobBaseInfo["state"] = self._run_nextStep(curStep,childJob)
                 else:
                     self.jobBaseInfo["log"] += 'error(_retry_job)步骤信息错误'
                     self.jobBaseInfo["state"] = "ERROR"
@@ -1444,7 +1467,7 @@ class Job(object):
                 # 3.如果子任务中存在暂停或出错的任务，调用递归函数skip_step
                 curstate = childJob.skip_step(skipJobGuid)
                 #4.子任务返回SKIP或DONE时，说明跳过成功（SKIP为跳过的步骤返回状态，DONE为跳过的步骤的祖先节点返回状态），运行子任务后续步骤
-                if curstate == "DONE" or curstate == "SKIP" or curstate == "WAIT":
+                if curstate == "DONE" or curstate == "SKIP" or curstate == "WAIT" or curstate == "ERROR" or curstate == "WARNING":
                     xml = etree.fromstring(self.jobModel.workflowBaseInfo["content"])
                     curStep = xml.xpath("//stepid[text()='" + childJob.jobBaseInfo["step"] + "'][1]/parent::*/parent::*")
                     if len(curStep) > 0:
@@ -1453,7 +1476,7 @@ class Job(object):
                         # 5.将子任务的输出更新到父任务jobStepOutput和jobVariable并保存
                         self._update_stepOutput(curStep, childJob.finalOutput)
                         # 6.运行子任务的后续步骤，直至结束或出错，结果返回给前任务状态
-                        self.jobBaseInfo["state"] = self._run_nextStep(curStep, childJob.finalOutput)
+                        self.jobBaseInfo["state"] = self._run_nextStep(curStep, childJob)
                     else:
                         self.jobBaseInfo["log"] += 'error(skip_step)步骤信息错误'
                         self.jobBaseInfo["state"] = "ERROR"
@@ -1596,19 +1619,7 @@ class Job(object):
                     elif criteriaLogic=="or":
                         result = result or curResult
         #5.输出结果finalOutput
-        if self.jobModel.workflowBaseInfo["output"] and len(self.jobModel.workflowBaseInfo["output"].strip()) > 0:
-            tmpDTL = xmltodict.parse(self.jobModel.workflowBaseInfo["output"])
-            if "outputs" in tmpDTL and tmpDTL["outputs"] and "output" in tmpDTL["outputs"] and tmpDTL["outputs"][
-                "output"]:
-                tmpDTL = tmpDTL["outputs"]["output"]
-                if str(type(tmpDTL)) == "<class 'collections.OrderedDict'>":
-                    tmpDTL = [tmpDTL]
-                self.finalOutput = tmpDTL
-
-                for output in self.finalOutput:
-                    if output["code"] == "result":
-                        output.update({'value': result})
-                        break
+        self.finalOutput.append({"code":"workflow_result","name":"判断结果","type":"bool","remark":None,"value":result})
 
     # 控件——循环
     def _control_for(self):
@@ -1664,12 +1675,11 @@ class Job(object):
                 self.finalOutput = tmpDTL
 
                 for output in self.finalOutput:
-                    if output["code"] == "result":
-                        output.update({'value': isEnd})
                     if output["code"] == "element":
                         output.update({'value': element})
                     if output["code"] == "number":
                         output.update({'value': number})
+        self.finalOutput.append({"code":"workflow_result","name":"是否结束","type":"bool","remark":None,"value":isEnd})
 
     # 控件——跳出循环
     def _control_break(self):
