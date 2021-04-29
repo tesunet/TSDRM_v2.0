@@ -1397,11 +1397,16 @@ def syslog_data(request):
             'other': '其他',
             'WORKFLOW': '执行流程',
             'COMPONENT': '执行组件',
-            'ERROR': '错误',
-            'DONE': '成功',
             'NOTEXIST': '组件不存在',
-            'RUN': '组件运行中',
-            'STOP': '停止'
+            "PAUSE": "暂停",
+            "RUN": "运行",
+            "STOP": "停止",
+            "ERROR": "错误",
+            "BREAK": "跳出",
+            "SKIP": "跳过",
+            "WAIT": "等待",
+            "DONE": "完成",
+            "": "未开始"
         }
         log_list = []
         # syslog表中日志信息
@@ -1423,7 +1428,7 @@ def syslog_data(request):
         for syslog in syslog_rows:
             id = syslog[0]
             datatime = syslog[1].strftime('%Y-%m-%d %H:%M:%S') if syslog[1] else ""
-            log_type = type_dict[syslog[2]]
+            log_type = type_dict.get(syslog[2])
             content = syslog[3]
             user = syslog[4]
             log = '{user}{type}{content}。'.format(**{
@@ -1458,16 +1463,16 @@ def syslog_data(request):
         cursor.execute(joblog_zj_sql)
         joblog_zj_rows = cursor.fetchall()
         for joblog_zj in joblog_zj_rows:
-            id_zj = joblog_zj[0]
+            id_zj = joblog_zj[0] if joblog_zj[0] else ""
             datatime_zj = joblog_zj[1].strftime('%Y-%m-%d %H:%M:%S') if joblog_zj[1] else ""
-            type_zj = type_dict[joblog_zj[2]]
-            user_zj = joblog_zj[3]
-            shortname_zj = joblog_zj[4]
-            state_zj = type_dict[joblog_zj[5]]
-            guid_zj = joblog_zj[6]
+            type_zj = type_dict.get(joblog_zj[2]) if joblog_zj[2] else ""
+            user_zj = joblog_zj[3] if joblog_zj[3] else ""
+            shortname_zj = joblog_zj[4] if joblog_zj[4] else ""
+            state_zj = type_dict.get(joblog_zj[5]) if joblog_zj[5] else ""
+            guid_zj = joblog_zj[6] if joblog_zj[6] else ""
             content_zj = shortname_zj + state_zj
-            finalinput_zj = job_xml_to_dict(joblog_zj[7], 'finalinput')
-            output_zj = job_xml_to_dict(joblog_zj[8], 'output')
+            finalinput_zj = job_xml_to_dict(joblog_zj[7], 'finalinput') if joblog_zj[7] else ""
+            output_zj = job_xml_to_dict(joblog_zj[8], 'output') if joblog_zj[8] else ""
             log_zj = '{user}{type}{content}。'.format(**{
                 'user': '<span style="color:#3598DC">{0}</span>'.format(user_zj),
                 'type': '<span style="color:#F7CA18">{0}</span>'.format(type_zj),
@@ -1504,16 +1509,16 @@ def syslog_data(request):
         cursor.execute(joblog_lc_sql)
         joblog_lc_rows = cursor.fetchall()
         for joblog_lc in joblog_lc_rows:
-            id_lc = joblog_lc[0]
+            id_lc = joblog_lc[0] if joblog_lc[0] else ""
             datatime_lc = joblog_lc[1].strftime('%Y-%m-%d %H:%M:%S') if joblog_lc[1] else ""
-            type_lc = type_dict[joblog_lc[2]]
-            user_lc = joblog_lc[3]
-            shortname_lc = joblog_lc[4]
-            state_lc = type_dict[joblog_lc[5]]
-            guid_lc = joblog_lc[6]
+            type_lc = type_dict.get(joblog_lc[2]) if joblog_lc[2] else ""
+            user_lc = joblog_lc[3] if joblog_lc[3] else ""
+            shortname_lc = joblog_lc[4] if joblog_lc[4] else ""
+            state_lc = type_dict.get(joblog_lc[5]) if joblog_lc[5] else ""
+            guid_lc = joblog_lc[6] if joblog_lc[6] else ""
             content_lc = shortname_lc + state_lc
-            finalinput_lc = job_xml_to_dict(joblog_lc[7], 'finalinput')
-            output_lc = job_xml_to_dict(joblog_lc[8], 'output')
+            finalinput_lc = job_xml_to_dict(joblog_lc[7], 'finalinput') if joblog_lc[7] else ""
+            output_lc = job_xml_to_dict(joblog_lc[8], 'output') if joblog_lc[8] else ""
             log_lc = '{user}{type}{content}。'.format(**{
                 'user': '<span style="color:#3598DC">{0}</span>'.format(user_lc),
                 'type': '<span style="color:#F7CA18">{0}</span>'.format(type_lc),
