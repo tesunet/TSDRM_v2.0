@@ -1029,10 +1029,6 @@ class Job(object):
                             else:
                                 if line["criteria"]=="False":
                                     criteria = False
-                                    if not updateCurChildJob:
-                                        curChildJob.jobBaseInfo["state"] = "WARNING"
-                                        curChildJob.save_job()
-                                        updateCurChildJob=True
                         #5.执行下一步
                         if criteria:
                             xml = etree.fromstring(self.jobModel.workflowBaseInfo["content"])
