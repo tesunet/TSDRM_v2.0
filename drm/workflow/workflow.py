@@ -1020,7 +1020,7 @@ class Job(object):
                         else:
                             if curChildJob.jobBaseInfo["state"]=="ERROR":
                                 if line["criteria"]!="False" and line["criteria"]!="All" :
-                                    criteria = False1
+                                    criteria = False
                                 else:
                                     if not updateCurChildJob:
                                         curChildJob.jobBaseInfo["state"] = "WARNING"
