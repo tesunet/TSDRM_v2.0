@@ -69,6 +69,7 @@ Inspector.prototype.inspectObject = function (object) {
             $('#skip').hide();
             $('#div_line').hide();
             $('#div_node').show();
+            $('#step_list_div').show();
             var stepData = inspectedObject.data
             var modelData = diagram.model.modelData;
             selectedObject= {type:"node",key:stepData['key']};
@@ -82,26 +83,29 @@ Inspector.prototype.inspectObject = function (object) {
             $('#step_state').text(stepData['state']);
             $('#step_state').css("background-color",stepData['color']);
 
-            // 步骤参数数据
-            $('#bz_finalinput').empty();
-            $('#bz_output').empty();
-            for (var i = 0; i < stepjob.length; i++) {
-                if (stepjob[i]['stepinput']){
-                    for (var j = 0; j < stepjob[i]['stepinput'].length; j++) {
-                        $('#bz_finalinput').append('参数编码：' + stepjob[i]['stepinput'][j].code + '&#10;');
-                        $('#bz_finalinput').append('数据来源：' + stepjob[i]['stepinput'][j].source + '&#10;');
-                        $('#bz_finalinput').append('参数数值：' + stepjob[i]['stepinput'][j].value + '&#10;');
-                        $('#bz_finalinput').append('&#10;');
-                    }
-                }
-                if (stepjob[i]['stepoutput']){
-                    for (var j = 0; j < stepjob[i]['stepoutput'].length; j++) {
-                        $('#bz_output').append('参数编码：' + stepjob[i]['stepoutput'][j].code + '&#10;');
-                        $('#bz_output').append('参数数值：' + stepjob[i]['stepoutput'][j].value + '&#10;');
-                        $('#bz_output').append('&#10;');
-                    }
-                }
-            }
+            // // 步骤参数数据
+            // $('#bz_finalinput').empty();
+            // $('#bz_output').empty();
+            // for (var i = 0; i < stepjob.length; i++) {
+            //     if (stepjob[i]['stepinput']){
+            //         for (var j = 0; j < stepjob[i]['stepinput'].length; j++) {
+            //             $('#bz_finalinput').append('参数编码：' + stepjob[i]['stepinput'][j].code + '&#10;');
+            //             $('#bz_finalinput').append('参数名称：' + stepjob[i]['stepinput'][j].name + '&#10;');
+            //             $('#bz_finalinput').append('参数类型：' + stepjob[i]['stepinput'][j].type + '&#10;');
+            //             $('#bz_finalinput').append('参数数值：' + stepjob[i]['stepinput'][j].value + '&#10;');
+            //             $('#bz_finalinput').append('&#10;');
+            //         }
+            //     }
+            //     if (stepjob[i]['stepoutput']){
+            //         for (var j = 0; j < stepjob[i]['stepoutput'].length; j++) {
+            //             $('#bz_output').append('参数编码：' + stepjob[i]['stepoutput'][j].code + '&#10;');
+            //             $('#bz_output').append('参数名称：' + stepjob[i]['stepoutput'][j].name + '&#10;');
+            //             $('#bz_output').append('参数类型：' + stepjob[i]['stepoutput'][j].type + '&#10;');
+            //             $('#bz_output').append('参数数值：' + stepjob[i]['stepoutput'][j].value + '&#10;');
+            //             $('#bz_output').append('&#10;');
+            //         }
+            //     }
+            // }
 
             $("#step_list").empty();
             for (var i = 0; i < stepjob.length; i++) {
@@ -153,12 +157,76 @@ Inspector.prototype.inspectObject = function (object) {
                         }
                         else{
                             $('#skip').hide();
+
+                        $('#bz_finalinput').empty();
+                        $('#bz_output').empty();
+                        if (stepjob[i]['stepinput']){
+                            for (var j = 0; j < stepjob[i]['stepinput'].length; j++) {
+                                $('#bz_finalinput').append('参数编码：' + stepjob[i]['stepinput'][j].code + '&#10;');
+                                $('#bz_finalinput').append('参数名称：' + stepjob[i]['stepinput'][j].name + '&#10;');
+                                $('#bz_finalinput').append('参数类型：' + stepjob[i]['stepinput'][j].type + '&#10;');
+                                $('#bz_finalinput').append('参数数值：' + stepjob[i]['stepinput'][j].value + '&#10;');
+                                $('#bz_finalinput').append('&#10;');
+                            }
+                        }
+                        if (stepjob[i]['stepoutput']){
+                            for (var j = 0; j < stepjob[i]['stepoutput'].length; j++) {
+                                $('#bz_output').append('参数编码：' + stepjob[i]['stepoutput'][j].code + '&#10;');
+                                $('#bz_output').append('参数名称：' + stepjob[i]['stepoutput'][j].name + '&#10;');
+                                $('#bz_output').append('参数类型：' + stepjob[i]['stepoutput'][j].type + '&#10;');
+                                $('#bz_output').append('参数数值：' + stepjob[i]['stepoutput'][j].value + '&#10;');
+                                $('#bz_output').append('&#10;');
+                            }
+                        }
+
+
                         }
                         break;
                     }
                 }
 
             });
+            var selectval = $("#step_list option:selected").val();
+            for (var i = 0; i < stepjob.length; i++) {
+                    if (stepjob[i]["id"] == selectval) {
+                        $('#step_name').val(stepjob[i]['name']);
+                        $('#step_starttime').val(stepjob[i]['starttime']);
+                        $('#step_endtime').val(stepjob[i]['endtime']);
+                        $('#step_rto').val(stepjob[i]['rto']);
+                        $('#step_state').text(stepjob[i]['state']);
+                        $('#step_state').css("background-color",stepjob[i]['color']);
+                        if(stepjob[i]['state_code']=="PAUSE"||stepjob[i]['state_code']=="ERROR"){
+                            $('#skip').show();
+                        }
+                        else{
+                            $('#skip').hide();
+
+                        $('#bz_finalinput').empty();
+                        $('#bz_output').empty();
+                        if (stepjob[i]['stepinput']){
+                            for (var j = 0; j < stepjob[i]['stepinput'].length; j++) {
+                                $('#bz_finalinput').append('参数编码：' + stepjob[i]['stepinput'][j].code + '&#10;');
+                                $('#bz_finalinput').append('参数名称：' + stepjob[i]['stepinput'][j].name + '&#10;');
+                                $('#bz_finalinput').append('参数类型：' + stepjob[i]['stepinput'][j].type + '&#10;');
+                                $('#bz_finalinput').append('参数数值：' + stepjob[i]['stepinput'][j].value + '&#10;');
+                                $('#bz_finalinput').append('&#10;');
+                            }
+                        }
+                        if (stepjob[i]['stepoutput']){
+                            for (var j = 0; j < stepjob[i]['stepoutput'].length; j++) {
+                                $('#bz_output').append('参数编码：' + stepjob[i]['stepoutput'][j].code + '&#10;');
+                                $('#bz_output').append('参数名称：' + stepjob[i]['stepoutput'][j].name + '&#10;');
+                                $('#bz_output').append('参数类型：' + stepjob[i]['stepoutput'][j].type + '&#10;');
+                                $('#bz_output').append('参数数值：' + stepjob[i]['stepoutput'][j].value + '&#10;');
+                                $('#bz_output').append('&#10;');
+                            }
+                        }
+
+
+                        }
+                        break;
+                    }
+                }
 
         }
         else if (this.inspectedObject instanceof go.Link) {
@@ -207,6 +275,7 @@ Inspector.prototype.inspectObject = function (object) {
         }
     else {
         selectedObject= {type:"base"};
+        $('#step_list_div').hide();
         $('#div_workflow').show();
         $('#div_node').hide();
         $('#div_line').hide();
