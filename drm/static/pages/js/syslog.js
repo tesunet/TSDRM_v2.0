@@ -52,35 +52,30 @@ $(document).ready(function () {
     $('#sample_1 tbody').on('click', 'button#edit', function () {
         var table = $('#sample_1').DataTable();
         var data = table.row($(this).parents('tr')).data();
-        $('#guid').empty();
-        $('#shortname').empty();
-        $('#state').empty();
+        $('#guid').val(data.guid);
+        $('#shortname').val(data.shortname);
+        $('#state').val(data.state);
+
         $('#finalinput').empty();
         $('#output').empty();
-        $('#guid').append('<ul>' + data.guid + '</ul>');
-        $('#shortname').append('<ul>'+ data.shortname + '</ul>');
-        $('#state').append('<ul>'+ data.state + '</ul>');
-        var finalinput = '';
-        for (var i = 0; i < data.finalinput.length; i++) {
-            finalinput += '<ul>' +
-                '<li>参数编码：' + data.finalinput[i].code + '</li>' +
-                '<li>参数名称：' + data.finalinput[i].name + '</li>' +
-                '<li>参数值：' + data.finalinput[i].value + '</li>' +
-                '<li>参数类型：' + data.finalinput[i].type + '</li>' +
-                '</ul>'
+        if (data.finalinput){
+            for (var i = 0; i < data.finalinput.length; i++) {
+                $('#finalinput').append('参数编码：' + data.finalinput[i].code + '&#10;');
+                $('#finalinput').append('参数名称：' + data.finalinput[i].name + '&#10;');
+                $('#finalinput').append('参数类型：' + data.finalinput[i].type + '&#10;');
+                $('#finalinput').append('参数数值：' + data.finalinput[i].value + '&#10;');
+                $('#finalinput').append('&#10;');
+            }
         }
-        $('#finalinput').append(finalinput);
-        var output = '';
-        for (var i = 0; i < data.output.length; i++) {
-            output += '<ul>' +
-                '<li>参数编码：' + data.output[i].code + '</li>' +
-                '<li>参数名称：' + data.output[i].name + '</li>' +
-                '<li>参数名称：' + data.output[i].name + '</li>' +
-                '<li>参数值：' + data.output[i].value + '</li>' +
-                '<li>参数类型：' + data.output[i].type + '</li>' +
-                '</ul>'
+        if (data.output){
+             for (var i = 0; i < data.output.length; i++) {
+                $('#output').append('参数编码：' + data.output[i].code + '&#10;');
+                $('#output').append('参数名称：' + data.output[i].name + '&#10;');
+                $('#output').append('参数类型：' + data.output[i].type + '&#10;');
+                $('#output').append('参数数值：' + data.output[i].value + '&#10;');
+                $('#output').append('&#10;');
+            }
         }
-        $('#output').append(output);
     });
 
     $('#startdate').datetimepicker({
